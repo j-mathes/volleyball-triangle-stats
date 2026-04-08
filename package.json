@@ -1,0 +1,29 @@
+{
+  "name": "triangle-stats",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run -w @triangle-stats/web dev",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck:refs": "tsc -b",
+    "typecheck": "npm run -w @triangle-stats/shared typecheck",
+    "typecheck:all": "npm run -w @triangle-stats/shared typecheck && npm run -w @triangle-stats/web typecheck",
+    "test": "npm run -w @triangle-stats/shared test",
+    "test:web": "npm run -w @triangle-stats/web test",
+    "test:all": "npm run -w @triangle-stats/shared test && npm run -w @triangle-stats/web test",
+    "test:watch": "npm run -w @triangle-stats/shared test:watch"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.22.0",
+    "eslint": "^9.22.0",
+    "globals": "^16.0.0",
+    "typescript-eslint": "^8.26.0"
+  },
+  "dependencies": {
+  }
+}
