@@ -24,8 +24,4 @@ Ship only if all above pass.
 
 If any check fails:
 - capture failing step
-- add a short note to `docs/TASK_BOARD.md`
 - fix and rerun this checklist
-
-After completion:
-- fill `docs/RELEASE_SIGNOFF_TEMPLATE.md` and store it as a dated sign-off note
