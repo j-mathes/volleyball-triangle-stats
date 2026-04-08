@@ -11,3 +11,14 @@ This ensures:
 - full audit history
 - deterministic reconstruction
 - robust JSON export
+
+## File Structure
+
+All code lives in three files at the repo root:
+
+- `index.html` — HTML shell and layout
+- `app.js` — Domain engine, IndexedDB persistence, and UI wiring
+- `styles.css` — Visual styling
+
+No build step, framework, or package manager is required.
+Open `index.html` directly in a browser to run.

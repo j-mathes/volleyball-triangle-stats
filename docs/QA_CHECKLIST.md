@@ -1,6 +1,6 @@
 # Manual QA Checklist
 
-Use this checklist on both web and iPhone builds.
+Use this checklist on the web build.
 
 ## Match Lifecycle
 - [ ] Start a new match and confirm it appears in history.
@@ -21,8 +21,7 @@ Use this checklist on both web and iPhone builds.
 - [ ] Undo once, then add a new increment and confirm redo is disabled.
 
 ## Persistence
-- [ ] Web: refresh browser and verify current match state restores exactly.
-- [ ] iPhone: close and relaunch app and verify current match state restores.
+- [ ] Refresh browser and verify current match state restores exactly.
 - [ ] Load a previous match from history and verify its timeline-derived state.
 
 ## Export
@@ -34,6 +33,5 @@ Use this checklist on both web and iPhone builds.
 
 ## UI/Interaction
 - [ ] Verify triangle layout is usable in desktop web viewport.
-- [ ] Verify triangle layout remains usable in narrow/mobile web viewport.
-- [ ] Verify tap targets are comfortable on iPhone.
+- [ ] Verify triangle layout remains usable in narrow viewport.
 - [ ] Verify no buttons are enabled when required preconditions are missing (for example, increment with no active set).

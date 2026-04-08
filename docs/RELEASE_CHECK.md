@@ -1,27 +1,10 @@
-# Release Check (5-Minute)
+# Release Check
 
 Run this before tagging or sharing a build.
 
-## 1. Automated Gate (2 minutes)
-Run from repo root:
+## 1. Web Smoke (2 minutes)
 
-```bash
-npm run lint
-npm run typecheck:refs
-npm run typecheck:all
-npm run test:all
-```
-
-Pass criteria:
-- all commands exit with code `0`
-- no failing tests
-
-## 2. Web Smoke (1 minute)
-Commands:
-
-```bash
-npm run dev:web
-```
+Open `index.html` in a browser.
 
 Checklist:
 - start match, start set, tap 3-4 stat buttons
@@ -29,28 +12,14 @@ Checklist:
 - export JSON and CSV from UI
 - refresh page and confirm match restores
 
-## 3. Mobile Smoke (1 minute)
-Commands:
-
-```bash
-npm run dev:mobile
-```
-
-Checklist:
-- open in Expo Go on iPhone
-- start match and set, tap 3-4 stat buttons
-- verify undo/redo works
-- share JSON and CSV from app
-- close/reopen app and confirm restore
-
-## 4. Manual Edge Cases (1 minute)
+## 2. Manual Edge Cases (1 minute)
 Quick checks:
 - undo after ending a set
 - redo invalidation after adding a new event post-undo
 - ending match while no active set
 - history load switches to selected timeline
 
-## 5. Release Decision
+## 3. Release Decision
 Ship only if all above pass.
 
 If any check fails:

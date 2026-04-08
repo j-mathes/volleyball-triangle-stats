@@ -1,48 +1,40 @@
 # Triangle Stats
 
-Cross-platform volleyball stat tracker for iPhone and web.
+Web-based volleyball stat tracker.
 
-## Planning Docs
+## How to Use
 
-- Project plan: `docs/PROJECT_PLAN.md`
-- Execution checklist: `docs/TASK_BOARD.md`
-- Architecture notes: `docs/ARCHITECTURE.md`
-- Manual QA checklist: `docs/QA_CHECKLIST.md`
-- Release check: `docs/RELEASE_CHECK.md`
-- Release sign-off template: `docs/RELEASE_SIGNOFF_TEMPLATE.md`
+1. Open `index.html` in a modern web browser (Chrome, Firefox, Edge).
+2. Enter a match name and click **Start Match**.
+3. Enter a set number and click **Start Set**.
+4. Tap the 12 stat buttons in the triangle layout to record events.
+5. Use **Undo** / **Redo** to correct mistakes.
+6. **End Set** / **End Match** when finished.
+7. **Export JSON** for full replay data or **Export CSV** for a coach-readable summary.
+
+No build tools, npm, or server required.
+
+## File Structure
+
+- `index.html` — Main entry point
+- `app.js` — All application logic (domain engine, persistence, UI wiring)
+- `styles.css` — Visual styling
 
 ## Tracked Categories
 
-- Terminal Serves
-- First Ball Points
-- Transition Points
+- **Terminal Serves** = (our aces + their misses) − (their aces + our misses)
+- **First Ball Points** = (our kills + our stops) − (their kills + their stops)
+- **Transition Points** = (our kills + our stops) − (their kills + their stops)
 
 Each category tracks "us" and "opponent" statistics, with real-time derived totals.
 
-## Current Status
+## Persistence
 
-Shared domain engine, persistence adapters, and first interactive app shells are in place.
+Match data is stored in the browser's IndexedDB. Refreshing the page restores
+the most recent match automatically. Match history is available in the sidebar.
 
-## Run Locally
+## Docs
 
-```bash
-npm install
-npm run dev:web
-```
-
-For mobile (Expo):
-
-```bash
-npm run dev:mobile
-```
-
-Quality checks:
-
-```bash
-npm run lint
-npm run typecheck:refs
-npm run typecheck:all
-npm run typecheck
-npm test
-npm run test:all
-```
+- [Architecture](docs/ARCHITECTURE.md)
+- [QA Checklist](docs/QA_CHECKLIST.md)
+- [Release Check](docs/RELEASE_CHECK.md)

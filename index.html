@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Triangle Stats</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <h1>Triangle Stats</h1>
+      <p>Live event-sourced tracking for Terminal Serves, First Ball Points, and Transition Points.</p>
+    </header>
+
+    <section class="control-panel">
+      <input id="matchNameInput" value="Practice Match" placeholder="Match name">
+      <button id="btnStartMatch">Start Match</button>
+      <input id="setNumberInput" value="1" class="set-input" placeholder="Set #">
+      <button id="btnStartSet" disabled>Start Set</button>
+      <button id="btnEndSet" disabled>End Set</button>
+      <button id="btnEndMatch" disabled>End Match</button>
+      <button id="btnUndo" disabled>Undo</button>
+      <button id="btnRedo" disabled>Redo</button>
+      <button id="btnExportJson" disabled>Export JSON</button>
+      <button id="btnExportCsv" disabled>Export CSV</button>
+    </section>
+
+    <main class="content-grid">
+      <section class="board">
+        <article class="vertex top">
+          <h2>Terminal Serves</h2>
+          <div class="value" id="valTerminalServes">0</div>
+          <div class="actions">
+            <button data-stat="usAces">Our Ace</button>
+            <button data-stat="usMisses">Our Miss</button>
+            <button data-stat="opponentAces">Their Ace</button>
+            <button data-stat="opponentMisses">Their Miss</button>
+          </div>
+        </article>
+
+        <article class="vertex left">
+          <h2>First Ball Points</h2>
+          <div class="value" id="valFirstBallPoints">0</div>
+          <div class="actions">
+            <button data-stat="firstBallUsKills">Our Kill</button>
+            <button data-stat="firstBallUsStops">Our Stop</button>
+            <button data-stat="firstBallOpponentKills">Their Kill</button>
+            <button data-stat="firstBallOpponentStops">Their Stop</button>
+          </div>
+        </article>
+
+        <article class="vertex right">
+          <h2>Transition Points</h2>
+          <div class="value" id="valTransitionPoints">0</div>
+          <div class="actions">
+            <button data-stat="transitionUsKills">Our Kill</button>
+            <button data-stat="transitionUsStops">Our Stop</button>
+            <button data-stat="transitionOpponentKills">Their Kill</button>
+            <button data-stat="transitionOpponentStops">Their Stop</button>
+          </div>
+        </article>
+      </section>
+
+      <section class="sidebar">
+        <h3>Match Snapshot</h3>
+        <p id="snapshotInfo">No active match</p>
+        <p id="snapshotScore">Score: 0 - 0</p>
+        <p id="snapshotSet">Active set: none</p>
+
+        <h3>History</h3>
+        <div id="historyList" class="history-list">
+          <p>No saved matches yet.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
