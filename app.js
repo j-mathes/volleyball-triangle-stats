@@ -146,13 +146,42 @@ function redoTimeline(timeline) {
 
 // ---- Export (JSON / CSV) ----------------------------------
 
-function toExportJson(state, events, cursor) {
-  return {
-    schemaVersion: 1,
+function toExportJson(state, events, cursor, record) {
+  var payload = {
+    version: 1,
+    type: "match",
     exportedAt: new Date().toISOString(),
-    state: state,
-    timeline: { cursor: cursor, events: events },
+    season: null,
+    event: null,
+    match: {
+      matchId: state.matchId,
+      matchName: state.matchName,
+      matchFormat: state.matchFormat,
+      totalSets: state.totalSets,
+      matchDate: record ? record.matchDate : null,
+      seasonId: record ? record.seasonId : null,
+      eventId: record ? record.eventId : null,
+      createdAt: record ? record.createdAt : state.startedAt,
+      updatedAt: record ? record.updatedAt : new Date().toISOString(),
+      cursor: cursor,
+      events: events,
+    },
   };
+  return payload;
+}
+
+async function enrichExportWithContext(payload) {
+  if (payload.match.seasonId) {
+    var seasons = await dbListSeasons();
+    var s = seasons.find(function (x) { return x.id === payload.match.seasonId; });
+    if (s) payload.season = s;
+  }
+  if (payload.match.eventId) {
+    var events = await dbListEvents();
+    var e = events.find(function (x) { return x.id === payload.match.eventId; });
+    if (e) payload.event = e;
+  }
+  return payload;
 }
 
 function csvRowForSet(set, label) {
@@ -189,17 +218,26 @@ function toExportCsv(state) {
 // ---- IndexedDB Persistence --------------------------------
 
 const DB_NAME = "triangle-stats";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = "matches";
+const SEASON_STORE = "seasons";
+const EVENT_STORE = "events";
 
 function openDatabase() {
   return new Promise(function (resolve, reject) {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = function () {
+    request.onupgradeneeded = function (e) {
       const db = request.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         const store = db.createObjectStore(STORE_NAME, { keyPath: "matchId" });
         store.createIndex("updatedAt", "updatedAt", { unique: false });
+      }
+      if (!db.objectStoreNames.contains(SEASON_STORE)) {
+        db.createObjectStore(SEASON_STORE, { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains(EVENT_STORE)) {
+        var evStore = db.createObjectStore(EVENT_STORE, { keyPath: "id" });
+        evStore.createIndex("seasonId", "seasonId", { unique: false });
       }
     };
     request.onsuccess = function () { resolve(request.result); };
@@ -207,42 +245,93 @@ function openDatabase() {
   });
 }
 
-function runTransaction(db, mode, operation) {
+function runTransaction(db, storeNames, mode, operation) {
   return new Promise(function (resolve, reject) {
-    const tx = db.transaction(STORE_NAME, mode);
-    const store = tx.objectStore(STORE_NAME);
-    const req = operation(store);
-    req.onsuccess = function () { resolve(req.result); };
-    req.onerror = function () { reject(req.error || new Error("IndexedDB operation failed")); };
+    var names = Array.isArray(storeNames) ? storeNames : [storeNames];
+    var tx = db.transaction(names, mode);
+    var stores = {};
+    for (var i = 0; i < names.length; i++) stores[names[i]] = tx.objectStore(names[i]);
+    var req = operation(names.length === 1 ? stores[names[0]] : stores);
+    if (req && typeof req.onsuccess !== "undefined") {
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error || new Error("IndexedDB operation failed")); };
+    } else {
+      tx.oncomplete = function () { resolve(); };
+      tx.onerror = function () { reject(tx.error || new Error("IndexedDB transaction failed")); };
+    }
   });
 }
 
-async function dbCreateMatch(matchId, matchName, createdAt, matchFormat, totalSets) {
-  const event = { type: "MATCH_STARTED", matchId: matchId, matchName: matchName, matchFormat: matchFormat, totalSets: totalSets, timestamp: createdAt };
-  const record = { matchId: matchId, matchName: matchName, matchFormat: matchFormat, totalSets: totalSets, createdAt: createdAt, updatedAt: createdAt, cursor: 1, events: [event] };
+// Seasons
+async function dbListSeasons() {
+  var db = await openDatabase();
+  var all = await runTransaction(db, SEASON_STORE, "readonly", function (store) { return store.getAll(); });
+  db.close();
+  return all.sort(function (a, b) { return a.name.localeCompare(b.name); });
+}
+
+async function dbSaveSeason(season) {
+  var db = await openDatabase();
+  await runTransaction(db, SEASON_STORE, "readwrite", function (store) { return store.put(season); });
+  db.close();
+}
+
+async function dbLoadSeason(id) {
+  var db = await openDatabase();
+  var result = await runTransaction(db, SEASON_STORE, "readonly", function (store) { return store.get(id); });
+  db.close();
+  return result;
+}
+
+// Events
+async function dbListEvents(seasonId) {
+  var db = await openDatabase();
+  var all = await runTransaction(db, EVENT_STORE, "readonly", function (store) { return store.getAll(); });
+  db.close();
+  if (seasonId) all = all.filter(function (e) { return e.seasonId === seasonId; });
+  return all.sort(function (a, b) { return a.name.localeCompare(b.name); });
+}
+
+async function dbSaveEvent(evt) {
+  var db = await openDatabase();
+  await runTransaction(db, EVENT_STORE, "readwrite", function (store) { return store.put(evt); });
+  db.close();
+}
+
+async function dbLoadEvent(id) {
+  var db = await openDatabase();
+  var result = await runTransaction(db, EVENT_STORE, "readonly", function (store) { return store.get(id); });
+  db.close();
+  return result;
+}
+
+// Matches
+async function dbCreateMatch(matchId, matchName, createdAt, matchFormat, totalSets, matchDate, seasonId, eventId) {
+  const event = { type: "MATCH_STARTED", matchId: matchId, matchName: matchName, matchFormat: matchFormat, totalSets: totalSets, matchDate: matchDate, seasonId: seasonId || null, eventId: eventId || null, timestamp: createdAt };
+  const record = { matchId: matchId, matchName: matchName, matchFormat: matchFormat, totalSets: totalSets, matchDate: matchDate, seasonId: seasonId || null, eventId: eventId || null, createdAt: createdAt, updatedAt: createdAt, cursor: 1, events: [event] };
   const db = await openDatabase();
-  await runTransaction(db, "readwrite", function (store) { return store.put(record); });
+  await runTransaction(db, STORE_NAME, "readwrite", function (store) { return store.put(record); });
   db.close();
   return record;
 }
 
 async function dbListMatches() {
   const db = await openDatabase();
-  const all = await runTransaction(db, "readonly", function (store) { return store.getAll(); });
+  const all = await runTransaction(db, STORE_NAME, "readonly", function (store) { return store.getAll(); });
   db.close();
-  return all.sort(function (a, b) { return b.updatedAt.localeCompare(a.updatedAt); });
+  return all.sort(function (a, b) { return (b.matchDate || b.updatedAt).localeCompare(a.matchDate || a.updatedAt); });
 }
 
 async function dbLoadMatch(matchId) {
   const db = await openDatabase();
-  const record = await runTransaction(db, "readonly", function (store) { return store.get(matchId); });
+  const record = await runTransaction(db, STORE_NAME, "readonly", function (store) { return store.get(matchId); });
   db.close();
   return record;
 }
 
 async function dbSaveTimeline(record) {
   const db = await openDatabase();
-  await runTransaction(db, "readwrite", function (store) {
+  await runTransaction(db, STORE_NAME, "readwrite", function (store) {
     return store.put(Object.assign({}, record, { updatedAt: new Date().toISOString() }));
   });
   db.close();
@@ -250,7 +339,7 @@ async function dbSaveTimeline(record) {
 
 async function dbDeleteMatch(matchId) {
   const db = await openDatabase();
-  await runTransaction(db, "readwrite", function (store) { return store.delete(matchId); });
+  await runTransaction(db, STORE_NAME, "readwrite", function (store) { return store.delete(matchId); });
   db.close();
 }
 
@@ -262,6 +351,9 @@ const controller = {
   currentMatchName: null,
   matchFormat: null,
   totalSets: null,
+  matchDate: null,
+  seasonId: null,
+  eventId: null,
   createdAt: null,
 
   toRecord: function () {
@@ -271,6 +363,9 @@ const controller = {
       matchName: this.currentMatchName,
       matchFormat: this.matchFormat,
       totalSets: this.totalSets,
+      matchDate: this.matchDate,
+      seasonId: this.seasonId,
+      eventId: this.eventId,
       createdAt: this.createdAt,
       updatedAt: new Date().toISOString(),
       cursor: this.timeline.cursor,
@@ -284,6 +379,9 @@ const controller = {
     this.currentMatchName = record.matchName;
     this.matchFormat = record.matchFormat || "bestOf";
     this.totalSets = record.totalSets || 5;
+    this.matchDate = record.matchDate || record.createdAt;
+    this.seasonId = record.seasonId || null;
+    this.eventId = record.eventId || null;
     this.createdAt = record.createdAt;
   },
 
@@ -293,6 +391,9 @@ const controller = {
       this.currentMatchName = event.matchName;
       this.matchFormat = event.matchFormat;
       this.totalSets = event.totalSets;
+      this.matchDate = event.matchDate;
+      this.seasonId = event.seasonId || null;
+      this.eventId = event.eventId || null;
       this.createdAt = event.timestamp;
       this.timeline = { events: [], cursor: 0 };
     }
@@ -506,6 +607,13 @@ function renderState() {
     $("matchNameInput").value = state.matchName;
   }
 
+  // Match date input: show match date when active, disable during match
+  var matchDateInput = $("matchDateInput");
+  if (state && controller.matchDate) {
+    matchDateInput.value = controller.matchDate;
+  }
+  matchDateInput.disabled = !!(state && !state.endedAt);
+
   $("setIndicator").textContent = state
     ? "Set " + (state.activeSetNumber || "-") + " of " + state.totalSets
     : "No match";
@@ -547,7 +655,8 @@ async function renderHistory() {
     (function (entry) {
       var btn = document.createElement("button");
       btn.className = "history-item" + (entry.matchId === selectedHistoryMatchId ? " selected" : "");
-      btn.innerHTML = "<span>" + escapeHtml(entry.matchName) + "</span><small>" + new Date(entry.updatedAt).toLocaleString() + "</small>";
+      var dateStr = entry.matchDate ? new Date(entry.matchDate).toLocaleString() : new Date(entry.createdAt).toLocaleString();
+      btn.innerHTML = "<span>" + escapeHtml(entry.matchName) + "</span><small>" + dateStr + "</small>";
       btn.addEventListener("click", function () { void selectHistoryMatch(entry.matchId); });
       container.appendChild(btn);
     })(matches[m]);
@@ -619,10 +728,37 @@ async function createMatch() {
   var name = $("matchNameInput").value.trim() || "Untitled Match";
   var format = getSelectedFormat();
   var totalSets = cfgSetsValue;
-  var matchId = "match-" + Date.now();
+  var matchId = crypto.randomUUID();
   var now = new Date().toISOString();
+  var matchDate = $("matchDateInput").value || toLocalDatetime(new Date());
 
-  var record = await dbCreateMatch(matchId, name, now, format, totalSets);
+  // Resolve season
+  var seasonId = null;
+  var seasonSelect = $("cfgSeasonSelect");
+  if (seasonSelect.value === "__new__") {
+    var sName = $("cfgSeasonName").value.trim();
+    if (sName) {
+      seasonId = crypto.randomUUID();
+      await dbSaveSeason({ id: seasonId, name: sName });
+    }
+  } else if (seasonSelect.value) {
+    seasonId = seasonSelect.value;
+  }
+
+  // Resolve event
+  var eventId = null;
+  var eventSelect = $("cfgEventSelect");
+  if (eventSelect.value === "__new__") {
+    var eName = $("cfgEventName").value.trim();
+    if (eName) {
+      eventId = crypto.randomUUID();
+      await dbSaveEvent({ id: eventId, name: eName, eventType: $("cfgEventType").value, seasonId: seasonId });
+    }
+  } else if (eventSelect.value) {
+    eventId = eventSelect.value;
+  }
+
+  var record = await dbCreateMatch(matchId, name, now, format, totalSets, matchDate, seasonId, eventId);
   controller.hydrate(record);
 
   // Auto-start set 1
@@ -638,8 +774,12 @@ async function resetMatch() {
   controller.currentMatchName = null;
   controller.matchFormat = null;
   controller.totalSets = null;
+  controller.matchDate = null;
+  controller.seasonId = null;
+  controller.eventId = null;
   controller.createdAt = null;
   $("matchNameInput").value = "Practice Match";
+  $("matchDateInput").value = toLocalDatetime(new Date());
   renderState();
 }
 
@@ -697,15 +837,19 @@ function exportJson() {
       var tl = { events: record.events, cursor: record.cursor };
       var s = deriveMatchState(tl);
       if (!s) return;
-      var payload = toExportJson(s, record.events, record.cursor);
-      downloadText(s.matchId + ".json", JSON.stringify(payload, null, 2), "application/json");
+      var payload = toExportJson(s, record.events, record.cursor, record);
+      payload = await enrichExportWithContext(payload);
+      downloadText(s.matchName.replace(/[^a-zA-Z0-9_-]/g, "_") + ".json", JSON.stringify(payload, null, 2), "application/json");
     })();
     return;
   }
   state = controller.getState();
   if (!state) return;
-  var payload = toExportJson(state, controller.timeline.events, controller.timeline.cursor);
-  downloadText(state.matchId + ".json", JSON.stringify(payload, null, 2), "application/json");
+  void (async function () {
+    var payload = toExportJson(state, controller.timeline.events, controller.timeline.cursor, controller.toRecord());
+    payload = await enrichExportWithContext(payload);
+    downloadText(state.matchName.replace(/[^a-zA-Z0-9_-]/g, "_") + ".json", JSON.stringify(payload, null, 2), "application/json");
+  })();
 }
 
 function exportCsv() {
@@ -716,20 +860,163 @@ function exportCsv() {
       var tl = { events: record.events, cursor: record.cursor };
       var s = deriveMatchState(tl);
       if (!s) return;
-      downloadText(s.matchId + ".csv", toExportCsv(s), "text/csv;charset=utf-8");
+      downloadText(s.matchName.replace(/[^a-zA-Z0-9_-]/g, "_") + ".csv", toExportCsv(s), "text/csv;charset=utf-8");
     })();
     return;
   }
   var state = controller.getState();
   if (!state) return;
-  downloadText(state.matchId + ".csv", toExportCsv(state), "text/csv;charset=utf-8");
+  downloadText(state.matchName.replace(/[^a-zA-Z0-9_-]/g, "_") + ".csv", toExportCsv(state), "text/csv;charset=utf-8");
+}
+
+// ---- Helpers ----
+
+function toLocalDatetime(d) {
+  var y = d.getFullYear();
+  var mo = String(d.getMonth() + 1).padStart(2, "0");
+  var da = String(d.getDate()).padStart(2, "0");
+  var h = String(d.getHours()).padStart(2, "0");
+  var mi = String(d.getMinutes()).padStart(2, "0");
+  return y + "-" + mo + "-" + da + "T" + h + ":" + mi;
+}
+
+// ---- Season / Event picker wiring ----
+
+async function refreshSeasonPicker() {
+  var sel = $("cfgSeasonSelect");
+  var current = sel.value;
+  var seasons = await dbListSeasons();
+  sel.innerHTML = '<option value="">None</option><option value="__new__">\u2014 New Season \u2014</option>';
+  for (var i = 0; i < seasons.length; i++) {
+    var opt = document.createElement("option");
+    opt.value = seasons[i].id;
+    opt.textContent = seasons[i].name;
+    sel.appendChild(opt);
+  }
+  if (current) sel.value = current;
+  toggleNewSeasonInput();
+}
+
+async function refreshEventPicker(seasonId) {
+  var sel = $("cfgEventSelect");
+  var current = sel.value;
+  var events = await dbListEvents(seasonId || null);
+  sel.innerHTML = '<option value="">None</option><option value="__new__">\u2014 New Event \u2014</option>';
+  for (var i = 0; i < events.length; i++) {
+    var opt = document.createElement("option");
+    opt.value = events[i].id;
+    opt.textContent = events[i].name + " (" + events[i].eventType + ")";
+    sel.appendChild(opt);
+  }
+  if (current) sel.value = current;
+  toggleNewEventInput();
+}
+
+function toggleNewSeasonInput() {
+  $("cfgSeasonName").hidden = $("cfgSeasonSelect").value !== "__new__";
+}
+
+function toggleNewEventInput() {
+  var isNew = $("cfgEventSelect").value === "__new__";
+  $("cfgEventName").hidden = !isNew;
+  $("eventTypeRow").hidden = !isNew;
+}
+
+// ---- Export All / Import ----
+
+async function exportAll() {
+  var seasons = await dbListSeasons();
+  var events = await dbListEvents();
+  var matches = await dbListMatches();
+  var payload = {
+    version: 1,
+    type: "bulk",
+    exportedAt: new Date().toISOString(),
+    seasons: seasons,
+    events: events,
+    matches: matches.map(function (m) {
+      return { matchId: m.matchId, matchName: m.matchName, matchFormat: m.matchFormat, totalSets: m.totalSets, matchDate: m.matchDate || null, seasonId: m.seasonId || null, eventId: m.eventId || null, createdAt: m.createdAt, updatedAt: m.updatedAt, cursor: m.cursor, events: m.events };
+    }),
+  };
+  downloadText("triangle-stats-export.json", JSON.stringify(payload, null, 2), "application/json");
+}
+
+async function importData(file) {
+  var text = await file.text();
+  var data;
+  try { data = JSON.parse(text); } catch (e) { alert("Invalid JSON file."); return; }
+
+  if (!data || typeof data !== "object" || !data.version) { alert("Unrecognized file format."); return; }
+
+  var stats = { seasons: 0, events: 0, matches: 0, skipped: 0 };
+
+  // Handle single-match export (legacy or per-match)
+  if (data.type === "match" || (!data.type && data.timeline)) {
+    var m = data.match || data;
+    if (m.timeline) {
+      // Legacy format: convert
+      var rec = { matchId: m.state ? m.state.matchId : crypto.randomUUID(), matchName: m.state ? m.state.matchName : "Imported Match", matchFormat: m.state ? m.state.matchFormat : "bestOf", totalSets: m.state ? m.state.totalSets : 5, matchDate: null, seasonId: null, eventId: null, createdAt: m.exportedAt || new Date().toISOString(), updatedAt: m.exportedAt || new Date().toISOString(), cursor: m.timeline.cursor, events: m.timeline.events };
+      var existing = await dbLoadMatch(rec.matchId);
+      if (!existing) { await dbSaveTimeline(rec); stats.matches++; } else { stats.skipped++; }
+    } else if (m.matchId) {
+      // Self-contained match format
+      if (data.season && data.season.id) {
+        var existingS = await dbLoadSeason(data.season.id);
+        if (!existingS) { await dbSaveSeason(data.season); stats.seasons++; }
+      }
+      if (data.event && data.event.id) {
+        var existingE = await dbLoadEvent(data.event.id);
+        if (!existingE) { await dbSaveEvent(data.event); stats.events++; }
+      }
+      var existingM = await dbLoadMatch(m.matchId);
+      if (!existingM) { await dbSaveTimeline(m); stats.matches++; } else { stats.skipped++; }
+    }
+  }
+
+  // Bulk import
+  if (data.type === "bulk") {
+    if (data.seasons) {
+      for (var s = 0; s < data.seasons.length; s++) {
+        var season = data.seasons[s];
+        if (season.id) {
+          var existS = (await dbListSeasons()).find(function (x) { return x.id === season.id; });
+          if (!existS) { await dbSaveSeason(season); stats.seasons++; } else { stats.skipped++; }
+        }
+      }
+    }
+    if (data.events) {
+      for (var ev = 0; ev < data.events.length; ev++) {
+        var evt = data.events[ev];
+        if (evt.id) {
+          var existE = (await dbListEvents()).find(function (x) { return x.id === evt.id; });
+          if (!existE) { await dbSaveEvent(evt); stats.events++; } else { stats.skipped++; }
+        }
+      }
+    }
+    if (data.matches) {
+      for (var mi = 0; mi < data.matches.length; mi++) {
+        var match = data.matches[mi];
+        if (match.matchId) {
+          var existM = await dbLoadMatch(match.matchId);
+          if (!existM) { await dbSaveTimeline(match); stats.matches++; } else { stats.skipped++; }
+        }
+      }
+    }
+  }
+
+  alert("Import complete.\nSeasons: " + stats.seasons + "\nEvents: " + stats.events + "\nMatches: " + stats.matches + "\nSkipped (duplicates): " + stats.skipped);
+  await renderHistory();
+  await refreshSeasonPicker();
 }
 
 // ---- Bootstrap --------------------------------------------
 
 document.addEventListener("DOMContentLoaded", function () {
+  // Set default match date to now
+  $("matchDateInput").value = toLocalDatetime(new Date());
+
   // Nav bar
-  $("navConfig").addEventListener("click", function () { showPage("config"); });
+  $("navConfig").addEventListener("click", function () { showPage("config"); void refreshSeasonPicker(); void refreshEventPicker(); });
   $("navStats").addEventListener("click", function () { showPage("stats"); renderState(); });
   $("navHistory").addEventListener("click", function () { showPage("history"); void renderHistory(); });
 
@@ -739,6 +1026,18 @@ document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll('input[name="matchFormat"]').forEach(function (radio) {
     radio.addEventListener("change", function () { syncSetsToFormat(); });
   });
+
+  // Season/Event pickers
+  $("cfgSeasonSelect").addEventListener("change", function () {
+    toggleNewSeasonInput();
+    var sid = $("cfgSeasonSelect").value;
+    if (sid && sid !== "__new__") {
+      void refreshEventPicker(sid);
+    } else {
+      void refreshEventPicker(null);
+    }
+  });
+  $("cfgEventSelect").addEventListener("change", function () { toggleNewEventInput(); });
 
   // Stats page
   $("btnStartMatch").addEventListener("click", function () { void createMatch(); });
@@ -752,13 +1051,21 @@ document.addEventListener("DOMContentLoaded", function () {
   $("btnResumeMatch").addEventListener("click", function () { void resumeMatch(); });
   $("btnExportJson").addEventListener("click", exportJson);
   $("btnExportCsv").addEventListener("click", exportCsv);
+  $("btnExportAll").addEventListener("click", function () { void exportAll(); });
+  $("btnImport").addEventListener("click", function () { $("importFileInput").click(); });
+  $("importFileInput").addEventListener("change", function () {
+    if (this.files && this.files[0]) {
+      void importData(this.files[0]);
+      this.value = "";
+    }
+  });
 
   // Stat action buttons (data-stat attribute)
   document.querySelectorAll("[data-stat]").forEach(function (btn) {
     btn.addEventListener("click", function () { void incrementStat(btn.getAttribute("data-stat")); });
   });
 
-  // Start on config page, restore most recent match if any
+  // Start on stats page, restore most recent match if any
   syncSetsToFormat();
   (async function () {
     var matches = await dbListMatches();

@@ -33,6 +33,30 @@
           <span id="cfgTotalSets" class="stepper-value">3</span>
           <button id="btnSetsUp" type="button" class="stepper-btn">+</button>
         </div>
+
+        <details class="org-section">
+          <summary>Match Organization <span class="format-hint">(optional)</span></summary>
+          <label>Season</label>
+          <div class="combo-picker">
+            <select id="cfgSeasonSelect"><option value="">None</option><option value="__new__">— New Season —</option></select>
+            <input id="cfgSeasonName" type="text" placeholder="Season name" class="combo-input" hidden>
+          </div>
+
+          <label>Event</label>
+          <div class="combo-picker">
+            <select id="cfgEventSelect"><option value="">None</option><option value="__new__">— New Event —</option></select>
+            <input id="cfgEventName" type="text" placeholder="Event name" class="combo-input" hidden>
+          </div>
+
+          <div id="eventTypeRow" hidden>
+            <label>Event Type</label>
+            <select id="cfgEventType">
+              <option value="tournament">Tournament</option>
+              <option value="league">League</option>
+              <option value="practice">Practice / Scrimmage</option>
+            </select>
+          </div>
+        </details>
       </div>
     </div>
 
@@ -41,6 +65,7 @@
 
     <div class="control-panel">
       <input id="matchNameInput" value="Practice Match" placeholder="Match name" class="match-name-input">
+      <input id="matchDateInput" type="datetime-local" class="match-date-input">
       <button id="btnStartMatch" class="start-match-btn">Start Match</button>
       <span id="setIndicator" class="set-indicator">No match</span>
       <button id="btnEndSet" disabled>End Set</button>
@@ -142,6 +167,11 @@
           <button id="btnResumeMatch">Resume Match</button>
           <button id="btnExportJson">Export JSON</button>
           <button id="btnExportCsv">Export CSV</button>
+        </div>
+        <div class="history-global-actions">
+          <button id="btnExportAll">Export All</button>
+          <button id="btnImport" class="import-btn">Import</button>
+          <input id="importFileInput" type="file" accept=".json" hidden>
         </div>
       </div>
     </div>

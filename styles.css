@@ -345,6 +345,10 @@ button:disabled {
   min-width: 14rem;
 }
 
+.match-date-input {
+  min-width: 11rem;
+}
+
 .start-match-btn {
   background: var(--accent-2);
 }
@@ -462,6 +466,68 @@ button:disabled {
 
 .history-item small {
   color: rgba(255, 255, 255, 0.85);
+}
+
+/* Match Organization (collapsible) */
+.org-section {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+}
+
+.org-section summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.org-section label {
+  display: block;
+  margin-top: 0.5rem;
+}
+
+.combo-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.combo-picker select {
+  font: inherit;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 0.45rem 0.6rem;
+  background: #fff;
+}
+
+.combo-input {
+  font: inherit;
+}
+
+#eventTypeRow select {
+  font: inherit;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 0.45rem 0.6rem;
+  background: #fff;
+  margin-top: 0.3rem;
+}
+
+/* History global actions (always visible) */
+.history-global-actions {
+  margin-top: 0.8rem;
+  display: flex;
+  gap: 0.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding-top: 0.8rem;
+}
+
+.import-btn {
+  background: var(--accent-2);
+}
+
+.import-btn:hover:not(:disabled) {
+  background: #066a6a;
 }
 
 @media (max-width: 700px) {
