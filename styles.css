@@ -36,8 +36,18 @@ body {
 /* Pages — hidden by default, JS shows the active one */
 .config-page,
 .stats-page,
-.history-page {
+.history-page,
+.reports-page {
   display: none;
+}
+
+.reports-page {
+  margin-top: 1.2rem;
+}
+
+.reports-placeholder {
+  opacity: 0.5;
+  font-style: italic;
 }
 
 .control-panel {

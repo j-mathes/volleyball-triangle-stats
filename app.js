@@ -500,6 +500,7 @@ function showPage(page) {
   $("configPage").style.display = page === "config" ? "flex" : "none";
   $("statsPage").style.display = page === "stats" ? "block" : "none";
   $("historyPage").style.display = page === "history" ? "grid" : "none";
+  $("reportsPage").style.display = page === "reports" ? "block" : "none";
 
   document.querySelectorAll(".nav-btn").forEach(function (btn) {
     btn.classList.toggle("active", btn.getAttribute("data-page") === page);
@@ -1567,6 +1568,7 @@ document.addEventListener("DOMContentLoaded", function () {
   $("navConfig").addEventListener("click", function () { showPage("config"); void refreshSeasonPicker(); void refreshEventPicker(); });
   $("navStats").addEventListener("click", function () { showPage("stats"); renderState(); });
   $("navHistory").addEventListener("click", function () { showPage("history"); void renderHistory(); });
+  $("navReports").addEventListener("click", function () { showPage("reports"); });
 
   // Config page
   $("btnSetsUp").addEventListener("click", function () { stepSets(1); });
