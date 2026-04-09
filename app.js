@@ -614,9 +614,15 @@ function renderState() {
   }
   matchDateInput.disabled = !!(state && !state.endedAt);
 
-  $("setIndicator").textContent = state
-    ? "Set " + (state.activeSetNumber || "-") + " of " + state.totalSets
-    : "No match";
+  var indicatorText = "Ready";
+  if (state && state.endedAt) {
+    indicatorText = "Match Complete";
+  } else if (state && state.activeSetNumber) {
+    indicatorText = "Set " + state.activeSetNumber + " of " + state.totalSets;
+  } else if (state) {
+    indicatorText = "Between Sets";
+  }
+  $("setIndicator").textContent = indicatorText;
 
   renderActiveSnapshot(state);
 
@@ -628,7 +634,7 @@ function renderState() {
   $("btnEndMatch").disabled = !(state && !state.endedAt);
   $("btnUndo").disabled = !(state && state.canUndo);
   $("btnRedo").disabled = !(state && state.canRedo);
-  $("btnReset").disabled = !state;
+  $("btnReset").disabled = false;
 
   var hasActiveSet = !!(state && state.activeSetNumber);
   document.querySelectorAll("[data-stat]").forEach(function (btn) {
@@ -736,11 +742,9 @@ async function createMatch() {
   var seasonId = null;
   var seasonSelect = $("cfgSeasonSelect");
   if (seasonSelect.value === "__new__") {
-    var sName = $("cfgSeasonName").value.trim();
-    if (sName) {
-      seasonId = crypto.randomUUID();
-      await dbSaveSeason({ id: seasonId, name: sName });
-    }
+    var sName = $("cfgSeasonName").value.trim() || "Season " + new Date().getFullYear();
+    seasonId = crypto.randomUUID();
+    await dbSaveSeason({ id: seasonId, name: sName });
   } else if (seasonSelect.value) {
     seasonId = seasonSelect.value;
   }
@@ -749,11 +753,9 @@ async function createMatch() {
   var eventId = null;
   var eventSelect = $("cfgEventSelect");
   if (eventSelect.value === "__new__") {
-    var eName = $("cfgEventName").value.trim();
-    if (eName) {
-      eventId = crypto.randomUUID();
-      await dbSaveEvent({ id: eventId, name: eName, eventType: $("cfgEventType").value, seasonId: seasonId });
-    }
+    var eName = $("cfgEventName").value.trim() || "Event " + new Date().toLocaleDateString();
+    eventId = crypto.randomUUID();
+    await dbSaveEvent({ id: eventId, name: eName, eventType: $("cfgEventType").value, seasonId: seasonId });
   } else if (eventSelect.value) {
     eventId = eventSelect.value;
   }
@@ -913,13 +915,22 @@ async function refreshEventPicker(seasonId) {
 }
 
 function toggleNewSeasonInput() {
-  $("cfgSeasonName").hidden = $("cfgSeasonSelect").value !== "__new__";
+  var isNew = $('cfgSeasonSelect').value === '__new__';
+  var input = $('cfgSeasonName');
+  input.hidden = !isNew;
+  if (isNew && !input.value) {
+    input.value = 'Season ' + new Date().getFullYear();
+  }
 }
 
 function toggleNewEventInput() {
-  var isNew = $("cfgEventSelect").value === "__new__";
-  $("cfgEventName").hidden = !isNew;
-  $("eventTypeRow").hidden = !isNew;
+  var isNew = $('cfgEventSelect').value === '__new__';
+  var input = $('cfgEventName');
+  input.hidden = !isNew;
+  $('eventTypeRow').hidden = !isNew;
+  if (isNew && !input.value) {
+    input.value = 'Event ' + new Date().toLocaleDateString();
+  }
 }
 
 // ---- Export All / Import ----
@@ -1065,20 +1076,22 @@ document.addEventListener("DOMContentLoaded", function () {
     btn.addEventListener("click", function () { void incrementStat(btn.getAttribute("data-stat")); });
   });
 
-  // Start on stats page, restore most recent match if any
+  // Start on stats page immediately, then restore in-progress match if any
   syncSetsToFormat();
+  showPage("stats");
+  renderState();
   (async function () {
     var matches = await dbListMatches();
-    if (matches.length > 0) {
-      var record = await dbLoadMatch(matches[0].matchId);
+    for (var i = 0; i < matches.length; i++) {
+      var record = await dbLoadMatch(matches[i].matchId);
       if (record) {
-        controller.hydrate(record);
-        showPage("stats");
-        renderState();
-        return;
+        var st = deriveMatchState(record.events, record.matchFormat, record.totalSets, record.matchName);
+        if (st && !st.endedAt) {
+          controller.hydrate(record);
+          renderState();
+          return;
+        }
       }
     }
-    showPage("stats");
-    renderState();
   })();
 });

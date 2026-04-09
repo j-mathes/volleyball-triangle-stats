@@ -34,6 +34,7 @@ body {
 }
 
 /* Pages — hidden by default, JS shows the active one */
+.config-page,
 .stats-page,
 .history-page {
   display: none;
@@ -336,9 +337,10 @@ button:disabled {
   font-weight: 700;
   font-size: 0.95rem;
   padding: 0.55rem 0.75rem;
-  background: var(--accent-2);
-  color: #fff;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--ink);
   border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
 }
 
 .match-name-input {
