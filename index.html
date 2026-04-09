@@ -20,23 +20,19 @@
     <div id="configPage" class="config-page">
       <div class="config-card">
         <h2>Match Setup</h2>
-        <label for="cfgMatchName">Match Name</label>
-        <input id="cfgMatchName" value="Practice Match" placeholder="Match name">
 
-        <fieldset class="format-picker">
-          <legend>Match Format</legend>
+        <div class="format-picker">
+          <div class="format-picker-legend">Match Format</div>
           <label><input type="radio" name="matchFormat" value="bestOf" checked> Best Of <span class="format-hint">(odd number of sets)</span></label>
           <label><input type="radio" name="matchFormat" value="straightSets"> Straight Sets <span class="format-hint">(even number of sets)</span></label>
-        </fieldset>
-
-        <label for="cfgTotalSets">Number of Sets</label>
-        <div class="stepper">
-          <button id="btnSetsDown" type="button" class="stepper-btn">&minus;</button>
-          <span id="cfgTotalSets" class="stepper-value">5</span>
-          <button id="btnSetsUp" type="button" class="stepper-btn">+</button>
         </div>
 
-        <button id="btnBeginMatch" class="begin-match-btn">Start Match</button>
+        <label>Number of Sets</label>
+        <div class="stepper">
+          <button id="btnSetsDown" type="button" class="stepper-btn">&minus;</button>
+          <span id="cfgTotalSets" class="stepper-value">3</span>
+          <button id="btnSetsUp" type="button" class="stepper-btn">+</button>
+        </div>
       </div>
     </div>
 
@@ -44,12 +40,14 @@
     <div id="statsPage" class="stats-page">
 
     <div class="control-panel">
-      <span id="matchNameDisplay" class="match-name-display"></span>
-      <span id="setIndicator" class="set-indicator">Set 1 of 5</span>
+      <input id="matchNameInput" value="Practice Match" placeholder="Match name" class="match-name-input">
+      <button id="btnStartMatch" class="start-match-btn">Start Match</button>
+      <span id="setIndicator" class="set-indicator">No match</span>
       <button id="btnEndSet" disabled>End Set</button>
       <button id="btnEndMatch" disabled>End Match</button>
       <button id="btnUndo" disabled>Undo</button>
       <button id="btnRedo" disabled>Redo</button>
+      <button id="btnReset">Reset</button>
     </div>
 
     <div class="content-area">
@@ -102,9 +100,9 @@
               <tr>
                 <th>Set</th>
                 <th>Score</th>
-                <th>TS</th>
-                <th>FBP</th>
-                <th>TP</th>
+                <th>Terminal Serves</th>
+                <th>First Ball</th>
+                <th>Transition</th>
               </tr>
             </thead>
             <tbody id="snapshotBody"></tbody>
@@ -132,9 +130,9 @@
             <tr>
               <th>Set</th>
               <th>Score</th>
-              <th>TS</th>
-              <th>FBP</th>
-              <th>TP</th>
+              <th>Terminal Serves</th>
+              <th>First Ball</th>
+              <th>Transition</th>
             </tr>
           </thead>
           <tbody id="historySnapshotBody"></tbody>

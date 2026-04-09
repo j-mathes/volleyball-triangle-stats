@@ -30,7 +30,7 @@ body {
 .page {
   width: min(1200px, 92vw);
   margin: 0 auto;
-  padding: 3.5rem 0 2rem;
+  padding: 4.2rem 0 2rem;
 }
 
 /* Pages — hidden by default, JS shows the active one */
@@ -56,7 +56,7 @@ button {
   font: inherit;
 }
 
-input {
+input:not([type="radio"]):not([type="checkbox"]) {
   border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 10px;
   padding: 0.55rem 0.75rem;
@@ -277,9 +277,10 @@ button:disabled {
   padding: 0.6rem 0.8rem;
 }
 
-.format-picker legend {
+.format-picker-legend {
   font-weight: 600;
   font-size: 0.9rem;
+  margin-bottom: 0.2rem;
 }
 
 .format-picker label {
@@ -340,10 +341,16 @@ button:disabled {
   border-radius: 10px;
 }
 
-.match-name-display {
-  font-weight: 600;
-  font-size: 0.95rem;
-  padding: 0.55rem 0.75rem;
+.match-name-input {
+  min-width: 14rem;
+}
+
+.start-match-btn {
+  background: var(--accent-2);
+}
+
+.start-match-btn:hover:not(:disabled) {
+  background: #066a6a;
 }
 
 /* History page */
@@ -399,6 +406,7 @@ button:disabled {
   right: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0;
   background: #2f3e46;
   padding: 0;
@@ -406,20 +414,27 @@ button:disabled {
 }
 
 .nav-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: 1.3rem;
   color: #fff;
-  padding: 0.55rem 1rem;
-  margin-right: auto;
+  padding: 0.8rem 1.2rem;
+  pointer-events: none;
 }
 
 .nav-btn {
   border-radius: 0;
   background: transparent;
   color: rgba(255, 255, 255, 0.6);
-  padding: 0.6rem 1.5rem;
-  font-size: 0.9rem;
+  padding: 0.8rem 1.8rem;
+  font-size: 1.1rem;
   font-weight: 600;
+}
+
+.nav-btn:first-of-type {
+  margin-left: auto;
 }
 
 .nav-btn:hover:not(:disabled) {

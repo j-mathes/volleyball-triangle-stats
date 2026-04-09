@@ -101,8 +101,11 @@ function deriveMatchState(timeline) {
     }
   }
 
+  var completedSets = [];
   var completedSetsCount = sets.filter(function (s) {
-    return replayed.some(function (e) { return e.type === "SET_ENDED" && e.setNumber === s.setNumber; });
+    var ended = replayed.some(function (e) { return e.type === "SET_ENDED" && e.setNumber === s.setNumber; });
+    if (ended) completedSets.push(s.setNumber);
+    return ended;
   }).length;
 
   const aggregate = withDerived({ setNumber: 0, stats: sumStats(sets) });
@@ -115,6 +118,7 @@ function deriveMatchState(timeline) {
     startedAt: matchStarted.timestamp,
     endedAt: endedAt,
     activeSetNumber: activeSetNumber,
+    completedSets: completedSets,
     completedSetsCount: completedSetsCount,
     sets: sets.sort(function (a, b) { return a.setNumber - b.setNumber; }),
     aggregate: aggregate,
@@ -350,7 +354,7 @@ function showPage(page) {
 
 // ---- Config page — stepper logic ----
 
-var cfgSetsValue = 5;
+var cfgSetsValue = 3;
 
 function getSelectedFormat() {
   var checked = document.querySelector('input[name="matchFormat"]:checked');
@@ -359,22 +363,39 @@ function getSelectedFormat() {
 
 function stepSets(direction) {
   var fmt = getSelectedFormat();
-  var step = 2;
-  var min = fmt === "bestOf" ? 1 : 2;
-  var next = cfgSetsValue + (direction * step);
-  if (next < min) next = min;
-  cfgSetsValue = next;
+  if (fmt === "bestOf") {
+    // 3, 5, 7, 9 ...
+    var next = cfgSetsValue + (direction * 2);
+    if (next < 3) next = 3;
+    cfgSetsValue = next;
+  } else {
+    // 1, 2, 4, 6, 8 ...
+    if (cfgSetsValue === 1 && direction === 1) {
+      cfgSetsValue = 2;
+    } else if (cfgSetsValue === 2 && direction === -1) {
+      cfgSetsValue = 1;
+    } else if (cfgSetsValue === 1 && direction === -1) {
+      cfgSetsValue = 1;
+    } else {
+      var next = cfgSetsValue + (direction * 2);
+      if (next < 1) next = 1;
+      cfgSetsValue = next;
+    }
+  }
   $("cfgTotalSets").textContent = cfgSetsValue;
 }
 
 function syncSetsToFormat() {
   var fmt = getSelectedFormat();
   if (fmt === "bestOf") {
-    // Must be odd
-    if (cfgSetsValue % 2 === 0) cfgSetsValue = Math.max(1, cfgSetsValue - 1);
+    // Must be odd and >= 3
+    if (cfgSetsValue < 3) cfgSetsValue = 3;
+    if (cfgSetsValue % 2 === 0) cfgSetsValue = cfgSetsValue + 1;
   } else {
-    // Must be even
-    if (cfgSetsValue % 2 !== 0) cfgSetsValue = Math.max(2, cfgSetsValue + 1);
+    // Straight sets: 1, 2, 4, 6 — keep value or adjust
+    if (cfgSetsValue < 1) cfgSetsValue = 1;
+    // If currently odd and > 1, round down to even
+    if (cfgSetsValue > 1 && cfgSetsValue % 2 !== 0) cfgSetsValue = cfgSetsValue - 1;
   }
   $("cfgTotalSets").textContent = cfgSetsValue;
 }
@@ -419,6 +440,58 @@ function renderSnapshotTable(state, tbodyId, tfootId, highlightActive) {
   tfoot.appendChild(footTr);
 }
 
+// Stats page snapshot: only completed sets + active set
+function renderActiveSnapshot(state) {
+  var tbody = $("snapshotBody");
+  var tfoot = $("snapshotFoot");
+  tbody.innerHTML = "";
+  tfoot.innerHTML = "";
+  if (!state) return;
+
+  // Gather sets that are completed or currently active
+  var setsToShow = [];
+  for (var i = 1; i <= state.totalSets; i++) {
+    var set = state.sets.find(function (s) { return s.setNumber === i; });
+    if (!set) continue;
+    var isActive = state.activeSetNumber === i;
+    var isCompleted = state.completedSets && state.completedSets.indexOf(i) >= 0;
+    if (isActive || isCompleted) {
+      setsToShow.push({ setNumber: i, set: set, isActive: isActive });
+    }
+  }
+
+  if (setsToShow.length === 0) return;
+
+  for (var j = 0; j < setsToShow.length; j++) {
+    var item = setsToShow[j];
+    var tr = document.createElement("tr");
+    if (item.isActive) tr.className = "active-set";
+    var score = calculateSetScore(item.set.stats);
+    var ts = calculateTerminalServes(item.set.stats);
+    var fbp = calculateFirstBallPoints(item.set.stats);
+    var tp = calculateTransitionPoints(item.set.stats);
+    tr.innerHTML =
+      "<td>" + item.setNumber + "</td>" +
+      "<td>" + formatScore(score.us, score.opponent) + "</td>" +
+      "<td>" + ts + "</td>" +
+      "<td>" + fbp + "</td>" +
+      "<td>" + tp + "</td>";
+    tbody.appendChild(tr);
+  }
+
+  // Totals row only if more than one set shown
+  if (setsToShow.length > 1) {
+    var footTr = document.createElement("tr");
+    footTr.innerHTML =
+      "<td>Total</td>" +
+      "<td>" + formatScore(state.aggregate.usScore, state.aggregate.opponentScore) + "</td>" +
+      "<td>" + state.aggregate.terminalServes + "</td>" +
+      "<td>" + state.aggregate.firstBallPoints + "</td>" +
+      "<td>" + state.aggregate.transitionPoints + "</td>";
+    tfoot.appendChild(footTr);
+  }
+}
+
 // ---- Render stats page ----
 
 function renderState() {
@@ -428,18 +501,26 @@ function renderState() {
   $("valFirstBallPoints").textContent = state ? state.aggregate.firstBallPoints : 0;
   $("valTransitionPoints").textContent = state ? state.aggregate.transitionPoints : 0;
 
-  $("matchNameDisplay").textContent = state ? state.matchName : "";
+  // Match name input: show current match name when active
+  if (state) {
+    $("matchNameInput").value = state.matchName;
+  }
 
   $("setIndicator").textContent = state
     ? "Set " + (state.activeSetNumber || "-") + " of " + state.totalSets
     : "No match";
 
-  renderSnapshotTable(state, "snapshotBody", "snapshotFoot", true);
+  renderActiveSnapshot(state);
+
+  // Start match button: enabled only when no active match
+  $("btnStartMatch").disabled = !!(state && !state.endedAt);
+  $("matchNameInput").disabled = !!(state && !state.endedAt);
 
   $("btnEndSet").disabled = !(state && state.activeSetNumber);
   $("btnEndMatch").disabled = !(state && !state.endedAt);
   $("btnUndo").disabled = !(state && state.canUndo);
   $("btnRedo").disabled = !(state && state.canRedo);
+  $("btnReset").disabled = !state;
 
   var hasActiveSet = !!(state && state.activeSetNumber);
   document.querySelectorAll("[data-stat]").forEach(function (btn) {
@@ -535,7 +616,7 @@ async function persistAndRefresh() {
 // ---- Match lifecycle ----
 
 async function createMatch() {
-  var name = $("cfgMatchName").value.trim() || "Untitled Match";
+  var name = $("matchNameInput").value.trim() || "Untitled Match";
   var format = getSelectedFormat();
   var totalSets = cfgSetsValue;
   var matchId = "match-" + Date.now();
@@ -549,6 +630,17 @@ async function createMatch() {
 
   showPage("stats");
   await persistAndRefresh();
+}
+
+async function resetMatch() {
+  controller.timeline = { events: [], cursor: 0 };
+  controller.currentMatchId = null;
+  controller.currentMatchName = null;
+  controller.matchFormat = null;
+  controller.totalSets = null;
+  controller.createdAt = null;
+  $("matchNameInput").value = "Practice Match";
+  renderState();
 }
 
 async function endSet() {
@@ -642,7 +734,6 @@ document.addEventListener("DOMContentLoaded", function () {
   $("navHistory").addEventListener("click", function () { showPage("history"); void renderHistory(); });
 
   // Config page
-  $("btnBeginMatch").addEventListener("click", function () { void createMatch(); });
   $("btnSetsUp").addEventListener("click", function () { stepSets(1); });
   $("btnSetsDown").addEventListener("click", function () { stepSets(-1); });
   document.querySelectorAll('input[name="matchFormat"]').forEach(function (radio) {
@@ -650,10 +741,12 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   // Stats page
+  $("btnStartMatch").addEventListener("click", function () { void createMatch(); });
   $("btnEndSet").addEventListener("click", function () { void endSet(); });
   $("btnEndMatch").addEventListener("click", function () { void endMatch(); });
   $("btnUndo").addEventListener("click", function () { void onUndo(); });
   $("btnRedo").addEventListener("click", function () { void onRedo(); });
+  $("btnReset").addEventListener("click", function () { void resetMatch(); });
 
   // History page
   $("btnResumeMatch").addEventListener("click", function () { void resumeMatch(); });
@@ -678,7 +771,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
     }
-    showPage("config");
+    showPage("stats");
     renderState();
   })();
 });
