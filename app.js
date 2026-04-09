@@ -319,7 +319,11 @@ async function dbListMatches() {
   const db = await openDatabase();
   const all = await runTransaction(db, STORE_NAME, "readonly", function (store) { return store.getAll(); });
   db.close();
-  return all.sort(function (a, b) { return (b.matchDate || b.updatedAt).localeCompare(a.matchDate || a.updatedAt); });
+  return all.sort(function (a, b) {
+    var da = new Date(a.matchDate || a.updatedAt).getTime();
+    var db2 = new Date(b.matchDate || b.updatedAt).getTime();
+    return da - db2;
+  });
 }
 
 async function dbLoadMatch(matchId) {
@@ -434,6 +438,12 @@ function downloadText(filename, content, mimeType) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function matchFilename(name, matchDate, ext) {
+  var slug = name.replace(/[^a-zA-Z0-9_-]/g, "_");
+  var date = matchDate ? new Date(matchDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+  return slug + "_" + date + ext;
 }
 
 function $(id) { return document.getElementById(id); }
@@ -699,26 +709,168 @@ function renderState() {
 var selectedHistoryMatchId = null;
 
 async function renderHistory() {
-  const matches = await dbListMatches();
+  var matches = await dbListMatches();
+  var seasons = await dbListSeasons();
+  var events = await dbListEvents();
   var container = $("historyList");
   container.innerHTML = "";
 
   if (matches.length === 0) {
     container.innerHTML = "<p>No saved matches yet.</p>";
+    $("btnClearHistory").disabled = true;
     clearHistoryPreview();
     return;
   }
+  $("btnClearHistory").disabled = false;
 
-  for (var m = 0; m < matches.length; m++) {
-    (function (entry) {
-      var btn = document.createElement("button");
-      btn.className = "history-item" + (entry.matchId === selectedHistoryMatchId ? " selected" : "");
-      var dateStr = entry.matchDate ? new Date(entry.matchDate).toLocaleString() : new Date(entry.createdAt).toLocaleString();
-      btn.innerHTML = "<span>" + escapeHtml(entry.matchName) + "</span><small>" + dateStr + "</small>";
-      btn.addEventListener("click", function () { void selectHistoryMatch(entry.matchId); });
-      container.appendChild(btn);
-    })(matches[m]);
+  // Build lookup maps
+  var seasonMap = {};
+  seasons.forEach(function (s) { seasonMap[s.id] = s; });
+  var eventMap = {};
+  events.forEach(function (e) { eventMap[e.id] = e; });
+
+  // Group matches: seasonId → eventId → [matches]
+  var grouped = {};    // { seasonId: { eventId: [match, ...] } }
+  var ungrouped = [];
+  matches.forEach(function (m) {
+    if (m.seasonId && seasonMap[m.seasonId]) {
+      if (!grouped[m.seasonId]) grouped[m.seasonId] = {};
+      var eid = m.eventId && eventMap[m.eventId] ? m.eventId : "__none__";
+      if (!grouped[m.seasonId][eid]) grouped[m.seasonId][eid] = [];
+      grouped[m.seasonId][eid].push(m);
+    } else if (m.eventId && eventMap[m.eventId]) {
+      // Event but no season
+      var noSeasonKey = "__no_season__";
+      if (!grouped[noSeasonKey]) grouped[noSeasonKey] = {};
+      if (!grouped[noSeasonKey][m.eventId]) grouped[noSeasonKey][m.eventId] = [];
+      grouped[noSeasonKey][m.eventId].push(m);
+    } else {
+      ungrouped.push(m);
+    }
+  });
+
+  // Render grouped seasons
+  var seasonIds = Object.keys(grouped).sort(function (a, b) {
+    var sa = seasonMap[a], sb = seasonMap[b];
+    if (!sa) return 1; if (!sb) return -1;
+    return sa.name.localeCompare(sb.name);
+  });
+
+  seasonIds.forEach(function (sid) {
+    var season = seasonMap[sid];
+    var seasonEl = document.createElement("details");
+    seasonEl.className = "history-season";
+    seasonEl.open = true;
+    var seasonSummary = document.createElement("summary");
+    seasonSummary.className = "history-season-header";
+    seasonSummary.textContent = season ? season.name : "No Season";
+    seasonEl.appendChild(seasonSummary);
+
+    var eventIds = Object.keys(grouped[sid]).sort(function (a, b) {
+      if (a === "__none__") return 1; if (b === "__none__") return -1;
+      var ea = eventMap[a], eb = eventMap[b];
+      if (!ea) return 1; if (!eb) return -1;
+      return ea.name.localeCompare(eb.name);
+    });
+
+    eventIds.forEach(function (eid) {
+      var evt = eventMap[eid];
+      if (evt) {
+        var eventEl = document.createElement("details");
+        eventEl.className = "history-event";
+        eventEl.open = true;
+        var eventSummary = document.createElement("summary");
+        eventSummary.className = "history-event-header";
+        var typeBadge = evt.type ? " <span class=\"event-type-badge\">" + escapeHtml(evt.type) + "</span>" : "";
+        eventSummary.innerHTML = escapeHtml(evt.name) + typeBadge;
+        eventEl.appendChild(eventSummary);
+        grouped[sid][eid].forEach(function (m) { eventEl.appendChild(createMatchItem(m)); });
+        seasonEl.appendChild(eventEl);
+      } else {
+        // Matches in this season with no event
+        grouped[sid][eid].forEach(function (m) { seasonEl.appendChild(createMatchItem(m)); });
+      }
+    });
+
+    container.appendChild(seasonEl);
+  });
+
+  // Render ungrouped
+  if (ungrouped.length > 0) {
+    if (seasonIds.length > 0) {
+      var ungroupedHeader = document.createElement("details");
+      ungroupedHeader.className = "history-season";
+      ungroupedHeader.open = true;
+      var ungroupedSummary = document.createElement("summary");
+      ungroupedSummary.className = "history-season-header";
+      ungroupedSummary.textContent = "Ungrouped";
+      ungroupedHeader.appendChild(ungroupedSummary);
+      ungrouped.forEach(function (m) { ungroupedHeader.appendChild(createMatchItem(m)); });
+      container.appendChild(ungroupedHeader);
+    } else {
+      ungrouped.forEach(function (m) { container.appendChild(createMatchItem(m)); });
+    }
   }
+}
+
+function createMatchItem(entry) {
+  var wrapper = document.createElement("div");
+  wrapper.className = "history-item-wrapper";
+
+  var btn = document.createElement("button");
+  btn.className = "history-item" + (entry.matchId === selectedHistoryMatchId ? " selected" : "");
+  var dateObj = new Date(entry.matchDate || entry.createdAt);
+  var dateStr = dateObj.toLocaleDateString();
+  var timeStr = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  var statusClass = entry.events && entry.events.some(function (e) { return e.type === "MATCH_ENDED"; }) ? "status-complete" : "status-active";
+  var statusText = statusClass === "status-complete" ? "Complete" : "In Progress";
+  btn.innerHTML = "<div class=\"history-item-main\">" +
+    "<span class=\"history-item-name\">" + escapeHtml(entry.matchName) + "</span>" +
+    "<span class=\"history-item-status " + statusClass + "\">" + statusText + "</span>" +
+    "</div>" +
+    "<div class=\"history-item-meta\">" +
+    "<span>" + dateStr + " " + timeStr + "</span>" +
+    "</div>";
+  btn.addEventListener("click", function () { void selectHistoryMatch(entry.matchId); });
+
+  var delBtn = document.createElement("button");
+  delBtn.className = "history-item-delete";
+  delBtn.title = "Delete match";
+  delBtn.textContent = "\u00D7";
+  delBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    if (!confirm("Delete \"" + entry.matchName + "\"?")) return;
+    void (async function () {
+      await dbDeleteMatch(entry.matchId);
+      if (selectedHistoryMatchId === entry.matchId) clearHistoryPreview();
+      await renderHistory();
+    })();
+  });
+
+  wrapper.appendChild(btn);
+  wrapper.appendChild(delBtn);
+  return wrapper;
+}
+
+async function clearAllHistory() {
+  var save = confirm("Would you like to Export All data before clearing?");
+  if (save) {
+    await exportAll();
+  }
+  if (!confirm("Delete ALL matches, seasons, and events? This cannot be undone.")) return;
+  var db = await openDatabase();
+  await runTransaction(db, STORE_NAME, "readwrite", function (store) { return store.clear(); });
+  db.close();
+  db = await openDatabase();
+  await runTransaction(db, SEASON_STORE, "readwrite", function (store) { return store.clear(); });
+  db.close();
+  db = await openDatabase();
+  await runTransaction(db, EVENT_STORE, "readwrite", function (store) { return store.clear(); });
+  db.close();
+  clearHistoryPreview();
+  await renderHistory();
+  await refreshSeasonPicker();
+  await refreshEventPicker();
 }
 
 function clearHistoryPreview() {
@@ -823,6 +975,13 @@ async function createMatch() {
 }
 
 async function resetMatch() {
+  var state = controller.getState();
+  var matchActive = !!(state && !state.endedAt);
+  if (!matchActive) {
+    // No match in progress — just refresh the date/time
+    $("matchDateInput").value = toLocalDatetime(new Date());
+    return;
+  }
   controller.timeline = { events: [], cursor: 0 };
   controller.currentMatchId = null;
   controller.currentMatchName = null;
@@ -893,7 +1052,7 @@ function exportJson() {
       if (!s) return;
       var payload = toExportJson(s, record.events, record.cursor, record);
       payload = await enrichExportWithContext(payload);
-      downloadText(s.matchName.replace(/[^a-zA-Z0-9_-]/g, "_") + ".json", JSON.stringify(payload, null, 2), "application/json");
+      downloadText(matchFilename(s.matchName, record.matchDate, ".json"), JSON.stringify(payload, null, 2), "application/json");
     })();
     return;
   }
@@ -902,7 +1061,7 @@ function exportJson() {
   void (async function () {
     var payload = toExportJson(state, controller.timeline.events, controller.timeline.cursor, controller.toRecord());
     payload = await enrichExportWithContext(payload);
-    downloadText(state.matchName.replace(/[^a-zA-Z0-9_-]/g, "_") + ".json", JSON.stringify(payload, null, 2), "application/json");
+    downloadText(matchFilename(state.matchName, controller.matchDate, ".json"), JSON.stringify(payload, null, 2), "application/json");
   })();
 }
 
@@ -914,13 +1073,13 @@ function exportCsv() {
       var tl = { events: record.events, cursor: record.cursor };
       var s = deriveMatchState(tl);
       if (!s) return;
-      downloadText(s.matchName.replace(/[^a-zA-Z0-9_-]/g, "_") + ".csv", toExportCsv(s), "text/csv;charset=utf-8");
+      downloadText(matchFilename(s.matchName, record.matchDate, ".csv"), toExportCsv(s), "text/csv;charset=utf-8");
     })();
     return;
   }
   var state = controller.getState();
   if (!state) return;
-  downloadText(state.matchName.replace(/[^a-zA-Z0-9_-]/g, "_") + ".csv", toExportCsv(state), "text/csv;charset=utf-8");
+  downloadText(matchFilename(state.matchName, controller.matchDate, ".csv"), toExportCsv(state), "text/csv;charset=utf-8");
 }
 
 // ---- Helpers ----
@@ -1001,7 +1160,8 @@ async function exportAll() {
       return { matchId: m.matchId, matchName: m.matchName, matchFormat: m.matchFormat, totalSets: m.totalSets, matchDate: m.matchDate || null, seasonId: m.seasonId || null, eventId: m.eventId || null, createdAt: m.createdAt, updatedAt: m.updatedAt, cursor: m.cursor, events: m.events };
     }),
   };
-  downloadText("triangle-stats-export.json", JSON.stringify(payload, null, 2), "application/json");
+  var dateTag = new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-");
+  downloadText("triangle-stats-backup-" + dateTag + ".json", JSON.stringify(payload, null, 2), "application/json");
 }
 
 async function importData(file) {
@@ -1123,6 +1283,7 @@ document.addEventListener("DOMContentLoaded", function () {
   $("btnExportJson").addEventListener("click", exportJson);
   $("btnExportCsv").addEventListener("click", exportCsv);
   $("btnExportAll").addEventListener("click", function () { void exportAll(); });
+  $("btnClearHistory").addEventListener("click", function () { void clearAllHistory(); });
   $("btnImport").addEventListener("click", function () { $("importFileInput").click(); });
   $("importFileInput").addEventListener("change", function () {
     if (this.files && this.files[0]) {

@@ -521,16 +521,143 @@ button:disabled {
 }
 
 .history-list {
-  display: grid;
-  gap: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.history-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.3rem;
+}
+
+.history-list-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.clear-history-btn {
+  background: #c1121f;
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 8px;
+  min-width: unset;
+}
+
+.history-season {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  padding: 0.4rem 0.6rem;
+}
+
+.history-season-header {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.history-event {
+  margin-top: 0.3rem;
+  margin-left: 0.5rem;
+  border-left: 2px solid var(--accent-2);
+  padding-left: 0.5rem;
+}
+
+.history-event-header {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.event-type-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--ink);
+  vertical-align: middle;
+  margin-left: 0.3rem;
+  text-transform: capitalize;
+}
+
+.history-item-wrapper {
+  display: flex;
+  gap: 0;
+  margin-top: 0.3rem;
+}
+
+.history-item-wrapper .history-item {
+  flex: 1;
+  margin-top: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.history-item-delete {
+  background: rgba(193, 18, 31, 0.85);
+  color: #fff;
+  border: none;
+  padding: 0 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 0 10px 10px 0;
+  min-width: unset;
+  line-height: 1;
+}
+
+.history-item-delete:hover {
+  background: #c1121f;
 }
 
 .history-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   background: #3d405b;
   text-align: left;
+  padding: 0.5rem 0.7rem;
+  margin-top: 0.3rem;
+}
+
+.history-item-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.history-item-name {
+  font-weight: 600;
+}
+
+.history-item-status {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+}
+
+.status-complete {
+  background: var(--accent-2);
+  color: #fff;
+}
+
+.status-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.history-item-meta {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 0.15rem;
 }
 
 .history-item small {
