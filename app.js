@@ -672,8 +672,10 @@ function renderState() {
     indicatorText = "Match Complete";
   } else if (state && state.activeSetNumber) {
     indicatorText = "Set " + state.activeSetNumber + " of " + state.totalSets;
-  } else if (state) {
+  } else if (state && state.completedSetsCount < state.totalSets) {
     indicatorText = "Between Sets";
+  } else if (state) {
+    indicatorText = "Match Complete";
   }
   $("setIndicator").textContent = indicatorText;
 
