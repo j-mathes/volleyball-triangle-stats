@@ -146,6 +146,8 @@ During an active match, the Reset button is protected by a padlock:
 - Auto-relocks after a configurable number of seconds (default: 3)
 - Timer configurable via App Settings stepper on the Setup page
 
+**When no match is active**, the Reset button is always enabled with no padlock — clicking it refreshes the date/time field to the current time. `lockReset()` must **only** be called when a match is active (`state && !state.endedAt`). Calling it unconditionally will start the auto-lock timer and leave the button disabled after the timer fires, even with no match in progress.
+
 ## Metadata Panel
 
 The metadata panel is always visible below the control bar (controls are disabled when no set is active). It is a single horizontal card with four zones left to right:

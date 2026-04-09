@@ -1642,7 +1642,8 @@ document.addEventListener("DOMContentLoaded", function () {
     if (resetLocked) { unlockReset(); } else { lockReset(); }
   });
   $("btnReset").addEventListener("click", function () {
-    lockReset();
+    var state = controller.getState();
+    if (state && !state.endedAt) { lockReset(); }
     void resetMatch();
   });
 
