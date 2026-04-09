@@ -734,6 +734,123 @@ button:disabled {
   background: #066a6a;
 }
 
+/* ---- Metadata panel (rotation, jersey, event codes) ---- */
+
+.metadata-panel {
+  margin-top: 0.6rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  background: var(--paper);
+  border: 2px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  padding: 0.8rem;
+  backdrop-filter: blur(8px);
+}
+
+.rotation-panel {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.rotation-panel-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.rotation-btns {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.25rem;
+}
+
+.rot-btn {
+  background: #4a5568;
+  padding: 0.4rem 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  min-width: 2.6rem;
+}
+
+.rot-btn.selected {
+  background: var(--accent-2);
+  outline: 2px solid rgba(7, 128, 128, 0.5);
+  outline-offset: 2px;
+}
+
+.metadata-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.jersey-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.jersey-label {
+  font-weight: 700;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.jersey-input {
+  min-width: 4rem !important;
+  width: 5rem;
+  text-align: center;
+}
+
+.event-code-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.ec-btn {
+  padding: 0.35rem 0.55rem;
+  font-size: 0.8rem;
+  border-radius: 8px;
+  min-width: unset;
+}
+
+/* Both: Net, Out — apply to miss and stop */
+.ec-both {
+  background: #7c5cbf;
+}
+.ec-both:hover:not(:disabled) {
+  background: #6a4aad;
+}
+
+/* Miss-only: Foot, Rot, Err, Penalty — serve/return errors */
+.ec-miss {
+  background: #c4622d;
+}
+.ec-miss:hover:not(:disabled) {
+  background: #b25222;
+}
+
+/* Stop-only: Miss, Drop, Roof, Catch, Double — defensive plays */
+.ec-stop {
+  background: #2a6b8a;
+}
+.ec-stop:hover:not(:disabled) {
+  background: #235a77;
+}
+
+.ec-btn.selected {
+  outline: 2px solid #60a5fa;
+  outline-offset: 1px;
+  filter: brightness(1.35);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25);
+}
+
 @media (max-width: 700px) {
   .triangle-row {
     grid-template-columns: 1fr;

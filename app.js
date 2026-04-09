@@ -20,6 +20,33 @@ function createEmptyTotals() {
   return totals;
 }
 
+// ---- Event metadata constants -----------------------------
+
+// Codes and their applicable stat categories
+const EVENT_CODES = [
+  { code: "Net",     cat: "both" },
+  { code: "Out",     cat: "both" },
+  { code: "Foot",    cat: "miss" },
+  { code: "Rot",     cat: "miss" },
+  { code: "Miss",    cat: "stop" },
+  { code: "Drop",    cat: "stop" },
+  { code: "Roof",    cat: "stop" },
+  { code: "Catch",   cat: "stop" },
+  { code: "Double",  cat: "stop" },
+  { code: "Err",     cat: "miss" },
+  { code: "Penalty", cat: "miss" },
+];
+
+// Which event code categories are valid per stat key (null = no event codes)
+const STAT_EC_CATS = {
+  usAces: null, opponentAces: null,
+  usMisses: ["both", "miss"], opponentMisses: ["both", "miss"],
+  firstBallUsKills: null, firstBallOpponentKills: null,
+  transitionUsKills: null, transitionOpponentKills: null,
+  firstBallUsStops: ["both", "stop"], firstBallOpponentStops: ["both", "stop"],
+  transitionUsStops: ["both", "stop"], transitionOpponentStops: ["both", "stop"],
+};
+
 // ---- Formulas ---------------------------------------------
 
 function calculateTerminalServes(stats) {
@@ -614,6 +641,17 @@ var resetLocked = true;
 var resetLockTimer = null;
 var resetLockSeconds = 3;
 
+// ---- Metadata state (rotation, jersey, event code) --------
+
+var selectedOurRotation = null;
+var selectedTheirRotation = null;
+var selectedEventCode = null;
+
+function getRotationMode() {
+  var checked = document.querySelector('input[name="rotationMode"]:checked');
+  return checked ? checked.value : "none";
+}
+
 function lockReset() {
   resetLocked = true;
   if (resetLockTimer) { clearTimeout(resetLockTimer); resetLockTimer = null; }
@@ -709,6 +747,7 @@ function renderState() {
   $("cfgEventSelect").disabled = matchActive;
   $("cfgEventName").disabled = matchActive;
   $("cfgEventType").disabled = matchActive;
+  // rotation mode and persist are always editable
 
   // Lock history page actions during active match
   $("btnResumeMatch").disabled = matchActive;
@@ -720,6 +759,24 @@ function renderState() {
   document.querySelectorAll(".history-item-delete").forEach(function (btn) { btn.disabled = matchActive; });
 
   var hasActiveSet = !!(state && state.activeSetNumber);
+
+  // Metadata panel: always visible, controls disabled when no active set
+  var rotMode = getRotationMode();
+  $("rotOursPanel").style.display = (rotMode === "ours" || rotMode === "both") ? "" : "none";
+  $("rotTheirsPanel").style.display = rotMode === "both" ? "" : "none";
+  document.querySelectorAll(".rot-btn").forEach(function (btn) { btn.disabled = !hasActiveSet; });
+  $("jerseyInput").disabled = !hasActiveSet;
+  document.querySelectorAll(".ec-btn").forEach(function (btn) {
+    btn.disabled = !hasActiveSet;
+    btn.classList.toggle("selected", hasActiveSet && btn.getAttribute("data-ec") === selectedEventCode);
+  });
+  document.querySelectorAll("[data-rot-side='ours']").forEach(function (btn) {
+    btn.classList.toggle("selected", hasActiveSet && parseInt(btn.getAttribute("data-rot"), 10) === selectedOurRotation);
+  });
+  document.querySelectorAll("[data-rot-side='theirs']").forEach(function (btn) {
+    btn.classList.toggle("selected", hasActiveSet && parseInt(btn.getAttribute("data-rot"), 10) === selectedTheirRotation);
+  });
+
   document.querySelectorAll("[data-stat]").forEach(function (btn) {
     btn.disabled = !hasActiveSet;
   });
@@ -1015,12 +1072,22 @@ async function resetMatch() {
   controller.createdAt = null;
   $("matchNameInput").value = "Practice Match";
   $("matchDateInput").value = toLocalDatetime(new Date());
+  selectedOurRotation = null;
+  selectedTheirRotation = null;
+  selectedEventCode = null;
+  $("jerseyInput").value = "";
   renderState();
 }
 
 async function endSet() {
   const state = controller.getState();
   if (!state || !state.activeSetNumber) return;
+
+  // Always clear metadata selection when a set ends
+  selectedOurRotation = null;
+  selectedTheirRotation = null;
+  selectedEventCode = null;
+  $("jerseyInput").value = "";
 
   var currentSetNum = state.activeSetNumber;
   controller.dispatch({ type: "SET_ENDED", matchId: state.matchId, setNumber: currentSetNum, timestamp: new Date().toISOString() });
@@ -1038,6 +1105,11 @@ async function endMatch() {
   const state = controller.getState();
   if (!state) return;
 
+  selectedOurRotation = null;
+  selectedTheirRotation = null;
+  selectedEventCode = null;
+  $("jerseyInput").value = "";
+
   if (state.activeSetNumber) {
     controller.dispatch({ type: "SET_ENDED", matchId: state.matchId, setNumber: state.activeSetNumber, timestamp: new Date().toISOString() });
   }
@@ -1048,7 +1120,47 @@ async function endMatch() {
 async function incrementStat(stat) {
   const state = controller.getState();
   if (!state || !state.activeSetNumber) return;
-  controller.incrementStat(state.matchId, state.activeSetNumber, stat);
+
+  var jersey = $("jerseyInput").value.trim() || null;
+
+  // Event code: only record if this stat type allows it
+  var eventCode = null;
+  var allowedCats = STAT_EC_CATS[stat];
+  if (allowedCats && selectedEventCode) {
+    var ecDef = EVENT_CODES.find(function (e) { return e.code === selectedEventCode; });
+    if (ecDef && allowedCats.indexOf(ecDef.cat) >= 0) {
+      eventCode = selectedEventCode;
+    }
+  }
+
+  // Rotations: only record based on tracking mode
+  var rotMode = getRotationMode();
+  var ourRotation = (rotMode === "ours" || rotMode === "both") ? selectedOurRotation : null;
+  var theirRotation = rotMode === "both" ? selectedTheirRotation : null;
+
+  controller.dispatch({
+    type: "STAT_INCREMENTED",
+    matchId: state.matchId,
+    setNumber: state.activeSetNumber,
+    stat: stat,
+    value: 1,
+    jersey: jersey,
+    eventCode: eventCode,
+    ourRotation: ourRotation,
+    theirRotation: theirRotation,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Clear jersey and event code after recording
+  $("jerseyInput").value = "";
+  selectedEventCode = null;
+
+  // Clear rotations unless persistence is enabled
+  if (!$("cfgRotationPersist").checked) {
+    selectedOurRotation = null;
+    selectedTheirRotation = null;
+  }
+
   await persistAndRefresh();
 }
 
@@ -1286,6 +1398,17 @@ document.addEventListener("DOMContentLoaded", function () {
   });
   $("cfgEventSelect").addEventListener("change", function () { toggleNewEventInput(); });
 
+  // Rotation settings — persist to localStorage so they survive page reloads / match resumes
+  document.querySelectorAll('input[name="rotationMode"]').forEach(function (r) {
+    r.addEventListener("change", function () {
+      localStorage.setItem("rotationMode", r.value);
+      renderState();
+    });
+  });
+  $("cfgRotationPersist").addEventListener("change", function () {
+    localStorage.setItem("rotationPersist", $("cfgRotationPersist").checked ? "1" : "0");
+  });
+
   // Stats page
   $("btnStartMatch").addEventListener("click", function () { void createMatch(); });
   $("btnEndSet").addEventListener("click", function () { void endSet(); });
@@ -1318,6 +1441,61 @@ document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll("[data-stat]").forEach(function (btn) {
     btn.addEventListener("click", function () { void incrementStat(btn.getAttribute("data-stat")); });
   });
+
+  // Rotation buttons
+  document.querySelectorAll(".rot-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var side = btn.getAttribute("data-rot-side");
+      var r = parseInt(btn.getAttribute("data-rot"), 10);
+      if (side === "ours") {
+        selectedOurRotation = selectedOurRotation === r ? null : r;
+      } else {
+        selectedTheirRotation = selectedTheirRotation === r ? null : r;
+      }
+      renderState();
+    });
+  });
+
+  // Event code buttons
+  document.querySelectorAll(".ec-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var ec = btn.getAttribute("data-ec");
+      selectedEventCode = selectedEventCode === ec ? null : ec;
+      renderState();
+    });
+  });
+
+  // Route digit/backspace keypresses to jersey input when a set is active
+  document.addEventListener("keydown", function (e) {
+    var tag = document.activeElement ? document.activeElement.tagName : "";
+    var isEditable = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+    if (isEditable) return;
+
+    var state = controller.getState();
+    if (!state || !state.activeSetNumber) return;
+
+    var jersey = $("jerseyInput");
+    if (e.key >= "0" && e.key <= "9") {
+      e.preventDefault();
+      jersey.value += e.key;
+      jersey.focus();
+    } else if (e.key === "Backspace") {
+      e.preventDefault();
+      jersey.value = jersey.value.slice(0, -1);
+      jersey.focus();
+    }
+  });
+
+  // Restore rotation settings from localStorage
+  var savedRotMode = localStorage.getItem("rotationMode");
+  if (savedRotMode) {
+    var rotRadio = document.querySelector('input[name="rotationMode"][value="' + savedRotMode + '"]');
+    if (rotRadio) rotRadio.checked = true;
+  }
+  var savedRotPersist = localStorage.getItem("rotationPersist");
+  if (savedRotPersist !== null) {
+    $("cfgRotationPersist").checked = savedRotPersist === "1";
+  }
 
   // Start on stats page immediately, then restore in-progress match if any
   syncSetsToFormat();

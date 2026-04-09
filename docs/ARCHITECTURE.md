@@ -10,7 +10,7 @@ Triangle Stats is a vanilla HTML/JS/CSS single-page application with three pages
 
 ## Event-Sourced State Model
 
-- Every button press records a `STAT_INCREMENTED` event.
+- Every button press records a `STAT_INCREMENTED` event with optional metadata (jersey, event code, rotations).
 - Match and set lifecycle actions (`START_SET`, `END_SET`, `END_MATCH`) are also events.
 - Current state is derived by replaying events up to a cursor position.
 - Undo and redo move the replay cursor backward or forward.
@@ -62,6 +62,21 @@ All IDs use `crypto.randomUUID()` for global uniqueness across devices.
 | `cursor` | number | Event replay position (for undo/redo) |
 | `events` | array | Domain events timeline |
 
+### STAT_INCREMENTED Event Fields
+
+Each `STAT_INCREMENTED` event carries the stat count change plus optional metadata captured at the moment of the button press:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `stat` | string | Stat key (e.g. `"usAces"`) |
+| `value` | number | Always `1` |
+| `setNumber` | number | The set this stat belongs to |
+| `jersey` | string \| null | Jersey number entered at press time |
+| `eventCode` | string \| null | Selected event code, if applicable to this stat |
+| `ourRotation` | number \| null | Our rotation (1–6) at press time |
+| `theirRotation` | number \| null | Their rotation (1–6) at press time |
+| `timestamp` | ISO string | When the event was recorded |
+
 ## Score Calculation
 
 Each category derives a score from raw stats:
@@ -77,10 +92,11 @@ Stat boxes display **current set** values. Aggregate match totals are optionally
 ## Match Lifecycle
 
 1. **Start Match** — Creates match record, starts Set 1
-2. **Stat tracking** — 12 buttons record events, state derived by replay
-3. **End Set** — Closes current set, auto-progresses to next set
-4. **End Match** — Sets `endedAt`, marks match complete
-5. **Undo/Redo** — Moves cursor through event timeline
+2. **Metadata selection** — Optionally set jersey #, rotation, and/or event code before pressing a stat button
+3. **Stat tracking** — 12 buttons record events with captured metadata, state derived by replay
+4. **End Set** — Closes current set, auto-progresses to next set; clears all metadata selections
+5. **End Match** — Sets `endedAt`, marks match complete; clears all metadata selections
+6. **Undo/Redo** — Moves cursor through event timeline
 
 ### Reset Guard
 
@@ -89,6 +105,52 @@ During an active match, the Reset button is protected by a padlock:
 - Click padlock to unlock (🔓), Reset enabled
 - Auto-relocks after a configurable number of seconds (default: 3)
 - Timer configurable via App Settings stepper on the Setup page
+
+## Metadata Panel
+
+The metadata panel is shown below the control bar only when a set is active. It contains three zones:
+
+- **Left — Our Rotation**: R1–R6 buttons. Shown when rotation mode is "Ours Only" or "Both Sides".
+- **Center — Jersey # and Event Codes**: A text input for jersey number and 11 color-coded event code buttons.
+- **Right — Their Rotation**: R1–R6 buttons. Shown only when rotation mode is "Both Sides".
+
+### Event Code Applicability
+
+Event codes are silently dropped when the stat type doesn't accept them. The `STAT_EC_CATS` map defines which categories each stat key allows:
+
+| Stat Keys | Accepts |
+|-----------|--------|
+| Aces (us/opponent) | nothing |
+| Kills (first ball / transition, us/opponent) | nothing |
+| Misses (us/opponent) | `"both"` and `"miss"` codes |
+| Stops (first ball / transition, us/opponent) | `"both"` and `"stop"` codes |
+
+### Event Code Color Groups
+
+| Color | Category | Codes |
+|-------|---------|-------|
+| Purple | Both misses and stops | Net, Out |
+| Orange | Misses only | Foot, Rot, Err, Penalty |
+| Blue | Stops only | Miss, Drop, Roof, Catch, Double |
+
+### Metadata Clearing Rules
+
+| Trigger | Jersey | Event Code | Rotation |
+|---------|--------|-----------|----------|
+| Stat button pressed | ✓ cleared | ✓ cleared | Cleared unless "Keep rotation" is on |
+| End Set | ✓ cleared | ✓ cleared | ✓ always cleared |
+| End Match | ✓ cleared | ✓ cleared | ✓ always cleared |
+| Reset | ✓ cleared | ✓ cleared | ✓ always cleared |
+
+### Rotation Tracking Modes
+
+Controlled by the `rotationMode` radio group in App Settings (locked during active match):
+
+| Value | Our buttons | Their buttons | Recorded |
+|-------|------------|--------------|----------|
+| `none` | Hidden | Hidden | Nothing |
+| `ours` | Shown | Hidden | `ourRotation` only |
+| `both` | Shown | Shown | Both |
 
 ## Auto-Restore on Page Load
 
@@ -177,3 +239,8 @@ Actions:
 10. History → verify matches grouped by season/event, delete works
 11. Clear All → verify export prompt appears first, then confirmation
 12. Reset during active match → verify padlock guard prevents accidental reset
+13. Setup → set Rotation Tracking to "Both Sides", start a match, verify rotation buttons appear on both sides
+14. Select R3 (ours), enter jersey "12", select "Net", press "Our Miss" → verify metadata in exported JSON event
+15. Press any stat button with a non-applicable code selected (e.g. "Drop" + "Our Ace") → verify event code is null in export
+16. End Set → verify all rotation/jersey/code selections are cleared
+17. Enable "Keep rotation", select R2, press two stat buttons → verify rotation persists across both; End Set → verify it clears

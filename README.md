@@ -5,11 +5,12 @@ Web-based volleyball stat tracker. No build tools, npm, or server required — o
 ## How to Use
 
 1. Open `index.html` in a modern web browser (Chrome, Firefox, Edge).
-2. Optionally go to **Setup** to configure match format, number of sets, and match organization (season/event).
+2. Optionally go to **Setup** to configure match format, number of sets, rotation tracking, and match organization (season/event).
 3. On the **Stats** page, enter a match name, set the date/time, and click **Start Match**.
-4. Tap the 12 stat buttons in the triangle layout to record events.
-5. Use **Undo** / **Redo** to correct mistakes.
-6. **End Set** progresses to the next set; **End Match** when finished.
+4. Optionally enter a jersey number, select a rotation, and/or select an event code before pressing a stat button.
+5. Tap the 12 stat buttons in the triangle layout to record events.
+6. Use **Undo** / **Redo** to correct mistakes.
+7. **End Set** progresses to the next set; **End Match** when finished.
 7. On the **History** page, browse saved matches grouped by season and event.
    - **Export JSON** for a single match with full replay data.
    - **Export CSV** for a coach-readable summary.
@@ -32,8 +33,8 @@ docs/
 
 | Page | Purpose |
 |------|---------|
-| **Stats** | Live match tracking — triangle stat buttons, score display, snapshot table, undo/redo |
-| **Setup** | Match configuration (format, sets, season/event) and App Settings |
+| **Stats** | Live match tracking — triangle stat buttons, metadata panel (rotation/jersey/event code), score display, snapshot table, undo/redo |
+| **Setup** | Match configuration (format, sets, rotation tracking, season/event) and App Settings |
 | **History** | Browse, preview, export, import, resume, and delete saved matches |
 
 ## Tracked Categories
@@ -47,6 +48,28 @@ The triangle layout has three vertices, each tracking four stats (12 buttons tot
 | **Transition Points** | (our kills + our stops) − (their kills + their stops) | Our Kill, Their Kill, Our Stop, Their Stop |
 
 Stat boxes show the current set totals. Aggregate match totals can be displayed inside the triangle (toggle in App Settings).
+
+## Metadata per Stat Event
+
+When a set is active, a **Metadata panel** appears between the control bar and the triangle. Before pressing a stat button you can optionally set:
+
+- **Jersey #** — Type any jersey number. Cleared automatically after each stat press.
+- **Rotation** — Six buttons (R1–R6) for "Our" side and (optionally) "Their" side. Click to select, click again to deselect. Cleared after each stat press unless **Keep rotation selected** is on in App Settings.
+- **Event code** — One-click code buttons to annotate the play. Cleared after each stat press.
+
+If a field is left blank or a code is not applicable to the stat type, it is simply not recorded.
+
+### Event Codes
+
+Codes are color-coded by the stat types they apply to:
+
+| Color | Applies to | Codes |
+|-------|-----------|-------|
+| Purple | Serve misses **and** stops | Net, Out |
+| Orange | Serve misses only | Foot, Rot, Err, Penalty |
+| Blue | Stops only | Miss, Drop, Roof, Catch, Double |
+
+If you press a stat button that does not accept the selected code, the code is silently ignored.  For example, selecting "Foot" (a miss-only code) then pressing "Our Kill" will record the kill with no event code.
 
 ## Match Configuration
 
@@ -95,6 +118,11 @@ Found at the bottom of the Setup page:
 
 - **Reset Auto-Lock** — Configurable seconds before the Reset button re-locks (default: 3). During an active match, Reset is guarded by a padlock that must be clicked to unlock.
 - **Show match totals in triangle** — Toggle aggregate scores displayed inside the triangle SVG.
+- **Rotation Tracking** — Choose what rotation data to collect:
+  - *None* — rotation buttons hidden, nothing recorded
+  - *Ours Only* — only the left-side (our) R1–R6 buttons shown
+  - *Both Sides* — our rotation (left) and their rotation (right) both shown
+- **Keep rotation selected between stats** — When on, the selected rotation persists across stat button presses within a set. Always clears at End Set, End Match, and Reset.
 
 ## Docs
 

@@ -68,6 +68,14 @@
           <button id="btnLockTimeUp" type="button" class="stepper-btn">+</button>
         </div>
         <label class="checkbox-label"><input type="checkbox" id="cfgShowTriTotals" checked> Show match totals in triangle</label>
+
+        <div class="format-picker">
+          <div class="format-picker-legend">Rotation Tracking</div>
+          <label><input type="radio" name="rotationMode" value="none" checked> None</label>
+          <label><input type="radio" name="rotationMode" value="ours"> Ours Only</label>
+          <label><input type="radio" name="rotationMode" value="both"> Both Sides</label>
+        </div>
+        <label class="checkbox-label"><input type="checkbox" id="cfgRotationPersist"> Keep rotation selected between stats</label>
       </div>
     </div>
 
@@ -87,6 +95,51 @@
         <button id="btnReset" disabled>Reset</button>
         <button id="btnLock" class="lock-btn" title="Unlock to enable reset">&#x1F512;</button>
       </span>
+    </div>
+
+    <!-- Metadata panel: rotation tracking, jersey, event codes -->
+    <div id="metadataPanel" class="metadata-panel">
+      <div id="rotOursPanel" class="rotation-panel">
+        <div class="rotation-panel-label">Our Rotation</div>
+        <div class="rotation-btns">
+          <button class="rot-btn" data-rot-side="ours" data-rot="1">R1</button>
+          <button class="rot-btn" data-rot-side="ours" data-rot="2">R2</button>
+          <button class="rot-btn" data-rot-side="ours" data-rot="3">R3</button>
+          <button class="rot-btn" data-rot-side="ours" data-rot="4">R4</button>
+          <button class="rot-btn" data-rot-side="ours" data-rot="5">R5</button>
+          <button class="rot-btn" data-rot-side="ours" data-rot="6">R6</button>
+        </div>
+      </div>
+      <div class="metadata-center">
+        <div class="jersey-row">
+          <label class="jersey-label" for="jerseyInput">Jersey #</label>
+          <input id="jerseyInput" type="text" inputmode="numeric" placeholder="—" class="jersey-input">
+        </div>
+        <div class="event-code-btns">
+          <button class="ec-btn ec-both" data-ec="Net">Net</button>
+          <button class="ec-btn ec-both" data-ec="Out">Out</button>
+          <button class="ec-btn ec-miss" data-ec="Foot">Foot</button>
+          <button class="ec-btn ec-miss" data-ec="Rot">Rot</button>
+          <button class="ec-btn ec-stop" data-ec="Miss">Miss</button>
+          <button class="ec-btn ec-stop" data-ec="Drop">Drop</button>
+          <button class="ec-btn ec-stop" data-ec="Roof">Roof</button>
+          <button class="ec-btn ec-stop" data-ec="Catch">Catch</button>
+          <button class="ec-btn ec-stop" data-ec="Double">Double</button>
+          <button class="ec-btn ec-miss" data-ec="Err">Err</button>
+          <button class="ec-btn ec-miss" data-ec="Penalty">Penalty</button>
+        </div>
+      </div>
+      <div id="rotTheirsPanel" class="rotation-panel">
+        <div class="rotation-panel-label">Their Rotation</div>
+        <div class="rotation-btns">
+          <button class="rot-btn" data-rot-side="theirs" data-rot="1">R1</button>
+          <button class="rot-btn" data-rot-side="theirs" data-rot="2">R2</button>
+          <button class="rot-btn" data-rot-side="theirs" data-rot="3">R3</button>
+          <button class="rot-btn" data-rot-side="theirs" data-rot="4">R4</button>
+          <button class="rot-btn" data-rot-side="theirs" data-rot="5">R5</button>
+          <button class="rot-btn" data-rot-side="theirs" data-rot="6">R6</button>
+        </div>
+      </div>
     </div>
 
     <div class="content-area">
