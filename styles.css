@@ -124,12 +124,49 @@ button:disabled {
   aspect-ratio: 1 / 0.85;
   width: 90%;
   margin: 0 auto;
+  position: relative;
 }
 
 .triangle-center svg {
   width: 100%;
   height: 100%;
   display: block;
+}
+
+.tri-label {
+  position: absolute;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow:
+    -1.5px -1.5px 0 #1b1b28,
+     1.5px -1.5px 0 #1b1b28,
+    -1.5px  1.5px 0 #1b1b28,
+     1.5px  1.5px 0 #1b1b28,
+     0   -1.5px 0 #1b1b28,
+     0    1.5px 0 #1b1b28,
+    -1.5px  0   0 #1b1b28,
+     1.5px  0   0 #1b1b28;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.tri-top {
+  top: 28%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.tri-left {
+  bottom: 12%;
+  left: 22%;
+  transform: translateX(-50%);
+}
+
+.tri-right {
+  bottom: 12%;
+  right: 22%;
+  transform: translateX(50%);
 }
 
 .vertex {
@@ -143,6 +180,7 @@ button:disabled {
 .vertex h2 {
   margin: 0;
   font-size: 0.95rem;
+  text-align: center;
 }
 
 .value {
@@ -150,6 +188,7 @@ button:disabled {
   font-size: 1.8rem;
   font-weight: 700;
   color: var(--accent-2);
+  text-align: center;
 }
 
 .actions {
@@ -217,9 +256,8 @@ button:disabled {
 
 /* Snapshot table */
 .snapshot-table {
-  width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-size: 1rem;
   margin-top: 0.4rem;
 }
 
@@ -228,11 +266,13 @@ button:disabled {
   padding: 0.3rem 0.5rem;
   text-align: center;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  width: 8rem;
 }
 
 .snapshot-table th {
   font-weight: 600;
   background: rgba(0, 0, 0, 0.03);
+  vertical-align: bottom;
 }
 
 .snapshot-table tfoot td {
@@ -341,6 +381,33 @@ button:disabled {
   color: var(--ink);
   border-radius: 10px;
   border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.reset-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.reset-group.has-lock {
+  border: 1.5px solid rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  padding: 0.15rem 0.25rem;
+}
+
+.reset-group .lock-btn {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  padding: 0.3rem 0.35rem;
+  cursor: pointer;
+  line-height: 1;
+  min-width: unset;
+  border-radius: 6px;
+}
+
+.reset-group .lock-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .match-name-input {
@@ -492,6 +559,14 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  cursor: pointer;
 }
 
 .combo-picker select {

@@ -35,8 +35,8 @@ function calculateTransitionPoints(stats) {
 }
 
 function calculateSetScore(stats) {
-  const us = stats.usAces + stats.firstBallUsKills + stats.firstBallUsStops + stats.transitionUsKills + stats.transitionUsStops;
-  const opponent = stats.opponentAces + stats.firstBallOpponentKills + stats.firstBallOpponentStops + stats.transitionOpponentKills + stats.transitionOpponentStops;
+  const us = stats.usAces + stats.opponentMisses + stats.firstBallUsKills + stats.firstBallUsStops + stats.transitionUsKills + stats.transitionUsStops;
+  const opponent = stats.opponentAces + stats.usMisses + stats.firstBallOpponentKills + stats.firstBallOpponentStops + stats.transitionOpponentKills + stats.transitionOpponentStops;
   return { us, opponent };
 }
 
@@ -486,6 +486,11 @@ function stepSets(direction) {
   $("cfgTotalSets").textContent = cfgSetsValue;
 }
 
+function stepLockTime(direction) {
+  resetLockSeconds = Math.max(1, resetLockSeconds + direction);
+  $("cfgLockTime").textContent = resetLockSeconds;
+}
+
 function syncSetsToFormat() {
   var fmt = getSelectedFormat();
   if (fmt === "bestOf") {
@@ -593,14 +598,52 @@ function renderActiveSnapshot(state) {
   }
 }
 
+// ---- Reset lock ----
+
+var resetLocked = true;
+var resetLockTimer = null;
+var resetLockSeconds = 3;
+
+function lockReset() {
+  resetLocked = true;
+  if (resetLockTimer) { clearTimeout(resetLockTimer); resetLockTimer = null; }
+  $("btnLock").textContent = "\u{1F512}";
+  $("btnLock").title = "Unlock to enable reset";
+  $("btnReset").disabled = true;
+}
+
+function unlockReset() {
+  resetLocked = false;
+  if (resetLockTimer) clearTimeout(resetLockTimer);
+  $("btnLock").textContent = "\u{1F513}";
+  $("btnLock").title = "Click to lock";
+  $("btnReset").disabled = false;
+  resetLockTimer = setTimeout(lockReset, resetLockSeconds * 1000);
+}
+
 // ---- Render stats page ----
 
 function renderState() {
   const state = controller.getState();
 
-  $("valTerminalServes").textContent = state ? state.aggregate.terminalServes : 0;
-  $("valFirstBallPoints").textContent = state ? state.aggregate.firstBallPoints : 0;
-  $("valTransitionPoints").textContent = state ? state.aggregate.transitionPoints : 0;
+  var activeSet = state && state.activeSetNumber
+    ? state.sets.find(function (s) { return s.setNumber === state.activeSetNumber; })
+    : null;
+
+  $("valTerminalServes").textContent = activeSet ? activeSet.terminalServes : 0;
+  $("valFirstBallPoints").textContent = activeSet ? activeSet.firstBallPoints : 0;
+  $("valTransitionPoints").textContent = activeSet ? activeSet.transitionPoints : 0;
+
+  // Aggregate match totals inside triangle
+  var showTri = $("cfgShowTriTotals").checked;
+  $("triTerminal").style.display = showTri ? "" : "none";
+  $("triFirstBall").style.display = showTri ? "" : "none";
+  $("triTransition").style.display = showTri ? "" : "none";
+  if (showTri) {
+    $("triTerminal").textContent = state ? state.aggregate.terminalServes : 0;
+    $("triFirstBall").textContent = state ? state.aggregate.firstBallPoints : 0;
+    $("triTransition").textContent = state ? state.aggregate.transitionPoints : 0;
+  }
 
   // Match name input: show current match name when active
   if (state) {
@@ -634,7 +677,16 @@ function renderState() {
   $("btnEndMatch").disabled = !(state && !state.endedAt);
   $("btnUndo").disabled = !(state && state.canUndo);
   $("btnRedo").disabled = !(state && state.canRedo);
-  $("btnReset").disabled = false;
+
+  // Reset: show padlock group during active match, plain button otherwise
+  var matchActive = !!(state && !state.endedAt);
+  $("resetGroup").classList.toggle("has-lock", matchActive);
+  $("btnLock").style.display = matchActive ? "" : "none";
+  if (matchActive) {
+    $("btnReset").disabled = resetLocked;
+  } else {
+    $("btnReset").disabled = false;
+  }
 
   var hasActiveSet = !!(state && state.activeSetNumber);
   document.querySelectorAll("[data-stat]").forEach(function (btn) {
@@ -1034,6 +1086,8 @@ document.addEventListener("DOMContentLoaded", function () {
   // Config page
   $("btnSetsUp").addEventListener("click", function () { stepSets(1); });
   $("btnSetsDown").addEventListener("click", function () { stepSets(-1); });
+  $("btnLockTimeUp").addEventListener("click", function () { stepLockTime(1); });
+  $("btnLockTimeDown").addEventListener("click", function () { stepLockTime(-1); });
   document.querySelectorAll('input[name="matchFormat"]').forEach(function (radio) {
     radio.addEventListener("change", function () { syncSetsToFormat(); });
   });
@@ -1056,7 +1110,13 @@ document.addEventListener("DOMContentLoaded", function () {
   $("btnEndMatch").addEventListener("click", function () { void endMatch(); });
   $("btnUndo").addEventListener("click", function () { void onUndo(); });
   $("btnRedo").addEventListener("click", function () { void onRedo(); });
-  $("btnReset").addEventListener("click", function () { void resetMatch(); });
+  $("btnLock").addEventListener("click", function () {
+    if (resetLocked) { unlockReset(); } else { lockReset(); }
+  });
+  $("btnReset").addEventListener("click", function () {
+    lockReset();
+    void resetMatch();
+  });
 
   // History page
   $("btnResumeMatch").addEventListener("click", function () { void resumeMatch(); });

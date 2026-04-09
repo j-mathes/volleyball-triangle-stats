@@ -58,6 +58,17 @@
           </div>
         </details>
       </div>
+
+      <div class="config-card">
+        <h2>App Settings</h2>
+        <label>Reset Auto-Lock <span class="format-hint">(seconds)</span></label>
+        <div class="stepper">
+          <button id="btnLockTimeDown" type="button" class="stepper-btn">&minus;</button>
+          <span id="cfgLockTime" class="stepper-value">3</span>
+          <button id="btnLockTimeUp" type="button" class="stepper-btn">+</button>
+        </div>
+        <label class="checkbox-label"><input type="checkbox" id="cfgShowTriTotals" checked> Show match totals in triangle</label>
+      </div>
     </div>
 
     <!-- ===== Stats Page ===== -->
@@ -72,7 +83,10 @@
       <button id="btnEndMatch" disabled>End Match</button>
       <button id="btnUndo" disabled>Undo</button>
       <button id="btnRedo" disabled>Redo</button>
-      <button id="btnReset">Reset</button>
+      <span id="resetGroup" class="reset-group">
+        <button id="btnReset" disabled>Reset</button>
+        <button id="btnLock" class="lock-btn" title="Unlock to enable reset">&#x1F512;</button>
+      </span>
     </div>
 
     <div class="content-area">
@@ -103,6 +117,9 @@
           <svg viewBox="0 0 100 100" preserveAspectRatio="none">
             <polygon points="50,5 5,95 95,95" fill="#f5a623" stroke="#1b1b28" stroke-width="2" vector-effect="non-scaling-stroke"/>
           </svg>
+          <span id="triTerminal" class="tri-label tri-top">0</span>
+          <span id="triFirstBall" class="tri-label tri-left">0</span>
+          <span id="triTransition" class="tri-label tri-right">0</span>
         </div>
 
         <article class="vertex bottom-right">
@@ -125,8 +142,8 @@
               <tr>
                 <th>Set</th>
                 <th>Score</th>
-                <th>Terminal Serves</th>
-                <th>First Ball</th>
+                <th>Terminal<br>Serves</th>
+                <th>First<br>Ball</th>
                 <th>Transition</th>
               </tr>
             </thead>
@@ -155,8 +172,8 @@
             <tr>
               <th>Set</th>
               <th>Score</th>
-              <th>Terminal Serves</th>
-              <th>First Ball</th>
+              <th>Terminal<br>Serves</th>
+              <th>First<br>Ball</th>
               <th>Transition</th>
             </tr>
           </thead>
