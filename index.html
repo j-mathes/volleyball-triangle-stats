@@ -13,67 +13,119 @@
       <p>Live event-sourced tracking for Terminal Serves, First Ball Points, and Transition Points.</p>
     </header>
 
+    <!-- ===== Configuration Page ===== -->
+    <section id="configPage" class="config-page">
+      <div class="config-card">
+        <h2>Match Setup</h2>
+        <label for="cfgMatchName">Match Name</label>
+        <input id="cfgMatchName" value="Practice Match" placeholder="Match name">
+
+        <fieldset class="format-picker">
+          <legend>Match Format</legend>
+          <label><input type="radio" name="matchFormat" value="bestOf" checked> Best Of <span class="format-hint">(odd number of sets)</span></label>
+          <label><input type="radio" name="matchFormat" value="straightSets"> Straight Sets <span class="format-hint">(even number of sets)</span></label>
+        </fieldset>
+
+        <label for="cfgTotalSets">Number of Sets</label>
+        <input id="cfgTotalSets" type="number" min="1" value="5" class="set-input">
+        <p id="cfgValidation" class="validation-msg"></p>
+
+        <button id="btnBeginMatch" class="begin-match-btn">Start Match</button>
+      </div>
+
+      <div class="history config-history">
+        <h3>History</h3>
+        <div id="configHistoryList" class="history-list">
+          <p>No saved matches yet.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Stats Page ===== -->
+    <section id="statsPage" class="stats-page" hidden>
+
     <section class="control-panel">
-      <input id="matchNameInput" value="Practice Match" placeholder="Match name">
-      <button id="btnStartMatch">Start Match</button>
-      <input id="setNumberInput" value="1" class="set-input" placeholder="Set #">
-      <button id="btnStartSet" disabled>Start Set</button>
+      <span id="setIndicator" class="set-indicator">Set 1 of 5</span>
       <button id="btnEndSet" disabled>End Set</button>
       <button id="btnEndMatch" disabled>End Match</button>
       <button id="btnUndo" disabled>Undo</button>
       <button id="btnRedo" disabled>Redo</button>
       <button id="btnExportJson" disabled>Export JSON</button>
       <button id="btnExportCsv" disabled>Export CSV</button>
+      <button id="btnBackToConfig">New Match</button>
     </section>
 
-    <main class="content-grid">
-      <section class="board">
-        <article class="vertex top">
-          <h2>Terminal Serves</h2>
-          <div class="value" id="valTerminalServes">0</div>
-          <div class="actions">
-            <button data-stat="usAces">Our Ace</button>
-            <button data-stat="usMisses">Our Miss</button>
-            <button data-stat="opponentAces">Their Ace</button>
-            <button data-stat="opponentMisses">Their Miss</button>
-          </div>
-        </article>
+    <main class="content-area">
+      <article class="vertex top">
+        <h2>Terminal Serves</h2>
+        <div class="value" id="valTerminalServes">0</div>
+        <div class="actions">
+          <button class="ours" data-stat="usAces">Our Ace</button>
+          <button class="theirs" data-stat="opponentAces">Their Ace</button>
+          <button class="ours-neg" data-stat="usMisses">Our Miss</button>
+          <button class="theirs-pos" data-stat="opponentMisses">Their Miss</button>
+        </div>
+      </article>
 
-        <article class="vertex left">
+      <div class="triangle-row">
+        <article class="vertex bottom-left">
           <h2>First Ball Points</h2>
           <div class="value" id="valFirstBallPoints">0</div>
           <div class="actions">
-            <button data-stat="firstBallUsKills">Our Kill</button>
-            <button data-stat="firstBallUsStops">Our Stop</button>
-            <button data-stat="firstBallOpponentKills">Their Kill</button>
-            <button data-stat="firstBallOpponentStops">Their Stop</button>
+            <button class="ours" data-stat="firstBallUsKills">Our Kill</button>
+            <button class="theirs" data-stat="firstBallOpponentKills">Their Kill</button>
+            <button class="ours" data-stat="firstBallUsStops">Our Stop</button>
+            <button class="theirs" data-stat="firstBallOpponentStops">Their Stop</button>
           </div>
         </article>
 
-        <article class="vertex right">
+        <div class="triangle-center">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+            <polygon points="50,5 5,95 95,95" fill="#f5a623" stroke="#1b1b28" stroke-width="2" vector-effect="non-scaling-stroke"/>
+          </svg>
+        </div>
+
+        <article class="vertex bottom-right">
           <h2>Transition Points</h2>
           <div class="value" id="valTransitionPoints">0</div>
           <div class="actions">
-            <button data-stat="transitionUsKills">Our Kill</button>
-            <button data-stat="transitionUsStops">Our Stop</button>
-            <button data-stat="transitionOpponentKills">Their Kill</button>
-            <button data-stat="transitionOpponentStops">Their Stop</button>
+            <button class="ours" data-stat="transitionUsKills">Our Kill</button>
+            <button class="theirs" data-stat="transitionOpponentKills">Their Kill</button>
+            <button class="ours" data-stat="transitionUsStops">Our Stop</button>
+            <button class="theirs" data-stat="transitionOpponentStops">Their Stop</button>
           </div>
         </article>
-      </section>
+      </div>
 
-      <section class="sidebar">
-        <h3>Match Snapshot</h3>
-        <p id="snapshotInfo">No active match</p>
-        <p id="snapshotScore">Score: 0 - 0</p>
-        <p id="snapshotSet">Active set: none</p>
-
-        <h3>History</h3>
-        <div id="historyList" class="history-list">
-          <p>No saved matches yet.</p>
+      <section class="bottom-bar">
+        <div class="snapshot">
+          <h3>Match Snapshot</h3>
+          <p id="snapshotInfo">No active match</p>
+          <table id="snapshotTable" class="snapshot-table">
+            <thead>
+              <tr>
+                <th>Set</th>
+                <th>Us</th>
+                <th>Them</th>
+                <th>TS</th>
+                <th>FBP</th>
+                <th>TP</th>
+              </tr>
+            </thead>
+            <tbody id="snapshotBody"></tbody>
+            <tfoot id="snapshotFoot"></tfoot>
+          </table>
+        </div>
+        <div class="history">
+          <h3>History</h3>
+          <div id="historyList" class="history-list">
+            <p>No saved matches yet.</p>
+          </div>
         </div>
       </section>
     </main>
+
+    </section><!-- end statsPage -->
   </div>
 
   <script src="app.js"></script>
