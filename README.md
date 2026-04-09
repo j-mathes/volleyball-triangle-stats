@@ -7,7 +7,7 @@ Web-based volleyball stat tracker. No build tools, npm, or server required — o
 1. Open `index.html` in a modern web browser (Chrome, Firefox, Edge).
 2. Optionally go to **Setup** to configure match format, number of sets, rotation tracking, and match organization (season/event).
 3. On the **Stats** page, enter a match name, set the date/time, and click **Start Match**.
-4. Optionally enter a jersey number, select a rotation, and/or select an event code before pressing a stat button.
+4. Optionally enter a jersey number, select a rotation, and/or select an event code before pressing a stat button. The **Last** display on the right of the metadata panel always shows what was just recorded.
 5. Tap the 12 stat buttons in the triangle layout to record events.
 6. Use **Undo** / **Redo** to correct mistakes.
 7. **End Set** progresses to the next set; **End Match** when finished.
@@ -51,11 +51,15 @@ Stat boxes show the current set totals. Aggregate match totals can be displayed 
 
 ## Metadata per Stat Event
 
-When a set is active, a **Metadata panel** appears between the control bar and the triangle. Before pressing a stat button you can optionally set:
+The **metadata panel** is always visible between the control bar and the triangle. Controls are disabled until a set is active. The panel is a single horizontal card with four zones left to right:
 
-- **Jersey #** — Type any jersey number. Cleared automatically after each stat press.
-- **Rotation** — Six buttons (R1–R6) for "Our" side and (optionally) "Their" side. Click to select, click again to deselect. Cleared after each stat press unless **Keep rotation selected** is on in App Settings.
-- **Event code** — One-click code buttons to annotate the play. Cleared after each stat press.
+| Zone | Description |
+|------|-------------|
+| **Jersey #** | Label and text input side by side. Type any jersey number. Cleared after each stat press. |
+| **Event code buttons** | 11 color-coded buttons. Cleared after each stat press. |
+| **Last** | Read-only display of the most recent recorded stat — updates on every press and on undo/redo. Shows stat name plus any jersey, event code, and rotation that were captured. |
+
+Rotation buttons (R1–R6) appear as flanking cards beside the triangle rows, not inside the metadata panel. See **Rotation Tracking** under App Settings.
 
 If a field is left blank or a code is not applicable to the stat type, it is simply not recorded.
 

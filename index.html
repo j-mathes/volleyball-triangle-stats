@@ -76,6 +76,10 @@
           <label><input type="radio" name="rotationMode" value="both"> Both Sides</label>
         </div>
         <label class="checkbox-label"><input type="checkbox" id="cfgRotationPersist"> Keep rotation selected between stats</label>
+        <div class="color-picker-row">
+          <label for="cfgHighlightColor">Selection highlight color</label>
+          <input type="color" id="cfgHighlightColor" value="#60a5fa" class="highlight-color-input">
+        </div>
       </div>
     </div>
 
@@ -97,20 +101,9 @@
       </span>
     </div>
 
-    <!-- Metadata panel: rotation tracking, jersey, event codes -->
-    <div id="metadataPanel" class="metadata-panel">
-      <div id="rotOursPanel" class="rotation-panel">
-        <div class="rotation-panel-label">Our Rotation</div>
-        <div class="rotation-btns">
-          <button class="rot-btn" data-rot-side="ours" data-rot="1">R1</button>
-          <button class="rot-btn" data-rot-side="ours" data-rot="2">R2</button>
-          <button class="rot-btn" data-rot-side="ours" data-rot="3">R3</button>
-          <button class="rot-btn" data-rot-side="ours" data-rot="4">R4</button>
-          <button class="rot-btn" data-rot-side="ours" data-rot="5">R5</button>
-          <button class="rot-btn" data-rot-side="ours" data-rot="6">R6</button>
-        </div>
-      </div>
-      <div class="metadata-center">
+    <!-- Stats layout: metadata → rotation row → triangle content, all stacked -->
+    <div class="stats-layout">
+      <div id="metadataPanel" class="metadata-panel">
         <div class="jersey-row">
           <label class="jersey-label" for="jerseyInput">Jersey #</label>
           <input id="jerseyInput" type="text" inputmode="numeric" placeholder="—" class="jersey-input">
@@ -128,21 +121,25 @@
           <button class="ec-btn ec-miss" data-ec="Err">Err</button>
           <button class="ec-btn ec-miss" data-ec="Penalty">Penalty</button>
         </div>
-      </div>
-      <div id="rotTheirsPanel" class="rotation-panel">
-        <div class="rotation-panel-label">Their Rotation</div>
-        <div class="rotation-btns">
-          <button class="rot-btn" data-rot-side="theirs" data-rot="1">R1</button>
-          <button class="rot-btn" data-rot-side="theirs" data-rot="2">R2</button>
-          <button class="rot-btn" data-rot-side="theirs" data-rot="3">R3</button>
-          <button class="rot-btn" data-rot-side="theirs" data-rot="4">R4</button>
-          <button class="rot-btn" data-rot-side="theirs" data-rot="5">R5</button>
-          <button class="rot-btn" data-rot-side="theirs" data-rot="6">R6</button>
+        <div id="lastStatPanel" class="last-stat-panel">
+          <div class="last-stat-label">Last</div>
+          <div id="lastStatContent" class="last-stat-content">—</div>
         </div>
       </div>
-    </div>
 
-    <div class="content-area">
+      <!-- All sections are direct grid children of stats-layout -->
+      <div id="rotOursPanel" class="rotation-panel-card">
+        <div class="rotation-panel-label">Our Rotation</div>
+        <div class="rotation-btns">
+          <button class="rot-btn" data-rot-side="ours" data-rot="1">R1</button>
+          <button class="rot-btn" data-rot-side="ours" data-rot="2">R2</button>
+          <button class="rot-btn" data-rot-side="ours" data-rot="3">R3</button>
+          <button class="rot-btn" data-rot-side="ours" data-rot="4">R4</button>
+          <button class="rot-btn" data-rot-side="ours" data-rot="5">R5</button>
+          <button class="rot-btn" data-rot-side="ours" data-rot="6">R6</button>
+        </div>
+      </div>
+
       <article class="vertex top">
         <h2>Terminal Serves</h2>
         <div class="value" id="valTerminalServes">0</div>
@@ -153,6 +150,18 @@
           <button class="theirs-pos" data-stat="opponentMisses">Their Miss</button>
         </div>
       </article>
+
+      <div id="rotTheirsPanel" class="rotation-panel-card">
+        <div class="rotation-panel-label">Their Rotation</div>
+        <div class="rotation-btns">
+          <button class="rot-btn" data-rot-side="theirs" data-rot="1">R1</button>
+          <button class="rot-btn" data-rot-side="theirs" data-rot="2">R2</button>
+          <button class="rot-btn" data-rot-side="theirs" data-rot="3">R3</button>
+          <button class="rot-btn" data-rot-side="theirs" data-rot="4">R4</button>
+          <button class="rot-btn" data-rot-side="theirs" data-rot="5">R5</button>
+          <button class="rot-btn" data-rot-side="theirs" data-rot="6">R6</button>
+        </div>
+      </div>
 
       <div class="triangle-row">
         <article class="vertex bottom-left">
@@ -205,7 +214,7 @@
           </table>
         </div>
       </div>
-    </div>
+    </div><!-- end stats-layout -->
 
     </div><!-- end statsPage -->
 

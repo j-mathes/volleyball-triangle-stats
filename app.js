@@ -47,6 +47,22 @@ const STAT_EC_CATS = {
   transitionUsStops: ["both", "stop"], transitionOpponentStops: ["both", "stop"],
 };
 
+// Human-readable labels for each stat key
+const STAT_LABELS = {
+  usAces:                   "Our Ace",
+  usMisses:                 "Our Miss",
+  opponentAces:             "Their Ace",
+  opponentMisses:           "Their Miss",
+  firstBallUsKills:         "FB Our Kill",
+  firstBallUsStops:         "FB Our Stop",
+  firstBallOpponentKills:   "FB Their Kill",
+  firstBallOpponentStops:   "FB Their Stop",
+  transitionUsKills:        "Trans Our Kill",
+  transitionUsStops:        "Trans Our Stop",
+  transitionOpponentKills:  "Trans Their Kill",
+  transitionOpponentStops:  "Trans Their Stop",
+};
+
 // ---- Formulas ---------------------------------------------
 
 function calculateTerminalServes(stats) {
@@ -671,8 +687,48 @@ function unlockReset() {
 
 // ---- Render stats page ----
 
+function renderLastStat(state) {
+  var el = $("lastStatContent");
+  if (!el) return;
+
+  // Find the last STAT_INCREMENTED event at or before the cursor
+  var lastEvent = null;
+  if (state && state.cursor > 0) {
+    var events = controller.timeline ? controller.timeline.events : [];
+    for (var i = state.cursor - 1; i >= 0; i--) {
+      if (events[i] && events[i].type === "STAT_INCREMENTED") {
+        lastEvent = events[i];
+        break;
+      }
+    }
+  }
+
+  if (!lastEvent) {
+    el.textContent = "\u2014";
+    return;
+  }
+
+  var parts = [];
+  var statName = STAT_LABELS[lastEvent.stat] || lastEvent.stat;
+  var nameSpan = "<span class=\"last-stat-name\">" + statName + "</span>";
+  parts.push(nameSpan);
+
+  var meta = [];
+  if (lastEvent.jersey) meta.push("#" + lastEvent.jersey);
+  if (lastEvent.eventCode) meta.push(lastEvent.eventCode);
+  if (lastEvent.ourRotation) meta.push("R" + lastEvent.ourRotation);
+  if (lastEvent.theirRotation) meta.push("R" + lastEvent.theirRotation);
+  if (meta.length) {
+    parts.push("<span class=\"last-stat-meta\">" + meta.join(" \u00b7 ") + "</span>");
+  }
+
+  el.innerHTML = parts.join("");
+}
+
 function renderState() {
   const state = controller.getState();
+
+  renderLastStat(state);
 
   var activeSet = state && state.activeSetNumber
     ? state.sets.find(function (s) { return s.setNumber === state.activeSetNumber; })
@@ -1409,6 +1465,15 @@ document.addEventListener("DOMContentLoaded", function () {
     localStorage.setItem("rotationPersist", $("cfgRotationPersist").checked ? "1" : "0");
   });
 
+  // Highlight color
+  function applyHighlightColor(color) {
+    document.documentElement.style.setProperty("--highlight-color", color);
+  }
+  $("cfgHighlightColor").addEventListener("input", function () {
+    applyHighlightColor(this.value);
+    localStorage.setItem("highlightColor", this.value);
+  });
+
   // Stats page
   $("btnStartMatch").addEventListener("click", function () { void createMatch(); });
   $("btnEndSet").addEventListener("click", function () { void endSet(); });
@@ -1495,6 +1560,11 @@ document.addEventListener("DOMContentLoaded", function () {
   var savedRotPersist = localStorage.getItem("rotationPersist");
   if (savedRotPersist !== null) {
     $("cfgRotationPersist").checked = savedRotPersist === "1";
+  }
+  var savedHighlight = localStorage.getItem("highlightColor");
+  if (savedHighlight) {
+    $("cfgHighlightColor").value = savedHighlight;
+    document.documentElement.style.setProperty("--highlight-color", savedHighlight);
   }
 
   // Start on stats page immediately, then restore in-progress match if any

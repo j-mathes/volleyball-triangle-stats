@@ -89,19 +89,13 @@ button:disabled {
 }
 
 .content-area {
-  margin-top: 1.2rem;
+  margin-top: 0.6rem;
 }
 
-/* Top category box — centered above the triangle */
-.content-area > .vertex.top {
-  width: 14vw;
-  margin: 0 auto 0.2rem;
-}
-
-/* Middle row: left box | triangle | right box */
+/* Middle row: inherits column tracks from stats-layout via subgrid for exact outer-edge alignment */
 .triangle-row {
   display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
+  grid-template-columns: subgrid;
   gap: 0;
   align-items: end;
 }
@@ -110,14 +104,6 @@ button:disabled {
 .vertex.bottom-right {
   width: 14vw;
   transform: translateY(50%);
-}
-
-.vertex.bottom-left {
-  justify-self: end;
-}
-
-.vertex.bottom-right {
-  justify-self: start;
 }
 
 .triangle-center {
@@ -736,10 +722,71 @@ button:disabled {
 
 /* ---- Metadata panel (rotation, jersey, event codes) ---- */
 
-.metadata-panel {
+/* 3-column grid: auto columns sized by content (14vw from vertex cards via subgrid) */
+.stats-layout {
   margin-top: 0.6rem;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.6rem;
+}
+
+#metadataPanel {
+  grid-column: 1 / -1;
+}
+
+/* Rotation cards span rows 2-3 and anchor to outer edges; their height doesn't push row 3 down */
+#rotOursPanel {
+  grid-column: 1;
+  grid-row: 2 / 4;
+  align-self: start;
+  justify-self: start;
+}
+
+#rotTheirsPanel {
+  grid-column: 3;
+  grid-row: 2 / 4;
+  align-self: start;
+  justify-self: end;
+}
+
+/* Terminal Serves sits in row 2, col 2 — triangle starts immediately after it in row 3 */
+.stats-layout > .vertex.top {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: start;
+  width: 14vw;
+  margin: 0 auto;
+}
+
+.stats-layout > .triangle-row {
+  grid-column: 1 / -1;
+  grid-row: 3;
+}
+
+.stats-layout > .bottom-bar {
+  grid-column: 1 / -1;
+}
+
+/* Rotation panel — separate card on each side */
+.rotation-panel-card {
+  flex: 0 0 auto;
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--paper);
+  border: 2px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  padding: 0.6rem 0.5rem;
+  backdrop-filter: blur(8px);
+}
+
+/* Center jersey + codes card */
+.metadata-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   gap: 0.8rem;
   background: var(--paper);
   border: 2px solid rgba(0, 0, 0, 0.08);
@@ -748,23 +795,16 @@ button:disabled {
   backdrop-filter: blur(8px);
 }
 
-.rotation-panel {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-}
-
 .rotation-panel-label {
   font-size: 0.78rem;
   font-weight: 700;
   text-align: center;
 }
 
+/* Single vertical column, ascending R1→R6 */
 .rotation-btns {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 0.25rem;
 }
 
@@ -778,21 +818,16 @@ button:disabled {
 
 .rot-btn.selected {
   background: var(--accent-2);
-  outline: 2px solid rgba(7, 128, 128, 0.5);
+  outline: 2px solid var(--highlight-color, #60a5fa);
   outline-offset: 2px;
-}
-
-.metadata-center {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 }
 
 .jersey-row {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  flex-shrink: 0;
 }
 
 .jersey-label {
@@ -811,13 +846,51 @@ button:disabled {
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
+  flex: 1;
 }
 
-.ec-btn {
-  padding: 0.35rem 0.55rem;
-  font-size: 0.8rem;
-  border-radius: 8px;
-  min-width: unset;
+.last-stat-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 7rem;
+  padding: 0.4rem 0.7rem;
+  background: rgba(0,0,0,0.06);
+  border-radius: 10px;
+  gap: 0.2rem;
+}
+
+.last-stat-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.55;
+}
+
+.last-stat-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.last-stat-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.last-stat-meta {
+  font-size: 0.75rem;
+  opacity: 0.75;
 }
 
 /* Both: Net, Out — apply to miss and stop */
@@ -845,10 +918,32 @@ button:disabled {
 }
 
 .ec-btn.selected {
-  outline: 2px solid #60a5fa;
+  outline: 2px solid var(--highlight-color, #60a5fa);
   outline-offset: 1px;
   filter: brightness(1.35);
-  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--highlight-color, #60a5fa) 25%, transparent);
+}
+
+.color-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.color-picker-row label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.highlight-color-input {
+  width: 2.5rem;
+  height: 2rem;
+  padding: 0.1rem;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  cursor: pointer;
+  min-width: unset;
 }
 
 @media (max-width: 700px) {

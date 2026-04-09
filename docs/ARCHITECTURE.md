@@ -8,6 +8,46 @@ Triangle Stats is a vanilla HTML/JS/CSS single-page application with three pages
 - `app.js` — Domain engine, IndexedDB persistence, and UI wiring
 - `styles.css` — Visual styling
 
+## Stats Page Layout
+
+The stats page uses a multi-row CSS grid (`stats-layout`) below the control bar. Understanding the column system is critical before making any layout changes.
+
+### Column System
+
+`stats-layout` and `triangle-row` both use **`grid-template-columns: auto 1fr auto`**. The `auto` columns are sized by their content — specifically the `14vw` width of the First Ball and Transition vertex cards. This means the outer column width is always exactly as wide as those cards, and rotation card widths naturally match without being hardcoded.
+
+**Rule:** Never change one grid's column template without changing the other. Any divergence breaks outer-edge alignment.
+
+### Grid Row Structure
+
+```
+Row 1: [metadataPanel ─────────── grid-column: 1/-1 ──────────]
+Row 2: [rotOursPanel] [Terminal Serves (14vw, centered)] [rotTheirsPanel]
+Row 3: [triangle-row ──────────── grid-column: 1/-1 ──────────]
+Row 4: [bottom-bar ─────────────  grid-column: 1/-1 ──────────]
+```
+
+**Row 2 height is set by Terminal Serves only.** The rotation cards span `grid-row: 2 / 4` with `align-self: start`. This means they start at the top of row 2 but do not influence the height of row 2 or when row 3 begins. The top of the triangle always appears directly below Terminal Serves regardless of how tall the rotation cards are.
+
+**Rule:** If rotation cards need to appear beside multiple rows, use `grid-row` spanning + `align-self: start`. Never put rotation cards and triangle content as siblings in the same row.
+
+### Subgrid for Alignment
+
+`triangle-row` uses `grid-template-columns: subgrid` to inherit the outer grid's three column tracks verbatim. The First Ball card lands in column 1 (same track as `rotOursPanel`), the triangle center in column 2, and Transition in column 3 (same track as `rotTheirsPanel`). The snapshot (`bottom-bar`) also spans `1/-1`.
+
+**Rule:** Do not replace `subgrid` with explicit pixel or vw values on `triangle-row`. It must stay as `subgrid` so column widths stay in sync with the outer grid automatically.
+
+### What Breaks Alignment
+
+| Change | Problem |
+|--------|---------|
+| Adding a wrapper div around rotation cards + Terminal Serves | Rotation card height pushes triangle down |
+| Giving rotation cards `align-self: stretch` or removing `grid-row` span | Row 2 becomes as tall as rotation cards |
+| Using different column counts or widths on `triangle-row` vs `stats-layout` | First Ball / Transition no longer align with rotation card edges |
+| Moving `triangle-row` or `bottom-bar` inside a nested flex/grid container | They lose access to the outer subgrid and break column inheritance |
+
+---
+
 ## Event-Sourced State Model
 
 - Every button press records a `STAT_INCREMENTED` event with optional metadata (jersey, event code, rotations).
@@ -108,11 +148,19 @@ During an active match, the Reset button is protected by a padlock:
 
 ## Metadata Panel
 
-The metadata panel is shown below the control bar only when a set is active. It contains three zones:
+The metadata panel is always visible below the control bar (controls are disabled when no set is active). It is a single horizontal card with four zones left to right:
 
-- **Left — Our Rotation**: R1–R6 buttons. Shown when rotation mode is "Ours Only" or "Both Sides".
-- **Center — Jersey # and Event Codes**: A text input for jersey number and 11 color-coded event code buttons.
-- **Right — Their Rotation**: R1–R6 buttons. Shown only when rotation mode is "Both Sides".
+- **Jersey #**: A `Jersey #` label and text input side by side. Shrinks to fit content.
+- **Event Code Buttons**: 11 color-coded buttons that fill remaining space and wrap as needed.
+- **Last Stat Display**: A read-only panel showing the most recent recorded stat. Updates on every stat press and on undo/redo. Displays on one line: stat name · jersey · event code · rotation(s). Rotation is shown as just `R1`–`R6` (team context is already implied by the stat name). Shows `—` when no stat has been recorded yet.
+
+The rotation cards (Our Rotation / Their Rotation) are separate cards that appear as direct grid children of `stats-layout`, flanking the triangle content rows — not inside the metadata panel itself.
+
+### Last Stat Implementation
+
+- `STAT_LABELS` map in `app.js` provides human-readable labels for all 12 stat keys (e.g., `"firstBallUsKills"` → `"FB Our Kill"`).
+- `renderLastStat(state)` walks backwards from `state.cursor` through `controller.timeline.events` to find the most recent `STAT_INCREMENTED` event.
+- Called at the top of `renderState()` so it always reflects the current cursor position.
 
 ### Event Code Applicability
 
