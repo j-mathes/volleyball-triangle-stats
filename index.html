@@ -260,7 +260,68 @@
 
     <!-- ===== Reports Page ===== -->
     <div id="reportsPage" class="reports-page">
-      <p class="reports-placeholder">Reports coming soon.</p>
+
+      <!-- Scope strip -->
+      <div class="reports-scope-strip">
+        <button class="scope-btn active" data-scope="current">Current Match</button>
+        <button class="scope-btn" data-scope="single">Single Match</button>
+        <button class="scope-btn" data-scope="event">Event</button>
+        <button class="scope-btn" data-scope="season">Season</button>
+        <button class="scope-btn" data-scope="custom">Custom</button>
+      </div>
+
+      <!-- Data picker (hidden for "current" scope) -->
+      <details id="reportsDataPicker" class="reports-data-picker" hidden>
+        <summary>Select Data</summary>
+        <div class="picker-body">
+          <div id="pickerDbTree" class="picker-tree">
+            <p class="picker-empty">Loading…</p>
+          </div>
+          <div class="picker-divider"></div>
+          <div id="pickerLoadedTree" class="picker-tree picker-loaded">
+            <p class="picker-empty" id="pickerLoadedEmpty">No files loaded.</p>
+          </div>
+          <div class="picker-file-row">
+            <button id="btnLoadReportFile" class="picker-load-btn">Load JSON File…</button>
+            <input id="reportFileInput" type="file" accept=".json" hidden>
+            <button id="btnClearLoadedFiles" class="picker-clear-btn">Clear Loaded</button>
+          </div>
+        </div>
+      </details>
+
+      <!-- Body: sidebar + content -->
+      <div class="reports-body">
+        <nav class="reports-sidebar">
+          <div class="sidebar-group">
+            <div class="sidebar-group-label">Single Match</div>
+            <button class="report-link" data-report="tallySheet">Tally Sheet</button>
+            <button class="report-link" data-report="matchSummary">Match Summary</button>
+            <button class="report-link" data-report="momentum">Momentum Chart</button>
+            <button class="report-link" data-report="setFlow">Set Flow</button>
+            <button class="report-link" data-report="errorBreakdown">Error Breakdown</button>
+            <button class="report-link" data-report="playerStats">Player Stats</button>
+            <button class="report-link" data-report="rotationPerf">Rotation Performance</button>
+          </div>
+          <div class="sidebar-group">
+            <div class="sidebar-group-label">Multi Match</div>
+            <button class="report-link" data-report="eventSummary">Event Summary</button>
+            <button class="report-link" data-report="progressTrend">Progress Trend</button>
+            <button class="report-link" data-report="rotationHeatmap">Rotation Heat Map</button>
+            <button class="report-link" data-report="playerLeaderboard">Player Leaderboard</button>
+            <button class="report-link" data-report="opponentCompare">Opponent Comparison</button>
+          </div>
+        </nav>
+
+        <div class="reports-content">
+          <div class="report-print-bar">
+            <button id="btnPrintReport" class="print-btn">&#x1F5A8; Print / Save PDF</button>
+          </div>
+          <div id="reportOutput" class="report-output">
+            <p class="report-placeholder">Select a report from the sidebar.</p>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- ===== History Page ===== -->

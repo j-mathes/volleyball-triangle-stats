@@ -1719,6 +1719,277 @@ async function importData(file) {
   void refreshOpponentPicker();
 }
 
+// ---- Reports --------------------------------------------------
+
+var reportsScope = "current";          // "current"|"single"|"event"|"season"|"custom"
+var selectedMatchIds = new Set();      // IDs of matches checked in the data picker
+var loadedFileRecords = [];            // { matchId, matchName, record, source } — session only
+var currentReport = null;             // which report is active
+
+// Return array of hydrated match state objects for the current selection
+async function getSelectedMatches() {
+  var results = [];
+  // From IndexedDB
+  for (var id of selectedMatchIds) {
+    var loaded = loadedFileRecords.find(function (r) { return r.matchId === id; });
+    if (loaded) {
+      results.push({ record: loaded.record, source: loaded.source });
+    } else {
+      var rec = await dbLoadMatch(id);
+      if (rec) results.push({ record: rec, source: "db" });
+    }
+  }
+  // For "current" scope always return whatever is in the controller
+  if (reportsScope === "current") {
+    var rec2 = controller.toRecord();
+    if (rec2) results = [{ record: rec2, source: "current" }];
+  }
+  return results;
+}
+
+// Build the left-panel DB tree
+async function buildDataPickerTree() {
+  var container = $("pickerDbTree");
+  container.innerHTML = "";
+
+  var seasons = await dbListSeasons();
+  var allEvents = await dbListEvents();
+  var allMatches = await dbListMatches();
+
+  // Group: unorganized matches (no season, no event)
+  function makeMatchItem(match, isLoaded) {
+    var item = document.createElement("div");
+    item.className = "picker-match-item" + (isLoaded ? " loaded-file" : "");
+    item.dataset.matchId = match.matchId;
+    var cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = selectedMatchIds.has(match.matchId);
+    cb.addEventListener("change", function () {
+      if (cb.checked) selectedMatchIds.add(match.matchId);
+      else selectedMatchIds.delete(match.matchId);
+      updateSidebarAvailability();
+    });
+    var label = document.createElement("span");
+    var dateStr = match.matchDate ? new Date(match.matchDate).toLocaleDateString() : "";
+    label.textContent = (match.matchName || "Untitled") + (dateStr ? "  (" + dateStr + ")" : "");
+    item.appendChild(cb);
+    item.appendChild(label);
+    return item;
+  }
+
+  function makeCollapsible(headerEl, childrenEl) {
+    var toggle = headerEl.querySelector(".picker-season-toggle, .picker-event-toggle");
+    toggle.classList.add("open");
+    headerEl.addEventListener("click", function (e) {
+      if (e.target.type === "checkbox") return;
+      childrenEl.classList.toggle("collapsed");
+      toggle.classList.toggle("open", !childrenEl.classList.contains("collapsed"));
+    });
+  }
+
+  function makeSelectAllCb(matches, parentEl) {
+    var cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.title = "Select all";
+    cb.addEventListener("change", function () {
+      matches.forEach(function (m) {
+        if (cb.checked) selectedMatchIds.add(m.matchId);
+        else selectedMatchIds.delete(m.matchId);
+      });
+      // refresh checkboxes in children
+      parentEl.querySelectorAll("input[type=checkbox]").forEach(function (c) {
+        if (c !== cb) c.checked = cb.checked;
+      });
+      updateSidebarAvailability();
+    });
+    return cb;
+  }
+
+  if (!allMatches.length) {
+    var empty = document.createElement("p");
+    empty.className = "picker-empty";
+    empty.textContent = "No saved matches.";
+    container.appendChild(empty);
+    return;
+  }
+
+  // Seasons
+  for (var si = 0; si < seasons.length; si++) {
+    var season = seasons[si];
+    var seasonHeader = document.createElement("div");
+    seasonHeader.className = "picker-season-header";
+    var stoggle = document.createElement("span");
+    stoggle.className = "picker-season-toggle";
+    stoggle.textContent = "▶";
+    var sLabel = document.createElement("span");
+    sLabel.textContent = season.name;
+
+    var seasonEvents = allEvents.filter(function (e) { return e.seasonId === season.id; });
+    var seasonMatchesDirect = allMatches.filter(function (m) { return m.seasonId === season.id && !m.eventId; });
+    var seasonMatchesFull = allMatches.filter(function (m) { return m.seasonId === season.id; });
+
+    var sCb = makeSelectAllCb(seasonMatchesFull, seasonHeader);
+    seasonHeader.appendChild(stoggle);
+    seasonHeader.appendChild(sCb);
+    seasonHeader.appendChild(sLabel);
+    container.appendChild(seasonHeader);
+
+    var seasonChildren = document.createElement("div");
+    seasonChildren.className = "picker-children";
+    makeCollapsible(seasonHeader, seasonChildren);
+
+    // Events under this season
+    for (var ei = 0; ei < seasonEvents.length; ei++) {
+      var evt = seasonEvents[ei];
+      var evtMatches = allMatches.filter(function (m) { return m.eventId === evt.id; });
+      var evtHeader = document.createElement("div");
+      evtHeader.className = "picker-event-header";
+      var etoggle = document.createElement("span");
+      etoggle.className = "picker-event-toggle";
+      etoggle.textContent = "▶";
+      var eLabel = document.createElement("span");
+      eLabel.textContent = evt.name;
+      var eCb = makeSelectAllCb(evtMatches, evtHeader);
+      evtHeader.appendChild(etoggle);
+      evtHeader.appendChild(eCb);
+      evtHeader.appendChild(eLabel);
+      seasonChildren.appendChild(evtHeader);
+
+      var evtChildren = document.createElement("div");
+      evtChildren.className = "picker-children";
+      makeCollapsible(evtHeader, evtChildren);
+      evtMatches.forEach(function (m) { evtChildren.appendChild(makeMatchItem(m, false)); });
+      seasonChildren.appendChild(evtChildren);
+    }
+
+    // Direct-to-season matches (no event)
+    seasonMatchesDirect.forEach(function (m) { seasonChildren.appendChild(makeMatchItem(m, false)); });
+    container.appendChild(seasonChildren);
+  }
+
+  // Events with no season
+  var orphanEvents = allEvents.filter(function (e) { return !e.seasonId; });
+  for (var oi = 0; oi < orphanEvents.length; oi++) {
+    var oEvt = orphanEvents[oi];
+    var oMatches = allMatches.filter(function (m) { return m.eventId === oEvt.id; });
+    var oHeader = document.createElement("div");
+    oHeader.className = "picker-event-header";
+    var otoggle = document.createElement("span");
+    otoggle.className = "picker-event-toggle";
+    otoggle.textContent = "▶";
+    var oLabel = document.createElement("span");
+    oLabel.textContent = oEvt.name;
+    var oCb = makeSelectAllCb(oMatches, oHeader);
+    oHeader.appendChild(otoggle);
+    oHeader.appendChild(oCb);
+    oHeader.appendChild(oLabel);
+    container.appendChild(oHeader);
+
+    var oChildren = document.createElement("div");
+    oChildren.className = "picker-children";
+    makeCollapsible(oHeader, oChildren);
+    oMatches.forEach(function (m) { oChildren.appendChild(makeMatchItem(m, false)); });
+    container.appendChild(oChildren);
+  }
+
+  // Fully unorganized matches
+  var bareMatches = allMatches.filter(function (m) { return !m.seasonId && !m.eventId; });
+  bareMatches.forEach(function (m) { container.appendChild(makeMatchItem(m, false)); });
+}
+
+// Build the loaded-files section
+function buildLoadedFilesTree() {
+  var container = $("pickerLoadedTree");
+  var empty = $("pickerLoadedEmpty");
+  container.innerHTML = "";
+  if (!loadedFileRecords.length) {
+    var p = document.createElement("p");
+    p.className = "picker-empty";
+    p.id = "pickerLoadedEmpty";
+    p.textContent = "No files loaded.";
+    container.appendChild(p);
+    return;
+  }
+  loadedFileRecords.forEach(function (entry) {
+    var item = document.createElement("div");
+    item.className = "picker-match-item loaded-file";
+    item.dataset.matchId = entry.matchId;
+    var cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = selectedMatchIds.has(entry.matchId);
+    cb.addEventListener("change", function () {
+      if (cb.checked) selectedMatchIds.add(entry.matchId);
+      else selectedMatchIds.delete(entry.matchId);
+      updateSidebarAvailability();
+    });
+    var label = document.createElement("span");
+    label.textContent = (entry.matchName || "Untitled") + " [file]";
+    item.appendChild(cb);
+    item.appendChild(label);
+    container.appendChild(item);
+  });
+}
+
+// Determine which reports are available for the current scope+selection
+var SINGLE_REPORTS = ["tallySheet", "matchSummary", "momentum", "setFlow", "errorBreakdown", "playerStats", "rotationPerf"];
+var MULTI_REPORTS  = ["eventSummary", "progressTrend", "rotationHeatmap", "playerLeaderboard", "opponentCompare"];
+
+function updateSidebarAvailability() {
+  var isCurrent = reportsScope === "current";
+  var count = isCurrent ? 1 : selectedMatchIds.size;
+  var hasSingle = count >= 1;
+  var hasMulti  = count >= 2;
+
+  document.querySelectorAll(".report-link").forEach(function (btn) {
+    var r = btn.dataset.report;
+    var isSingle = SINGLE_REPORTS.indexOf(r) !== -1;
+    btn.disabled = isSingle ? !hasSingle : !hasMulti;
+  });
+}
+
+function setReportsScope(scope) {
+  reportsScope = scope;
+  document.querySelectorAll(".scope-btn").forEach(function (btn) {
+    btn.classList.toggle("active", btn.dataset.scope === scope);
+  });
+
+  var picker = $("reportsDataPicker");
+  if (scope === "current") {
+    picker.hidden = true;
+  } else {
+    picker.hidden = false;
+    void buildDataPickerTree();
+  }
+
+  // Auto-select sensible reports per scope
+  if (scope === "current" || scope === "single") {
+    // disable multi
+    MULTI_REPORTS.forEach(function (r) {
+      var btn = document.querySelector('[data-report="' + r + '"]');
+      if (btn) btn.disabled = true;
+    });
+  }
+
+  updateSidebarAvailability();
+  // Re-render the active report if possible
+  if (currentReport) showReport(currentReport);
+}
+
+function showReport(reportName) {
+  currentReport = reportName;
+  document.querySelectorAll(".report-link").forEach(function (btn) {
+    btn.classList.toggle("active", btn.dataset.report === reportName);
+  });
+  var output = $("reportOutput");
+  output.innerHTML = "";
+
+  // Stub: Phase 3/4 will fill these in
+  var placeholder = document.createElement("p");
+  placeholder.className = "report-not-available";
+  placeholder.textContent = "\"" + reportName + "\" report — coming in the next phase.";
+  output.appendChild(placeholder);
+}
+
 // ---- Bootstrap --------------------------------------------
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -1729,7 +2000,56 @@ document.addEventListener("DOMContentLoaded", function () {
   $('navConfig').addEventListener('click', function () { showPage('config'); void refreshSeasonPicker(); void refreshEventPicker(); void renderOpponentList(); });
   $("navStats").addEventListener("click", function () { showPage("stats"); renderState(); void refreshOpponentPicker(); });
   $("navHistory").addEventListener("click", function () { showPage("history"); void renderHistory(); });
-  $("navReports").addEventListener("click", function () { showPage("reports"); });
+  $("navReports").addEventListener("click", function () {
+    showPage("reports");
+    setReportsScope(reportsScope); // refresh picker tree and availability
+    updateSidebarAvailability();
+  });
+
+  // Reports: scope buttons
+  document.querySelectorAll(".scope-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () { setReportsScope(btn.dataset.scope); });
+  });
+
+  // Reports: sidebar report links
+  document.querySelectorAll(".report-link").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      if (!btn.disabled) showReport(btn.dataset.report);
+    });
+  });
+
+  // Reports: file loader
+  $("btnLoadReportFile").addEventListener("click", function () { $("reportFileInput").click(); });
+  $("reportFileInput").addEventListener("change", async function () {
+    if (!this.files || !this.files[0]) return;
+    var text = await this.files[0].text();
+    this.value = "";
+    var data;
+    try { data = JSON.parse(text); } catch (e) { alert("Invalid JSON file."); return; }
+    var added = 0;
+    function addRecord(m) {
+      if (!m || !m.matchId) return;
+      if (loadedFileRecords.find(function (r) { return r.matchId === m.matchId; })) return;
+      loadedFileRecords.push({ matchId: m.matchId, matchName: m.matchName || "Untitled", record: m, source: "file" });
+      added++;
+    }
+    if (data.type === "match" && data.match) addRecord(data.match);
+    else if (data.type === "bulk" && data.matches) data.matches.forEach(addRecord);
+    else if (data.matchId) addRecord(data);
+    if (!added) { alert("No match records found in file."); return; }
+    buildLoadedFilesTree();
+    updateSidebarAvailability();
+  });
+
+  $("btnClearLoadedFiles").addEventListener("click", function () {
+    loadedFileRecords.forEach(function (r) { selectedMatchIds.delete(r.matchId); });
+    loadedFileRecords = [];
+    buildLoadedFilesTree();
+    updateSidebarAvailability();
+  });
+
+  // Reports: print
+  $("btnPrintReport").addEventListener("click", function () { window.print(); });
 
   // Config page
   $("btnSetsUp").addEventListener("click", function () { stepSets(1); });

@@ -102,6 +102,9 @@ All IDs use `crypto.randomUUID()` for global uniqueness across devices.
 | `matches` | `matchId` | `updatedAt` | Match records with full event timeline |
 | `seasons` | `id` | — | Season names |
 | `events` | `id` | `seasonId` | Event names with type and optional seasonId |
+| `opponents` | `id` | — | Opponent names |
+
+**Database version:** 3 (v2 added `events`; v3 added `opponents`)
 
 ### Match Record Fields
 
@@ -114,11 +117,21 @@ All IDs use `crypto.randomUUID()` for global uniqueness across devices.
 | `totalSets` | number | Number of sets configured |
 | `seasonId` | UUID \| null | FK to seasons store |
 | `eventId` | UUID \| null | FK to events store |
+| `opponentId` | UUID \| null | FK to opponents store |
 | `createdAt` | ISO timestamp | When the record was created |
 | `updatedAt` | ISO timestamp | Last save time (auto-updated) |
 | `endedAt` | ISO timestamp \| null | When the match was ended (null if in-progress) |
 | `cursor` | number | Event replay position (for undo/redo) |
 | `events` | array | Domain events timeline |
+
+### Opponent Record Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Primary key |
+| `name` | string | Display name |
+
+Opponents are managed via the **Opponents card** on the Setup page (add, per-item rename, per-item delete, delete all). The opponent picker on the Stats page (`statsOpponentSelect`) is disabled as soon as a match starts and cannot be changed mid-match. Selecting "— New Opponent —" opens an inline name input and a ✓ confirm button (or Enter key) to create and persist the new opponent immediately.
 
 ### STAT_INCREMENTED Event Fields
 
@@ -254,6 +267,7 @@ On the Stats page, only completed + active sets are shown. A totals footer row a
   "exportedAt": "...",
   "season": { ... } | null,
   "event": { ... } | null,
+  "opponent": { ... } | null,
   "match": { ... }
 }
 ```
@@ -266,6 +280,7 @@ On the Stats page, only completed + active sets are shown. A totals footer row a
   "exportedAt": "...",
   "seasons": [...],
   "events": [...],
+  "opponents": [...],
   "matches": [...]
 }
 ```
@@ -278,7 +293,93 @@ Header row + one row per set + match-total row. Columns include set label, score
 - Detects format (single match vs bulk) from `type` field
 - Checks each record's ID against existing data
 - Skips duplicates — never silently overwrites
-- Reports summary: items imported vs. skipped
+- Reports summary: seasons / events / opponents / matches imported vs. skipped
+
+## Stats Page Control Panel
+
+The control panel is a two-row card at the top of the stats page:
+
+**Row 1 (match identity):** Match name input · Datetime input · Opponent combo picker  
+**Row 2 (actions):** Start Match · End Set · End Match · Undo · Redo · Reset group · Set indicator
+
+The opponent picker (`statsOpponentSelect`) is disabled as soon as a match starts (locked for the duration). Selecting `__new__` reveals an inline name input and a green ✓ confirm button; pressing Enter or clicking ✓ creates and saves the opponent, then selects it. Pressing Escape cancels.
+
+The match name input persists its value to IndexedDB on `blur` when a match record exists (before start or after end).
+
+## Setup Page
+
+Four cards:
+
+1. **Match Setup** — Format picker, sets stepper, and a collapsible "Match Organization" section (season + event combo pickers with optional new-entry input)
+2. **App Settings** — Lock time stepper, triangle totals toggle, rotation mode, rotation persist, highlight color, event log colors
+3. **Opponents** — Add by name (Enter or Add button), scrollable list with per-item ✕ delete and inline rename (click name → edit → Enter/blur saves), Delete All button with confirmation
+
+Controls in Match Setup and the opponent picker are **disabled during an active match** — `renderState()` sets `.disabled` on each element when `matchActive` is true.
+
+## Reports Page
+
+The reports page has four sections stacked vertically:
+
+### Scope Strip
+Five pill buttons: **Current Match**, **Single Match**, **Event**, **Season**, **Custom**.  
+- *Current Match* hides the data picker and always uses the match currently in `controller`.  
+- All other scopes show the data picker.
+
+### Data Picker (`<details>` element, hidden for Current Match)
+Two tree panels side by side + a file-load column:
+
+| Panel | Content |
+|-------|---------|
+| DB tree | IndexedDB hierarchy: Seasons → Events → Matches, orphan events, bare matches. Each level has a select-all checkbox. Collapsible. |
+| Loaded files tree | Session-only records loaded from JSON files. Highlighted in teal. |
+| File actions | "Load JSON File…" button (accepts single-match or bulk export), "Clear Loaded" button |
+
+Checked match IDs accumulate in `selectedMatchIds: Set<string>`. `loadedFileRecords[]` holds session file data. `buildDataPickerTree()` rebuilds the DB tree async; `buildLoadedFilesTree()` rebuilds the file panel.
+
+### Reports Body (sidebar + content)
+`display: grid; grid-template-columns: 13rem 1fr`
+
+**Sidebar** (`reports-sidebar`) — sticky, two groups:
+
+| Group | Reports |
+|-------|---------|
+| Single Match | Tally Sheet, Match Summary, Momentum Chart, Set Flow, Error Breakdown, Player Stats, Rotation Performance |
+| Multi Match | Event Summary, Progress Trend, Rotation Heat Map, Player Leaderboard, Opponent Comparison |
+
+Single-match reports require ≥1 selected match; multi-match reports require ≥2. Items are disabled (`.disabled`) when the selection doesn't qualify. `updateSidebarAvailability()` is called whenever `selectedMatchIds` changes or scope changes.
+
+**Content area** (`reports-content`) — renders active report via `showReport(name)`. Print button in top-right calls `window.print()`.
+
+### Print CSS
+`@media print` hides nav bar, scope strip, data picker, sidebar, and print button. The content area expands to full width.
+
+### Key JS Identifiers
+
+| Variable / Function | Purpose |
+|---------------------|---------|
+| `reportsScope` | `"current"\|"single"\|"event"\|"season"\|"custom"` |
+| `selectedMatchIds` | `Set<string>` of checked match IDs |
+| `loadedFileRecords` | Array of `{matchId, matchName, record, source}` — session only |
+| `currentReport` | Name of the active report |
+| `getSelectedMatches()` | Returns array of `{record, source}` for all checked IDs |
+| `buildDataPickerTree()` | Async — rebuilds DB hierarchy checkboxes |
+| `buildLoadedFilesTree()` | Rebuilds loaded-files list |
+| `updateSidebarAvailability()` | Enables/disables report links |
+| `setReportsScope(scope)` | Switches scope, refreshes picker and sidebar |
+| `showReport(name)` | Activates sidebar link, renders report into `#reportOutput` |
+| `SINGLE_REPORTS` | Array of report names requiring 1 match |
+| `MULTI_REPORTS` | Array of report names requiring 2+ matches |
+
+### Implementation Status
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| Phase 1 | ✅ Complete | Opponent tracking (DB v3, CRUD, picker, export/import) |
+| Phase 2 | ✅ Complete | Reports shell (scope strip, data picker, sidebar, print CSS) |
+| Phase 3 | 🔲 Pending | Single-match reports (Tally Sheet through Rotation Performance) |
+| Phase 4 | 🔲 Pending | Multi-match reports (Event Summary through Opponent Comparison) |
+
+
 
 ## History Page
 
