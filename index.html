@@ -57,6 +57,7 @@
               <option value="practice">Practice / Scrimmage</option>
             </select>
           </div>
+
         </details>
       </div>
 
@@ -96,24 +97,43 @@
           <span id="cfgLogTheirsOpacityVal" class="opacity-val">12%</span>
         </div>
       </div>
+
+      <div class="config-card">
+        <h2>Opponents</h2>
+        <div class="opponent-add-row">
+          <input id="newOpponentName" type="text" placeholder="New opponent name">
+          <button id="btnAddOpponent">Add</button>
+        </div>
+        <div id="opponentList" class="opponent-list"></div>
+        <button id="btnDeleteAllOpponents" class="danger-btn">Delete All Opponents</button>
+      </div>
     </div>
 
     <!-- ===== Stats Page ===== -->
     <div id="statsPage" class="stats-page">
 
     <div class="control-panel">
-      <input id="matchNameInput" value="Practice Match" placeholder="Match name" class="match-name-input">
-      <input id="matchDateInput" type="datetime-local" class="match-date-input">
-      <span id="setIndicator" class="set-indicator">No match</span>
-      <button id="btnStartMatch" class="start-match-btn">Start Match</button>
-      <button id="btnEndSet" disabled>End Set</button>
-      <button id="btnEndMatch" disabled>End Match</button>
-      <button id="btnUndo" disabled>Undo</button>
-      <button id="btnRedo" disabled>Redo</button>
-      <span id="resetGroup" class="reset-group">
-        <button id="btnReset" disabled>Reset</button>
-        <button id="btnLock" class="lock-btn" title="Unlock to enable reset">&#x1F512;</button>
-      </span>
+      <div class="control-row">
+        <input id="matchNameInput" value="Practice Match" placeholder="Match name" class="match-name-input">
+        <input id="matchDateInput" type="datetime-local" class="match-date-input">
+        <div class="combo-picker">
+          <select id="statsOpponentSelect"><option value="">No Opponent</option><option value="__new__">— New Opponent —</option></select>
+          <input id="statsOpponentName" type="text" placeholder="Opponent name" class="combo-input" hidden>
+          <button id="btnConfirmOpponent" class="confirm-opp-btn" hidden title="Save opponent">&#x2713;</button>
+        </div>
+      </div>
+      <div class="control-row">
+        <button id="btnStartMatch" class="start-match-btn">Start Match</button>
+        <button id="btnEndSet" disabled>End Set</button>
+        <button id="btnEndMatch" disabled>End Match</button>
+        <button id="btnUndo" disabled>Undo</button>
+        <button id="btnRedo" disabled>Redo</button>
+        <span id="resetGroup" class="reset-group">
+          <button id="btnReset" disabled>Reset</button>
+          <button id="btnLock" class="lock-btn" title="Unlock to enable reset">&#x1F512;</button>
+        </span>
+        <span id="setIndicator" class="set-indicator">No match</span>
+      </div>
     </div>
 
     <!-- Stats layout: metadata → rotation row → triangle content, all stacked -->

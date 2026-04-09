@@ -53,13 +53,20 @@ body {
 .control-panel {
   margin-top: 1rem;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
+  flex-direction: column;
+  gap: 0.5rem;
   background: var(--paper);
   border: 2px solid rgba(0, 0, 0, 0.08);
   border-radius: 14px;
   padding: 0.8rem;
   backdrop-filter: blur(8px);
+}
+
+.control-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 input,
@@ -704,6 +711,15 @@ button:disabled {
   background: #fff;
 }
 
+.control-panel .combo-picker select {
+  padding: 0.55rem 0.75rem;
+}
+
+.control-panel .combo-picker {
+  flex-direction: row;
+  align-items: center;
+}
+
 .combo-input {
   font: inherit;
 }
@@ -715,6 +731,106 @@ button:disabled {
   padding: 0.45rem 0.6rem;
   background: #fff;
   margin-top: 0.3rem;
+}
+
+/* Opponent management card */
+.opponent-add-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
+.opponent-add-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.opponent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.opponent-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.6rem;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+  gap: 0.5rem;
+}
+
+.opponent-list-item .opponent-name {
+  flex: 1;
+  font-size: 0.95rem;
+}
+
+.confirm-opp-btn {
+  padding: 0.45rem 0.7rem;
+  min-width: unset;
+  background: var(--accent-2);
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1;
+  border-radius: 10px;
+}
+
+.confirm-opp-btn:hover:not(:disabled) {
+  background: #066a6a;
+}
+
+.opponent-rename-input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 0.25rem 0.5rem;
+  min-width: 8rem;
+}
+
+.opponent-name {
+  cursor: pointer;
+}
+
+.opponent-name:hover {
+  text-decoration: underline dotted;
+}
+
+.opponent-delete-btn {
+  background: rgba(193, 18, 31, 0.85);
+  color: #fff;
+  border: none;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.85rem;
+  border-radius: 7px;
+  min-width: unset;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.opponent-delete-btn:hover {
+  background: #c1121f;
+  transform: none;
+}
+
+.opponent-empty {
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.danger-btn {
+  background: #c1121f;
+  color: #fff;
+}
+
+.danger-btn:hover:not(:disabled) {
+  background: #9a0e18;
 }
 
 /* History global actions (always visible) */

@@ -2,11 +2,29 @@
 
 ## Overview
 
-Triangle Stats is a vanilla HTML/JS/CSS single-page application with three pages (Stats, Setup, History) toggled via `style.display`. There is no build step, framework, or package manager. All code lives in three files at the repo root:
+Triangle Stats is a vanilla HTML/JS/CSS single-page application with four pages (Stats, Reports, History, Setup) toggled via `style.display`. There is no build step, framework, or package manager. All code lives in three files at the repo root:
 
 - `index.html` — HTML shell and layout
 - `app.js` — Domain engine, IndexedDB persistence, and UI wiring
 - `styles.css` — Visual styling
+
+## Critical: JavaScript Syntax Correctness
+
+**ALL pages depend on a single `DOMContentLoaded` handler that must run completely without error.** If ANY syntax error or uncaught runtime error exists in `app.js`, the entire handler fails silently, `showPage("stats")` never runs, and every page stays hidden (blank screen) or the wrong page is displayed.
+
+**After every change to `app.js`, validate syntax with:**
+```
+node --check app.js
+```
+
+Common mistakes that cause this:
+- Missing closing `}` on a function — especially when adding a new statement at the end of a function body (the new statement gets swallowed into the function scope and the next function is nested inside it)
+- Defining `async function foo()` inside a block and forgetting its closing brace
+- Mismatched braces in inline IIFE closures (e.g., `(function(x){...})(arg)`)
+
+**Rule:** Every edit that touches a function body must be verified with `node --check app.js` before considering it done.
+
+---
 
 ## Stats Page Layout
 
