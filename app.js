@@ -333,48 +333,93 @@ function downloadText(filename, content, mimeType) {
 
 function $(id) { return document.getElementById(id); }
 
+// ---- Page navigation ----
+
+var currentPage = "config";
+
 function showPage(page) {
-  $("configPage").hidden = page !== "config";
-  $("statsPage").hidden = page !== "stats";
+  currentPage = page;
+  $("configPage").style.display = page === "config" ? "flex" : "none";
+  $("statsPage").style.display = page === "stats" ? "block" : "none";
+  $("historyPage").style.display = page === "history" ? "grid" : "none";
+
+  document.querySelectorAll(".nav-btn").forEach(function (btn) {
+    btn.classList.toggle("active", btn.getAttribute("data-page") === page);
+  });
 }
 
-// ---- Config page validation ----
+// ---- Config page — stepper logic ----
+
+var cfgSetsValue = 5;
 
 function getSelectedFormat() {
   var checked = document.querySelector('input[name="matchFormat"]:checked');
   return checked ? checked.value : "bestOf";
 }
 
-function validateConfig() {
-  var format = getSelectedFormat();
-  var totalSets = parseInt($("cfgTotalSets").value, 10);
-  var msg = $("cfgValidation");
-  var btn = $("btnBeginMatch");
-
-  if (!isFinite(totalSets) || totalSets < 1) {
-    msg.textContent = "Enter a positive number of sets.";
-    btn.disabled = true;
-    return false;
-  }
-
-  if (format === "bestOf" && totalSets % 2 === 0) {
-    msg.textContent = "Best Of requires an odd number (e.g. 3, 5, 7).";
-    btn.disabled = true;
-    return false;
-  }
-
-  if (format === "straightSets" && totalSets % 2 !== 0) {
-    msg.textContent = "Straight Sets requires an even number (e.g. 2, 4, 6).";
-    btn.disabled = true;
-    return false;
-  }
-
-  msg.textContent = "";
-  btn.disabled = false;
-  return true;
+function stepSets(direction) {
+  var fmt = getSelectedFormat();
+  var step = 2;
+  var min = fmt === "bestOf" ? 1 : 2;
+  var next = cfgSetsValue + (direction * step);
+  if (next < min) next = min;
+  cfgSetsValue = next;
+  $("cfgTotalSets").textContent = cfgSetsValue;
 }
 
-// ---- Render ----
+function syncSetsToFormat() {
+  var fmt = getSelectedFormat();
+  if (fmt === "bestOf") {
+    // Must be odd
+    if (cfgSetsValue % 2 === 0) cfgSetsValue = Math.max(1, cfgSetsValue - 1);
+  } else {
+    // Must be even
+    if (cfgSetsValue % 2 !== 0) cfgSetsValue = Math.max(2, cfgSetsValue + 1);
+  }
+  $("cfgTotalSets").textContent = cfgSetsValue;
+}
+
+// ---- Snapshot rendering (reusable) ----
+
+function formatScore(us, them) {
+  return String(us).padStart(2, "\u00a0") + " - " + String(them).padStart(2, "\u00a0");
+}
+
+function renderSnapshotTable(state, tbodyId, tfootId, highlightActive) {
+  var tbody = $(tbodyId);
+  var tfoot = $(tfootId);
+  tbody.innerHTML = "";
+  tfoot.innerHTML = "";
+  if (!state) return;
+
+  for (var i = 1; i <= state.totalSets; i++) {
+    var set = state.sets.find(function (s) { return s.setNumber === i; });
+    var tr = document.createElement("tr");
+    if (highlightActive && state.activeSetNumber === i) tr.className = "active-set";
+    var score = set ? calculateSetScore(set.stats) : { us: 0, opponent: 0 };
+    var ts = set ? calculateTerminalServes(set.stats) : 0;
+    var fbp = set ? calculateFirstBallPoints(set.stats) : 0;
+    var tp = set ? calculateTransitionPoints(set.stats) : 0;
+    tr.innerHTML =
+      "<td>" + i + "</td>" +
+      "<td>" + formatScore(score.us, score.opponent) + "</td>" +
+      "<td>" + ts + "</td>" +
+      "<td>" + fbp + "</td>" +
+      "<td>" + tp + "</td>";
+    tbody.appendChild(tr);
+  }
+
+  var footTr = document.createElement("tr");
+  footTr.innerHTML =
+    "<td>Total</td>" +
+    "<td>" + formatScore(state.aggregate.usScore, state.aggregate.opponentScore) + "</td>" +
+    "<td>" + state.aggregate.terminalServes + "</td>" +
+    "<td>" + state.aggregate.firstBallPoints + "</td>" +
+    "<td>" + state.aggregate.transitionPoints + "</td>";
+  tfoot.appendChild(footTr);
+}
+
+// ---- Render stats page ----
 
 function renderState() {
   const state = controller.getState();
@@ -383,60 +428,18 @@ function renderState() {
   $("valFirstBallPoints").textContent = state ? state.aggregate.firstBallPoints : 0;
   $("valTransitionPoints").textContent = state ? state.aggregate.transitionPoints : 0;
 
-  // Snapshot info
-  $("snapshotInfo").textContent = state
-    ? state.matchName + " — " + state.matchFormat.replace("bestOf", "Best Of").replace("straightSets", "Straight Sets") + " " + state.totalSets
-    : "No active match";
+  $("matchNameDisplay").textContent = state ? state.matchName : "";
 
-  // Per-set snapshot table
-  var tbody = $("snapshotBody");
-  var tfoot = $("snapshotFoot");
-  tbody.innerHTML = "";
-  tfoot.innerHTML = "";
-
-  if (state) {
-    for (var i = 1; i <= state.totalSets; i++) {
-      var set = state.sets.find(function (s) { return s.setNumber === i; });
-      var tr = document.createElement("tr");
-      if (state.activeSetNumber === i) tr.className = "active-set";
-      var score = set ? calculateSetScore(set.stats) : { us: 0, opponent: 0 };
-      var ts = set ? calculateTerminalServes(set.stats) : 0;
-      var fbp = set ? calculateFirstBallPoints(set.stats) : 0;
-      var tp = set ? calculateTransitionPoints(set.stats) : 0;
-      tr.innerHTML =
-        "<td>" + i + "</td>" +
-        "<td>" + score.us + "</td>" +
-        "<td>" + score.opponent + "</td>" +
-        "<td>" + ts + "</td>" +
-        "<td>" + fbp + "</td>" +
-        "<td>" + tp + "</td>";
-      tbody.appendChild(tr);
-    }
-
-    // Totals row
-    var footTr = document.createElement("tr");
-    footTr.innerHTML =
-      "<td>Total</td>" +
-      "<td>" + state.aggregate.usScore + "</td>" +
-      "<td>" + state.aggregate.opponentScore + "</td>" +
-      "<td>" + state.aggregate.terminalServes + "</td>" +
-      "<td>" + state.aggregate.firstBallPoints + "</td>" +
-      "<td>" + state.aggregate.transitionPoints + "</td>";
-    tfoot.appendChild(footTr);
-  }
-
-  // Set indicator
   $("setIndicator").textContent = state
     ? "Set " + (state.activeSetNumber || "-") + " of " + state.totalSets
     : "No match";
 
-  // Button states
+  renderSnapshotTable(state, "snapshotBody", "snapshotFoot", true);
+
   $("btnEndSet").disabled = !(state && state.activeSetNumber);
   $("btnEndMatch").disabled = !(state && !state.endedAt);
   $("btnUndo").disabled = !(state && state.canUndo);
   $("btnRedo").disabled = !(state && state.canRedo);
-  $("btnExportJson").disabled = !state;
-  $("btnExportCsv").disabled = !state;
 
   var hasActiveSet = !!(state && state.activeSetNumber);
   document.querySelectorAll("[data-stat]").forEach(function (btn) {
@@ -444,31 +447,77 @@ function renderState() {
   });
 }
 
+// ---- History page ----
+
+var selectedHistoryMatchId = null;
+
 async function renderHistory() {
   const matches = await dbListMatches();
+  var container = $("historyList");
+  container.innerHTML = "";
 
-  // Render in both config page and stats page
-  var containers = [$("historyList"), $("configHistoryList")];
-  for (var c = 0; c < containers.length; c++) {
-    var container = containers[c];
-    if (!container) continue;
-    container.innerHTML = "";
-
-    if (matches.length === 0) {
-      container.innerHTML = "<p>No saved matches yet.</p>";
-      continue;
-    }
-
-    for (var m = 0; m < matches.length; m++) {
-      (function (entry) {
-        var btn = document.createElement("button");
-        btn.className = "history-item";
-        btn.innerHTML = "<span>" + escapeHtml(entry.matchName) + "</span><small>" + new Date(entry.updatedAt).toLocaleString() + "</small>";
-        btn.addEventListener("click", function () { void restoreMatch(entry.matchId); });
-        container.appendChild(btn);
-      })(matches[m]);
-    }
+  if (matches.length === 0) {
+    container.innerHTML = "<p>No saved matches yet.</p>";
+    clearHistoryPreview();
+    return;
   }
+
+  for (var m = 0; m < matches.length; m++) {
+    (function (entry) {
+      var btn = document.createElement("button");
+      btn.className = "history-item" + (entry.matchId === selectedHistoryMatchId ? " selected" : "");
+      btn.innerHTML = "<span>" + escapeHtml(entry.matchName) + "</span><small>" + new Date(entry.updatedAt).toLocaleString() + "</small>";
+      btn.addEventListener("click", function () { void selectHistoryMatch(entry.matchId); });
+      container.appendChild(btn);
+    })(matches[m]);
+  }
+}
+
+function clearHistoryPreview() {
+  selectedHistoryMatchId = null;
+  $("historyPreviewInfo").textContent = "Select a match to view details.";
+  $("historySnapshotTable").hidden = true;
+  $("historyActions").hidden = true;
+  $("historySnapshotBody").innerHTML = "";
+  $("historySnapshotFoot").innerHTML = "";
+}
+
+async function selectHistoryMatch(matchId) {
+  selectedHistoryMatchId = matchId;
+  var record = await dbLoadMatch(matchId);
+  if (!record) { clearHistoryPreview(); return; }
+
+  var timeline = { events: record.events, cursor: record.cursor };
+  var state = deriveMatchState(timeline);
+  if (!state) { clearHistoryPreview(); return; }
+
+  var formatLabel = state.matchFormat === "bestOf" ? "Best Of" : "Straight Sets";
+  $("historyPreviewInfo").textContent = state.matchName + " — " + formatLabel + " " + state.totalSets + (state.endedAt ? " (ended)" : "");
+  $("historySnapshotTable").hidden = false;
+  $("historyActions").hidden = false;
+
+  renderSnapshotTable(state, "historySnapshotBody", "historySnapshotFoot", false);
+
+  // Update selected style
+  document.querySelectorAll("#historyList .history-item").forEach(function (btn) {
+    btn.classList.remove("selected");
+  });
+  // Find and highlight
+  var items = document.querySelectorAll("#historyList .history-item");
+  for (var i = 0; i < items.length; i++) {
+    // items are in same order as matches
+    (function () {})(); // just re-render
+  }
+  await renderHistory();
+}
+
+async function resumeMatch() {
+  if (!selectedHistoryMatchId) return;
+  var record = await dbLoadMatch(selectedHistoryMatchId);
+  if (!record) return;
+  controller.hydrate(record);
+  showPage("stats");
+  renderState();
 }
 
 function escapeHtml(str) {
@@ -480,7 +529,6 @@ function escapeHtml(str) {
 async function persistAndRefresh() {
   const record = controller.toRecord();
   if (record) await dbSaveTimeline(record);
-  await renderHistory();
   renderState();
 }
 
@@ -489,7 +537,7 @@ async function persistAndRefresh() {
 async function createMatch() {
   var name = $("cfgMatchName").value.trim() || "Untitled Match";
   var format = getSelectedFormat();
-  var totalSets = parseInt($("cfgTotalSets").value, 10);
+  var totalSets = cfgSetsValue;
   var matchId = "match-" + Date.now();
   var now = new Date().toISOString();
 
@@ -501,14 +549,6 @@ async function createMatch() {
 
   showPage("stats");
   await persistAndRefresh();
-}
-
-async function restoreMatch(matchId) {
-  const record = await dbLoadMatch(matchId);
-  if (!record) return;
-  controller.hydrate(record);
-  showPage("stats");
-  renderState();
 }
 
 async function endSet() {
@@ -531,7 +571,6 @@ async function endMatch() {
   const state = controller.getState();
   if (!state) return;
 
-  // If a set is active, end it first
   if (state.activeSetNumber) {
     controller.dispatch({ type: "SET_ENDED", matchId: state.matchId, setNumber: state.activeSetNumber, timestamp: new Date().toISOString() });
   }
@@ -557,39 +596,57 @@ async function onRedo() {
 }
 
 function exportJson() {
-  const state = controller.getState();
+  var state;
+  if (currentPage === "history" && selectedHistoryMatchId) {
+    // Export from history preview
+    void (async function () {
+      var record = await dbLoadMatch(selectedHistoryMatchId);
+      if (!record) return;
+      var tl = { events: record.events, cursor: record.cursor };
+      var s = deriveMatchState(tl);
+      if (!s) return;
+      var payload = toExportJson(s, record.events, record.cursor);
+      downloadText(s.matchId + ".json", JSON.stringify(payload, null, 2), "application/json");
+    })();
+    return;
+  }
+  state = controller.getState();
   if (!state) return;
-  const payload = toExportJson(state, controller.timeline.events, controller.timeline.cursor);
+  var payload = toExportJson(state, controller.timeline.events, controller.timeline.cursor);
   downloadText(state.matchId + ".json", JSON.stringify(payload, null, 2), "application/json");
 }
 
 function exportCsv() {
-  const state = controller.getState();
+  if (currentPage === "history" && selectedHistoryMatchId) {
+    void (async function () {
+      var record = await dbLoadMatch(selectedHistoryMatchId);
+      if (!record) return;
+      var tl = { events: record.events, cursor: record.cursor };
+      var s = deriveMatchState(tl);
+      if (!s) return;
+      downloadText(s.matchId + ".csv", toExportCsv(s), "text/csv;charset=utf-8");
+    })();
+    return;
+  }
+  var state = controller.getState();
   if (!state) return;
   downloadText(state.matchId + ".csv", toExportCsv(state), "text/csv;charset=utf-8");
-}
-
-function goBackToConfig() {
-  showPage("config");
 }
 
 // ---- Bootstrap --------------------------------------------
 
 document.addEventListener("DOMContentLoaded", function () {
+  // Nav bar
+  $("navConfig").addEventListener("click", function () { showPage("config"); });
+  $("navStats").addEventListener("click", function () { showPage("stats"); renderState(); });
+  $("navHistory").addEventListener("click", function () { showPage("history"); void renderHistory(); });
+
   // Config page
   $("btnBeginMatch").addEventListener("click", function () { void createMatch(); });
-  $("cfgTotalSets").addEventListener("input", validateConfig);
+  $("btnSetsUp").addEventListener("click", function () { stepSets(1); });
+  $("btnSetsDown").addEventListener("click", function () { stepSets(-1); });
   document.querySelectorAll('input[name="matchFormat"]').forEach(function (radio) {
-    radio.addEventListener("change", function () {
-      // When switching format, auto-adjust the number to be valid
-      var val = parseInt($("cfgTotalSets").value, 10);
-      if (isFinite(val) && val >= 1) {
-        var fmt = getSelectedFormat();
-        if (fmt === "bestOf" && val % 2 === 0) $("cfgTotalSets").value = val + 1;
-        if (fmt === "straightSets" && val % 2 !== 0) $("cfgTotalSets").value = Math.max(2, val + 1);
-      }
-      validateConfig();
-    });
+    radio.addEventListener("change", function () { syncSetsToFormat(); });
   });
 
   // Stats page
@@ -597,9 +654,11 @@ document.addEventListener("DOMContentLoaded", function () {
   $("btnEndMatch").addEventListener("click", function () { void endMatch(); });
   $("btnUndo").addEventListener("click", function () { void onUndo(); });
   $("btnRedo").addEventListener("click", function () { void onRedo(); });
+
+  // History page
+  $("btnResumeMatch").addEventListener("click", function () { void resumeMatch(); });
   $("btnExportJson").addEventListener("click", exportJson);
   $("btnExportCsv").addEventListener("click", exportCsv);
-  $("btnBackToConfig").addEventListener("click", goBackToConfig);
 
   // Stat action buttons (data-stat attribute)
   document.querySelectorAll("[data-stat]").forEach(function (btn) {
@@ -607,15 +666,19 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   // Start on config page, restore most recent match if any
-  validateConfig();
+  syncSetsToFormat();
   (async function () {
-    await renderHistory();
     var matches = await dbListMatches();
     if (matches.length > 0) {
-      await restoreMatch(matches[0].matchId);
-    } else {
-      showPage("config");
+      var record = await dbLoadMatch(matches[0].matchId);
+      if (record) {
+        controller.hydrate(record);
+        showPage("stats");
+        renderState();
+        return;
+      }
     }
+    showPage("config");
     renderState();
   })();
 });

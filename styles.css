@@ -30,18 +30,13 @@ body {
 .page {
   width: min(1200px, 92vw);
   margin: 0 auto;
-  padding: 1.25rem 0 3rem;
+  padding: 3.5rem 0 2rem;
 }
 
-.hero h1 {
-  margin: 0;
-  font-size: clamp(2rem, 4vw, 3.2rem);
-  letter-spacing: 0.02em;
-}
-
-.hero p {
-  margin-top: 0.4rem;
-  max-width: 70ch;
+/* Pages — hidden by default, JS shows the active one */
+.stats-page,
+.history-page {
+  display: none;
 }
 
 .control-panel {
@@ -203,24 +198,19 @@ button:disabled {
   background: var(--theirs-pos-hover);
 }
 
-/* Bottom bar — snapshot + history side by side */
+/* Bottom bar — snapshot only (full width on stats page) */
 .bottom-bar {
   margin-top: 6rem;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
 }
 
-.snapshot,
-.history {
+.snapshot {
   background: var(--paper);
   border: 2px solid rgba(0, 0, 0, 0.08);
   border-radius: 14px;
   padding: 0.8rem;
 }
 
-.snapshot h3,
-.history h3 {
+.snapshot h3 {
   margin: 0.2rem 0 0.5rem;
 }
 
@@ -256,10 +246,8 @@ button:disabled {
 /* Configuration page */
 .config-page {
   margin-top: 1.2rem;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  align-items: start;
+  display: flex;
+  justify-content: center;
 }
 
 .config-card {
@@ -271,6 +259,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  width: min(420px, 100%);
 }
 
 .config-card h2 {
@@ -305,13 +294,6 @@ button:disabled {
   font-size: 0.82rem;
 }
 
-.validation-msg {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--theirs);
-  min-height: 1.2em;
-}
-
 .begin-match-btn {
   background: var(--accent-2);
   font-size: 1rem;
@@ -322,12 +304,33 @@ button:disabled {
   background: #066a6a;
 }
 
-.config-history {
-  max-height: 400px;
-  overflow-y: auto;
+/* Stepper control for number of sets */
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
-/* Set indicator in control panel */
+.stepper-btn {
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  font-size: 1.2rem;
+  line-height: 1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stepper-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  min-width: 2rem;
+  text-align: center;
+}
+
+/* Set indicator + match name in control panel */
 .set-indicator {
   font-weight: 700;
   font-size: 0.95rem;
@@ -335,6 +338,98 @@ button:disabled {
   background: var(--accent-2);
   color: #fff;
   border-radius: 10px;
+}
+
+.match-name-display {
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.55rem 0.75rem;
+}
+
+/* History page */
+.history-page {
+  margin-top: 1.2rem;
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.history-list-panel,
+.history-preview-panel {
+  background: var(--paper);
+  border: 2px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  padding: 0.8rem;
+}
+
+.history-list-panel h2,
+.history-preview-panel h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.history-list-panel {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.preview-info {
+  color: rgba(0, 0, 0, 0.45);
+  margin: 0;
+}
+
+.history-actions {
+  margin-top: 0.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.history-item.selected {
+  outline: 3px solid var(--accent-2);
+  outline-offset: -1px;
+}
+
+/* Page navigation bar */
+.page-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #2f3e46;
+  padding: 0;
+  z-index: 100;
+}
+
+.nav-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #fff;
+  padding: 0.55rem 1rem;
+  margin-right: auto;
+}
+
+.nav-btn {
+  border-radius: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 0.6rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.nav-btn:hover:not(:disabled) {
+  color: #fff;
+  transform: none;
+}
+
+.nav-btn.active {
+  color: #fff;
+  border-bottom: 3px solid var(--accent-2);
 }
 
 .history-list {
@@ -368,7 +463,7 @@ button:disabled {
     max-width: 100%;
   }
 
-  .bottom-bar {
+  .history-page {
     grid-template-columns: 1fr;
   }
 }

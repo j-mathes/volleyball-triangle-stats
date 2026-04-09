@@ -8,13 +8,16 @@
 </head>
 <body>
   <div class="page">
-    <header class="hero">
-      <h1>Triangle Stats</h1>
-      <p>Live event-sourced tracking for Terminal Serves, First Ball Points, and Transition Points.</p>
-    </header>
+    <!-- ===== Nav bar ===== -->
+    <nav class="page-nav">
+      <span class="nav-title">Triangle Stats</span>
+      <button id="navStats" class="nav-btn active" data-page="stats">Stats</button>
+      <button id="navHistory" class="nav-btn" data-page="history">History</button>
+      <button id="navConfig" class="nav-btn" data-page="config">Setup</button>
+    </nav>
 
     <!-- ===== Configuration Page ===== -->
-    <section id="configPage" class="config-page">
+    <div id="configPage" class="config-page">
       <div class="config-card">
         <h2>Match Setup</h2>
         <label for="cfgMatchName">Match Name</label>
@@ -27,35 +30,29 @@
         </fieldset>
 
         <label for="cfgTotalSets">Number of Sets</label>
-        <input id="cfgTotalSets" type="number" min="1" value="5" class="set-input">
-        <p id="cfgValidation" class="validation-msg"></p>
+        <div class="stepper">
+          <button id="btnSetsDown" type="button" class="stepper-btn">&minus;</button>
+          <span id="cfgTotalSets" class="stepper-value">5</span>
+          <button id="btnSetsUp" type="button" class="stepper-btn">+</button>
+        </div>
 
         <button id="btnBeginMatch" class="begin-match-btn">Start Match</button>
       </div>
-
-      <div class="history config-history">
-        <h3>History</h3>
-        <div id="configHistoryList" class="history-list">
-          <p>No saved matches yet.</p>
-        </div>
-      </div>
-    </section>
+    </div>
 
     <!-- ===== Stats Page ===== -->
-    <section id="statsPage" class="stats-page" hidden>
+    <div id="statsPage" class="stats-page">
 
-    <section class="control-panel">
+    <div class="control-panel">
+      <span id="matchNameDisplay" class="match-name-display"></span>
       <span id="setIndicator" class="set-indicator">Set 1 of 5</span>
       <button id="btnEndSet" disabled>End Set</button>
       <button id="btnEndMatch" disabled>End Match</button>
       <button id="btnUndo" disabled>Undo</button>
       <button id="btnRedo" disabled>Redo</button>
-      <button id="btnExportJson" disabled>Export JSON</button>
-      <button id="btnExportCsv" disabled>Export CSV</button>
-      <button id="btnBackToConfig">New Match</button>
-    </section>
+    </div>
 
-    <main class="content-area">
+    <div class="content-area">
       <article class="vertex top">
         <h2>Terminal Serves</h2>
         <div class="value" id="valTerminalServes">0</div>
@@ -97,16 +94,14 @@
         </article>
       </div>
 
-      <section class="bottom-bar">
+      <div class="bottom-bar">
         <div class="snapshot">
           <h3>Match Snapshot</h3>
-          <p id="snapshotInfo">No active match</p>
           <table id="snapshotTable" class="snapshot-table">
             <thead>
               <tr>
                 <th>Set</th>
-                <th>Us</th>
-                <th>Them</th>
+                <th>Score</th>
                 <th>TS</th>
                 <th>FBP</th>
                 <th>TP</th>
@@ -116,16 +111,43 @@
             <tfoot id="snapshotFoot"></tfoot>
           </table>
         </div>
-        <div class="history">
-          <h3>History</h3>
-          <div id="historyList" class="history-list">
-            <p>No saved matches yet.</p>
-          </div>
-        </div>
-      </section>
-    </main>
+      </div>
+    </div>
 
-    </section><!-- end statsPage -->
+    </div><!-- end statsPage -->
+
+    <!-- ===== History Page ===== -->
+    <div id="historyPage" class="history-page">
+      <div class="history-list-panel">
+        <h2>Match History</h2>
+        <div id="historyList" class="history-list">
+          <p>No saved matches yet.</p>
+        </div>
+      </div>
+      <div class="history-preview-panel">
+        <h2>Match Snapshot</h2>
+        <p id="historyPreviewInfo" class="preview-info">Select a match to view details.</p>
+        <table id="historySnapshotTable" class="snapshot-table" hidden>
+          <thead>
+            <tr>
+              <th>Set</th>
+              <th>Score</th>
+              <th>TS</th>
+              <th>FBP</th>
+              <th>TP</th>
+            </tr>
+          </thead>
+          <tbody id="historySnapshotBody"></tbody>
+          <tfoot id="historySnapshotFoot"></tfoot>
+        </table>
+        <div id="historyActions" class="history-actions" hidden>
+          <button id="btnResumeMatch">Resume Match</button>
+          <button id="btnExportJson">Export JSON</button>
+          <button id="btnExportCsv">Export CSV</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script src="app.js"></script>
