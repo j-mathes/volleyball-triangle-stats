@@ -700,6 +700,25 @@ function renderState() {
     $("btnReset").disabled = false;
   }
 
+  // Lock config page controls during active match (except App Settings)
+  document.querySelectorAll('input[name="matchFormat"]').forEach(function (r) { r.disabled = matchActive; });
+  $("btnSetsDown").disabled = matchActive;
+  $("btnSetsUp").disabled = matchActive;
+  $("cfgSeasonSelect").disabled = matchActive;
+  $("cfgSeasonName").disabled = matchActive;
+  $("cfgEventSelect").disabled = matchActive;
+  $("cfgEventName").disabled = matchActive;
+  $("cfgEventType").disabled = matchActive;
+
+  // Lock history page actions during active match
+  $("btnResumeMatch").disabled = matchActive;
+  $("btnExportJson").disabled = matchActive;
+  $("btnExportCsv").disabled = matchActive;
+  $("btnExportAll").disabled = matchActive;
+  $("btnImport").disabled = matchActive;
+  $("btnClearHistory").disabled = matchActive || !$("historyList").querySelector(".history-item-wrapper");
+  document.querySelectorAll(".history-item-delete").forEach(function (btn) { btn.disabled = matchActive; });
+
   var hasActiveSet = !!(state && state.activeSetNumber);
   document.querySelectorAll("[data-stat]").forEach(function (btn) {
     btn.disabled = !hasActiveSet;
@@ -723,7 +742,7 @@ async function renderHistory() {
     clearHistoryPreview();
     return;
   }
-  $("btnClearHistory").disabled = false;
+  $("btnClearHistory").disabled = !!(controller.getState() && !controller.getState().endedAt);
 
   // Build lookup maps
   var seasonMap = {};
@@ -839,6 +858,7 @@ function createMatchItem(entry) {
   delBtn.className = "history-item-delete";
   delBtn.title = "Delete match";
   delBtn.textContent = "\u00D7";
+  delBtn.disabled = !!(controller.getState() && !controller.getState().endedAt);
   delBtn.addEventListener("click", function (e) {
     e.stopPropagation();
     if (!confirm("Delete \"" + entry.matchName + "\"?")) return;
