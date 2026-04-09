@@ -80,6 +80,20 @@
           <label for="cfgHighlightColor">Selection highlight color</label>
           <input type="color" id="cfgHighlightColor" value="#60a5fa" class="highlight-color-input">
         </div>
+        <div class="color-picker-row">
+          <label for="cfgLogOursColor">Event log &mdash; our plays</label>
+          <input type="color" id="cfgLogOursColor" value="#60a5fa" class="highlight-color-input">
+          <label for="cfgLogOursOpacity" class="opacity-label">Opacity</label>
+          <input type="range" id="cfgLogOursOpacity" min="0" max="50" value="12" class="opacity-slider">
+          <span id="cfgLogOursOpacityVal" class="opacity-val">12%</span>
+        </div>
+        <div class="color-picker-row">
+          <label for="cfgLogTheirsColor">Event log &mdash; their plays</label>
+          <input type="color" id="cfgLogTheirsColor" value="#f87171" class="highlight-color-input">
+          <label for="cfgLogTheirsOpacity" class="opacity-label">Opacity</label>
+          <input type="range" id="cfgLogTheirsOpacity" min="0" max="50" value="12" class="opacity-slider">
+          <span id="cfgLogTheirsOpacityVal" class="opacity-val">12%</span>
+        </div>
       </div>
     </div>
 
@@ -214,6 +228,11 @@
           </table>
         </div>
       </div>
+
+      <details id="eventLogDetails" class="event-log-card">
+        <summary class="event-log-summary">Match Event Log</summary>
+        <div id="eventLogBody" class="event-log-body"></div>
+      </details>
     </div><!-- end stats-layout -->
 
     </div><!-- end statsPage -->

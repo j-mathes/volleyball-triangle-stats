@@ -685,6 +685,140 @@ function unlockReset() {
   resetLockTimer = setTimeout(lockReset, resetLockSeconds * 1000);
 }
 
+// Full (non-abbreviated) stat labels for the event log
+const STAT_CATEGORIES = {
+  usAces:                   "Terminal Serves",
+  usMisses:                 "Terminal Serves",
+  opponentAces:             "Terminal Serves",
+  opponentMisses:           "Terminal Serves",
+  firstBallUsKills:         "First Ball",
+  firstBallUsStops:         "First Ball",
+  firstBallOpponentKills:   "First Ball",
+  firstBallOpponentStops:   "First Ball",
+  transitionUsKills:        "Transition",
+  transitionUsStops:        "Transition",
+  transitionOpponentKills:  "Transition",
+  transitionOpponentStops:  "Transition",
+};
+
+const STAT_SHORT_LOG_LABELS = {
+  usAces:                   "Our Ace",
+  usMisses:                 "Our Miss",
+  opponentAces:             "Their Ace",
+  opponentMisses:           "Their Miss",
+  firstBallUsKills:         "Our Kill",
+  firstBallUsStops:         "Our Stop",
+  firstBallOpponentKills:   "Their Kill",
+  firstBallOpponentStops:   "Their Stop",
+  transitionUsKills:        "Our Kill",
+  transitionUsStops:        "Our Stop",
+  transitionOpponentKills:  "Their Kill",
+  transitionOpponentStops:  "Their Stop",
+};
+
+const OUR_STATS = new Set([
+  "usAces", "usMisses",
+  "firstBallUsKills", "firstBallUsStops",
+  "transitionUsKills", "transitionUsStops",
+]);
+
+// Expanded event code labels for the event log
+const EVENT_CODE_LOG_LABELS = {
+  "Foot":   "Foot Fault",
+  "Rot":    "Rotation Fault",
+  "Err":    "Error",
+  "Double": "Double Contact",
+  "Net":    "Net Fault",
+};
+
+function expandEventCode(code) {
+  return code ? (EVENT_CODE_LOG_LABELS[code] || code) : null;
+}
+
+function formatLogTime(iso) {
+  if (!iso) return "";
+  var d = new Date(iso);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+function renderEventLog(state) {
+  var body = $("eventLogBody");
+  if (!body) return;
+
+  if (!state) {
+    body.innerHTML = "<div class=\"event-log-empty\">No match in progress.</div>";
+    return;
+  }
+
+  var events = controller.timeline ? controller.timeline.events.slice(0, state.cursor) : [];
+  if (events.length === 0) {
+    body.innerHTML = "<div class=\"event-log-empty\">No events recorded yet.</div>";
+    return;
+  }
+
+  // Track running set scores for display
+  var setTotals = {}; // setNumber → { us, opponent }
+  function getTotals(setNum) {
+    if (!setTotals[setNum]) setTotals[setNum] = createEmptyTotals();
+    return setTotals[setNum];
+  }
+
+  var rows = [];
+  for (var i = 0; i < events.length; i++) {
+    var e = events[i];
+    var time = formatLogTime(e.timestamp);
+
+    if (e.type === "MATCH_STARTED") {
+      rows.push("<div class=\"event-log-row event-log-system\">" +
+        "<span class=\"elr-time\">" + time + "</span>" +
+        "<span class=\"elr-desc\">Match started &mdash; " + (e.matchName || "") + "</span>" +
+        "</div>");
+    } else if (e.type === "SET_STARTED") {
+      rows.push("<div class=\"event-log-row event-log-system\">" +
+        "<span class=\"elr-time\">" + time + "</span>" +
+        "<span class=\"elr-desc\">Set " + e.setNumber + " started</span>" +
+        "</div>");
+    } else if (e.type === "SET_ENDED") {
+      var totals = getTotals(e.setNumber);
+      var sc = calculateSetScore(totals);
+      rows.push("<div class=\"event-log-row event-log-system\">" +
+        "<span class=\"elr-time\">" + time + "</span>" +
+        "<span class=\"elr-desc\">Set " + e.setNumber + " ended &mdash; final score " + sc.us + " &ndash; " + sc.opponent + "</span>" +
+        "</div>");
+    } else if (e.type === "MATCH_ENDED") {
+      rows.push("<div class=\"event-log-row event-log-system\">" +
+        "<span class=\"elr-time\">" + time + "</span>" +
+        "<span class=\"elr-desc\">Match ended</span>" +
+        "</div>");
+    } else if (e.type === "STAT_INCREMENTED") {
+      var t = getTotals(e.setNumber);
+      t[e.stat] = (t[e.stat] || 0) + e.value;
+      var score = calculateSetScore(t);
+      var isOurs = OUR_STATS.has(e.stat);
+      var rowClass = isOurs ? "event-log-ours" : "event-log-theirs";
+      var cat = STAT_CATEGORIES[e.stat] || "";
+      var statLabel = STAT_SHORT_LOG_LABELS[e.stat] || e.stat;
+      var jersey = e.jersey ? "#" + e.jersey : "";
+      var code = e.eventCode ? expandEventCode(e.eventCode) : "";
+      var rotParts = [];
+      if (e.ourRotation) rotParts.push("Us R" + e.ourRotation);
+      if (e.theirRotation) rotParts.push("Them R" + e.theirRotation);
+      var rot = rotParts.join(" &middot; ");
+      rows.push("<div class=\"event-log-row " + rowClass + "\">" +
+        "<span class=\"elr-time\">" + time + "</span>" +
+        "<span class=\"elr-score\">" + score.us + " &ndash; " + score.opponent + "</span>" +
+        "<span class=\"elr-cat\">" + cat + "</span>" +
+        "<span class=\"elr-stat\">" + statLabel + "</span>" +
+        "<span class=\"elr-jersey\">" + jersey + "</span>" +
+        "<span class=\"elr-code\">" + code + "</span>" +
+        "<span class=\"elr-rot\">" + rot + "</span>" +
+        "</div>");
+    }
+  }
+
+  body.innerHTML = rows.join("");
+}
+
 // ---- Render stats page ----
 
 function renderLastStat(state) {
@@ -729,6 +863,7 @@ function renderState() {
   const state = controller.getState();
 
   renderLastStat(state);
+  renderEventLog(state);
 
   var activeSet = state && state.activeSetNumber
     ? state.sets.find(function (s) { return s.setNumber === state.activeSetNumber; })
@@ -1474,7 +1609,30 @@ document.addEventListener("DOMContentLoaded", function () {
     localStorage.setItem("highlightColor", this.value);
   });
 
-  // Stats page
+  // Event log row colors
+  function hexToRgb(hex) {
+    var r = parseInt(hex.slice(1, 3), 16);
+    var g = parseInt(hex.slice(3, 5), 16);
+    var b = parseInt(hex.slice(5, 7), 16);
+    return r + ", " + g + ", " + b;
+  }
+  function applyLogColor(side, color, opacity) {
+    var prop = side === "ours" ? "--log-ours-bg" : "--log-theirs-bg";
+    document.documentElement.style.setProperty(prop, "rgba(" + hexToRgb(color) + ", " + (opacity / 100) + ")");
+  }
+  function syncLogColorUI(side) {
+    var colorInput = $("cfgLog" + (side === "ours" ? "Ours" : "Theirs") + "Color");
+    var opacityInput = $("cfgLog" + (side === "ours" ? "Ours" : "Theirs") + "Opacity");
+    var opacityVal = $("cfgLog" + (side === "ours" ? "Ours" : "Theirs") + "OpacityVal");
+    opacityVal.textContent = opacityInput.value + "%";
+    applyLogColor(side, colorInput.value, parseInt(opacityInput.value, 10));
+    localStorage.setItem("logColor_" + side, colorInput.value);
+    localStorage.setItem("logOpacity_" + side, opacityInput.value);
+  }
+  $("cfgLogOursColor").addEventListener("input", function () { syncLogColorUI("ours"); });
+  $("cfgLogOursOpacity").addEventListener("input", function () { syncLogColorUI("ours"); });
+  $("cfgLogTheirsColor").addEventListener("input", function () { syncLogColorUI("theirs"); });
+  $("cfgLogTheirsOpacity").addEventListener("input", function () { syncLogColorUI("theirs"); });
   $("btnStartMatch").addEventListener("click", function () { void createMatch(); });
   $("btnEndSet").addEventListener("click", function () { void endSet(); });
   $("btnEndMatch").addEventListener("click", function () { void endMatch(); });
@@ -1566,6 +1724,18 @@ document.addEventListener("DOMContentLoaded", function () {
     $("cfgHighlightColor").value = savedHighlight;
     document.documentElement.style.setProperty("--highlight-color", savedHighlight);
   }
+  ["ours", "theirs"].forEach(function (side) {
+    var savedColor = localStorage.getItem("logColor_" + side);
+    var savedOpacity = localStorage.getItem("logOpacity_" + side);
+    var colorKey = "cfgLog" + (side === "ours" ? "Ours" : "Theirs") + "Color";
+    var opacityKey = "cfgLog" + (side === "ours" ? "Ours" : "Theirs") + "Opacity";
+    var opacityValKey = "cfgLog" + (side === "ours" ? "Ours" : "Theirs") + "OpacityVal";
+    if (savedColor) { $(colorKey).value = savedColor; }
+    if (savedOpacity) { $(opacityKey).value = savedOpacity; $(opacityValKey).textContent = savedOpacity + "%"; }
+    var color = $(colorKey).value;
+    var opacity = parseInt($(opacityKey).value, 10);
+    applyLogColor(side, color, opacity);
+  });
 
   // Start on stats page immediately, then restore in-progress match if any
   syncSetsToFormat();
