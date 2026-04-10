@@ -28,12 +28,11 @@ const EVENT_CODES = [
   { code: "Out",     cat: "both" },
   { code: "Foot",    cat: "miss" },
   { code: "Rot",     cat: "miss" },
-  { code: "Miss",    cat: "stop" },
+  { code: "UFE",     cat: "stop" },
   { code: "Drop",    cat: "stop" },
   { code: "Roof",    cat: "stop" },
   { code: "Catch",   cat: "stop" },
   { code: "Double",  cat: "stop" },
-  { code: "Err",     cat: "miss" },
   { code: "Penalty", cat: "miss" },
 ];
 
@@ -768,7 +767,7 @@ const OUR_STATS = new Set([
 const EVENT_CODE_LOG_LABELS = {
   "Foot":   "Foot Fault",
   "Rot":    "Rotation Fault",
-  "Err":    "Error",
+  "UFE":    "Unforced Error",
   "Double": "Double Contact",
   "Net":    "Net Fault",
 };
@@ -2173,7 +2172,7 @@ function renderTallySheet(output, record, state, opponent) {
     allKeys.forEach(function (k) { maxRows = Math.max(maxRows, (buckets[k][sn] || []).length); });
     var band = si % 2 === 0 ? "band-a" : "band-b";
     html += '<tr class="tally-set-hdr ' + band + '"><td colspan="' + allKeys.length + '">Set ' + sn + '</td></tr>';
-    var _EC_ABBR = { Net: "Net", Out: "Out", Foot: "Ft", Rot: "Rot", Miss: "Mss", Drop: "Drp", Roof: "Rof", Catch: "Ctch", Double: "Dbl", Err: "Err", Penalty: "Pn" };
+    var _EC_ABBR = { Net: "Net", Out: "Out", Foot: "Ft", Rot: "Rot", UFE: "UfE", Drop: "Drp", Roof: "Rof", Catch: "Ctch", Double: "Dbl", Penalty: "Pn" };
     for (var r = 0; r < maxRows; r++) {
       html += '<tr class="' + band + '">';
       allKeys.forEach(function (k) {
@@ -2220,12 +2219,11 @@ function renderTallySheet(output, record, state, opponent) {
   html += '<dt>Out</dt><dd>Ball out of bounds</dd>';
   html += '<dt>Ft</dt><dd>Foot fault on serve</dd>';
   html += '<dt>Rot</dt><dd>Rotation / overlap error</dd>';
-  html += '<dt>Mss</dt><dd>Missed dig or defensive contact</dd>';
+  html += '<dt>UfE</dt><dd>Unforced Error</dd>';
   html += '<dt>Drp</dt><dd>Ball dropped</dd>';
   html += '<dt>Rof</dt><dd>Ball hit ceiling</dd>';
   html += '<dt>Ctch</dt><dd>Catch fault</dd>';
   html += '<dt>Dbl</dt><dd>Double contact fault</dd>';
-  html += '<dt>Err</dt><dd>General unclassified error</dd>';
   html += '<dt>Pn</dt><dd>Penalty point awarded</dd>';
   html += '</dl>';
   html += '<div class="tally-legend-section">Cell indicators</div>';
