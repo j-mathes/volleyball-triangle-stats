@@ -9,3 +9,7 @@ Thumbs.db
 *.tmp
 *.temp
 *.log
+
+# Test / sample data
+test-data.json
+test-match.json
