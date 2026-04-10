@@ -184,7 +184,7 @@ During an active match, the Reset button is protected by a padlock:
 The metadata panel is always visible below the control bar (controls are disabled when no set is active). It is a single horizontal card with four zones left to right:
 
 - **Jersey #**: A `Jersey #` label and text input side by side. Shrinks to fit content.
-- **Event Code Buttons**: 11 color-coded buttons that fill remaining space and wrap as needed.
+- **Event Code Buttons**: 10 color-coded buttons that fill remaining space and wrap as needed.
 - **Last Stat Display**: A read-only panel showing the most recent recorded stat. Updates on every stat press and on undo/redo. Displays on one line: stat name · jersey · event code · rotation(s). Rotation is shown as just `R1`–`R6` (team context is already implied by the stat name). Shows `—` when no stat has been recorded yet.
 
 The rotation cards (Our Rotation / Their Rotation) are separate cards that appear as direct grid children of `stats-layout`, flanking the triangle content rows — not inside the metadata panel itself.

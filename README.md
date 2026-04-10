@@ -1,6 +1,8 @@
 # Triangle Stats
 
-Web-based volleyball stat tracker. No build tools, npm, or server required — open `index.html` in any modern browser.
+Web-based volleyball stat tracker built around **The Triangle** — an analytical framework created by [Joe Trinsey](https://smartervolley.substack.com/). Joe developed the Triangle during his time as an assistant coach for the USA Women's National Team, and has refined it over years of coaching at every level. It breaks a volleyball match into three distinct areas — Terminal Serves, First Ball, and Transition — giving coaches a fast, triage-style lens for identifying where matches are won and lost and where to focus their next practice. Read Joe's original writeup at [Smarter Volley: The Triangle](https://smartervolley.substack.com/p/thetriangle).
+
+No build tools, npm, or server required — open `index.html` in any modern browser.
 
 ## How to Use
 
@@ -9,7 +11,7 @@ Web-based volleyball stat tracker. No build tools, npm, or server required — o
 3. On the **Stats** page, enter a match name, set the date/time, and optionally select an opponent from the picker.
 4. Click **Start Match**. The opponent picker locks for the duration of the match.
 5. Optionally enter a jersey number, select a rotation, and/or select an event code before pressing a stat button. The **Last** display on the right of the metadata panel always shows what was just recorded.
-6. Tap the 12 stat buttons in the triangle layout to record events.
+6. Tap one of the the 12 stat buttons in the triangle layout to record events.
 7. Use **Undo** / **Redo** to correct mistakes.
 8. **End Set** progresses to the next set; **End Match** when finished.
 9. On the **History** page, browse saved matches grouped by season and event.
@@ -53,15 +55,13 @@ The opponent picker is available before a match starts. Once **Start Match** is 
 
 ## Tracked Categories
 
-The triangle layout has three vertices, each tracking four stats (12 buttons total):
+Based on [Joe Trinsey's Triangle framework](https://smartervolley.substack.com/p/thetriangle), the triangle layout has three vertices, each tracking four stats (12 buttons total):
 
 | Category | Formula | Buttons |
-|----------|---------|---------|
+|----------|---------|----------|
 | **Terminal Serves** | (our aces + their misses) − (their aces + our misses) | Our Ace, Their Ace, Our Miss, Their Miss |
 | **First Ball Points** | (our kills + our stops) − (their kills + their stops) | Our Kill, Their Kill, Our Stop, Their Stop |
 | **Transition Points** | (our kills + our stops) − (their kills + their stops) | Our Kill, Their Kill, Our Stop, Their Stop |
-
-Stat boxes show the current set totals. Aggregate match totals can be displayed inside the triangle (toggle in App Settings).
 
 ## Metadata per Stat Event
 
@@ -70,7 +70,7 @@ The **metadata panel** is always visible between the control bar and the triangl
 | Zone | Description |
 |------|-------------|
 | **Jersey #** | Label and text input side by side. Type any jersey number. Cleared after each stat press. |
-| **Event code buttons** | 11 color-coded buttons. Cleared after each stat press. |
+| **Event code buttons** | 10 color-coded buttons. Cleared after each stat press. |
 | **Last** | Read-only display of the most recent recorded stat — updates on every press and on undo/redo. Shows stat name plus any jersey, event code, and rotation that were captured. |
 
 Rotation buttons (R1–R6) appear as flanking cards beside the triangle rows. See **Rotation Tracking** under App Settings.
@@ -82,8 +82,8 @@ If a field is left blank or a code is not applicable to the stat type, it is sim
 | Color | Applies to | Codes |
 |-------|-----------|-------|
 | Purple | Serve misses **and** stops | Net, Out |
-| Orange | Serve misses only | Foot, Rot, Err, Penalty |
-| Blue | Stops only | Miss, Drop, Roof, Catch, Double |
+| Orange | Serve misses only | Foot, Rot, Penalty |
+| Blue | Stops only | UfE, Drop, Roof, Catch, Double |
 
 If you press a stat button that does not accept the selected code, the code is silently ignored.
 
@@ -223,7 +223,7 @@ docs/
 
 ## Tracked Categories
 
-The triangle layout has three vertices, each tracking four stats (12 buttons total):
+Based on [Joe Trinsey's Triangle framework](https://smartervolley.substack.com/p/thetriangle), the triangle layout has three vertices, each tracking four stats (12 buttons total):
 
 | Category | Formula | Buttons |
 |----------|---------|---------|
@@ -240,7 +240,7 @@ The **metadata panel** is always visible between the control bar and the triangl
 | Zone | Description |
 |------|-------------|
 | **Jersey #** | Label and text input side by side. Type any jersey number. Cleared after each stat press. |
-| **Event code buttons** | 11 color-coded buttons. Cleared after each stat press. |
+| **Event code buttons** | 10 color-coded buttons. Cleared after each stat press. |
 | **Last** | Read-only display of the most recent recorded stat — updates on every press and on undo/redo. Shows stat name plus any jersey, event code, and rotation that were captured. |
 
 Rotation buttons (R1–R6) appear as flanking cards beside the triangle rows, not inside the metadata panel. See **Rotation Tracking** under App Settings.
@@ -254,8 +254,8 @@ Codes are color-coded by the stat types they apply to:
 | Color | Applies to | Codes |
 |-------|-----------|-------|
 | Purple | Serve misses **and** stops | Net, Out |
-| Orange | Serve misses only | Foot, Rot, Err, Penalty |
-| Blue | Stops only | Miss, Drop, Roof, Catch, Double |
+| Orange | Serve misses only | Foot, Rot, Penalty |
+| Blue | Stops only | UfE, Drop, Roof, Catch, Double |
 
 If you press a stat button that does not accept the selected code, the code is silently ignored.  For example, selecting "Foot" (a miss-only code) then pressing "Our Kill" will record the kill with no event code.
 
