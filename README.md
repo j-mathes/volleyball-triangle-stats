@@ -121,14 +121,11 @@ The Reports page lets you analyze recorded data across any scope:
 | Scope | Data source |
 |-------|-----------|
 | Current Match | Whatever is loaded in the Stats page right now |
-| Single Match | One match selected from the data picker |
-| Event | All matches under a selected event |
-| Season | All matches under a selected season |
-| Custom | Arbitrary combination of matches from IndexedDB or loaded JSON files |
+| Select Matches | Any combination of matches chosen from the data picker (IndexedDB or loaded JSON files) |
 
 Use the **Select Data** panel to navigate the Season → Event → Match hierarchy with checkboxes. You can also click **Load JSON File…** to bring in matches from an exported file without importing them permanently.
 
-**Single-match reports** are available when ≥ 1 match is selected. **Multi-match reports** require ≥ 2.
+**Single-match reports** require exactly 1 match selected. **Multi-match reports** require ≥ 2.
 
 | Group | Reports |
 |-------|---------|
@@ -136,8 +133,6 @@ Use the **Select Data** panel to navigate the Season → Event → Match hierarc
 | Multi Match | Event Summary, Progress Trend, Rotation Heat Map, Player Leaderboard, Opponent Comparison |
 
 Use the **Print / Save PDF** button to print the current report or save it as a PDF via your browser's print dialog.
-
-> **Status:** Single-match and multi-match reports are planned for the next implementation phases. The shell (scope, data picker, sidebar, print CSS) is in place.
 
 ## History
 

@@ -211,8 +211,8 @@ Event codes are silently dropped when the stat type doesn't accept them. The `ST
 | Color | Category | Codes |
 |-------|---------|-------|
 | Purple | Both misses and stops | Net, Out |
-| Orange | Misses only | Foot, Rot, Err, Penalty |
-| Blue | Stops only | Miss, Drop, Roof, Catch, Double |
+| Orange | Misses only | Foot, Rot, Penalty |
+| Blue | Stops only | UfE, Drop, Roof, Catch, Double |
 
 ### Metadata Clearing Rules
 
@@ -321,9 +321,9 @@ Controls in Match Setup and the opponent picker are **disabled during an active 
 The reports page has four sections stacked vertically:
 
 ### Scope Strip
-Five pill buttons: **Current Match**, **Single Match**, **Event**, **Season**, **Custom**.  
-- *Current Match* hides the data picker and always uses the match currently in `controller`.  
-- All other scopes show the data picker.
+Two pill buttons: **Current Match** and **Select Matches**.
+- *Current Match* hides the data picker and always uses the match currently in `controller`.
+- *Select Matches* shows the data picker, allowing any combination of saved matches to be chosen.
 
 ### Data Picker (`<details>` element, hidden for Current Match)
 Two tree panels side by side + a file-load column:
@@ -346,7 +346,7 @@ Checked match IDs accumulate in `selectedMatchIds: Set<string>`. `loadedFileReco
 | Single Match | Tally Sheet, Match Summary, Momentum Chart, Set Flow, Error Breakdown, Player Stats, Rotation Performance |
 | Multi Match | Event Summary, Progress Trend, Rotation Heat Map, Player Leaderboard, Opponent Comparison |
 
-Single-match reports require ≥1 selected match; multi-match reports require ≥2. Items are disabled (`.disabled`) when the selection doesn't qualify. `updateSidebarAvailability()` is called whenever `selectedMatchIds` changes or scope changes.
+Single-match reports require exactly 1 selected match; multi-match reports require ≥ 2. Items are disabled (`.disabled`) when the selection doesn't qualify. `updateSidebarAvailability()` is called whenever `selectedMatchIds` changes or scope changes.
 
 **Content area** (`reports-content`) — renders active report via `showReport(name)`. Print button in top-right calls `window.print()`.
 
@@ -357,11 +357,12 @@ Single-match reports require ≥1 selected match; multi-match reports require �
 
 | Variable / Function | Purpose |
 |---------------------|---------|
-| `reportsScope` | `"current"\|"single"\|"event"\|"season"\|"custom"` |
+| `reportsScope` | `"current"\|"picker"` |
 | `selectedMatchIds` | `Set<string>` of checked match IDs |
 | `loadedFileRecords` | Array of `{matchId, matchName, record, source}` — session only |
 | `currentReport` | Name of the active report |
 | `getSelectedMatches()` | Returns array of `{record, source}` for all checked IDs |
+| `refreshAfterSelectionChange()` | Updates sidebar availability then re-renders the active report (or shows a hint if no report is active) |
 | `buildDataPickerTree()` | Async — rebuilds DB hierarchy checkboxes |
 | `buildLoadedFilesTree()` | Rebuilds loaded-files list |
 | `updateSidebarAvailability()` | Enables/disables report links |
@@ -376,8 +377,8 @@ Single-match reports require ≥1 selected match; multi-match reports require �
 |-------|--------|-------------|
 | Phase 1 | ✅ Complete | Opponent tracking (DB v3, CRUD, picker, export/import) |
 | Phase 2 | ✅ Complete | Reports shell (scope strip, data picker, sidebar, print CSS) |
-| Phase 3 | 🔲 Pending | Single-match reports (Tally Sheet through Rotation Performance) |
-| Phase 4 | 🔲 Pending | Multi-match reports (Event Summary through Opponent Comparison) |
+| Phase 3 | ✅ Complete | Single-match reports (Tally Sheet through Rotation Performance) |
+| Phase 4 | ✅ Complete | Multi-match reports (Event Summary through Opponent Comparison) |
 
 
 
