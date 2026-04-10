@@ -319,6 +319,558 @@ body {
   text-align: center;
 }
 
+/* ---- Report content styles ---------------------------------------- */
+
+.report-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 0.8rem;
+  color: var(--fg);
+}
+
+.report-section-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  margin: 1.2rem 0 0.45rem;
+  color: rgba(0, 0, 0, 0.65);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.report-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+/* Shared match info banner (top of every single-match report) */
+.report-match-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.9rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.report-match-banner-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.report-match-banner-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--fg);
+  margin-bottom: 0.18rem;
+}
+
+.report-match-banner-meta {
+  font-size: 0.82rem;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.rmbm-label {
+  font-style: italic;
+}
+
+.rmbm-sep {
+  margin: 0 0.35rem;
+  opacity: 0.4;
+}
+
+.report-mini-tri {
+  width: 150px;
+  height: 150px;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+/* Info table (match summary header) */
+.report-summary-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.report-summary-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.report-info-table {
+  border-collapse: collapse;
+  margin-bottom: 0.6rem;
+  font-size: 0.88rem;
+}
+
+.report-info-table th {
+  text-align: left;
+  padding: 0.15rem 0.8rem 0.15rem 0;
+  color: rgba(0, 0, 0, 0.5);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.report-info-table td {
+  padding: 0.15rem 0;
+  color: var(--fg);
+}
+
+/* Generic report table */
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  margin-bottom: 0.6rem;
+}
+
+.report-table-compact {
+  width: auto;
+  table-layout: fixed;
+}
+
+.report-table-compact th,
+.report-table-compact td {
+  width: 110px;
+  text-align: center;
+}
+
+.report-table-compact th:first-child,
+.report-table-compact td:first-child {
+  text-align: left;
+  width: 60px;
+}
+
+.report-table.report-table-compact th {
+  text-align: center;
+}
+
+.report-table.report-table-compact th:first-child {
+  text-align: left;
+}
+
+.report-table th {
+  padding: 0.3rem 0.55rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8rem;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.12);
+  white-space: nowrap;
+}
+
+.report-table td {
+  padding: 0.25rem 0.55rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+.report-total-row td {
+  border-top: 2px solid rgba(0, 0, 0, 0.15);
+  border-bottom: none;
+  background: rgba(0, 0, 0, 0.03);
+  font-weight: 600;
+}
+
+.report-win-mark {
+  display: inline-block;
+  width: 1.1em;
+  text-align: center;
+}
+
+.report-win  { color: var(--ours);   font-weight: 700; }
+.report-loss { color: var(--theirs); }
+.report-pos  { color: var(--ours);   font-weight: 600; }
+.report-neg  { color: var(--theirs); font-weight: 600; }
+
+/* Tally Sheet */
+.tally-wrap { }
+
+.tally-group-label {
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(0, 0, 0, 0.5);
+  margin: 1.1rem 0 0.3rem;
+}
+
+.tally-group-hdr .tally-grp-cell {
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.04);
+  padding: 0.25rem 0.35rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.tally-group-hdr .tally-grp-cell:not(:last-child) {
+  border-right: 2px solid rgba(0, 0, 0, 0.12);
+}
+
+.tally-team-hdr .tally-team-cell {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 0.15rem 0.2rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.tally-team-us {
+  background: rgba(42, 125, 79, 0.07);
+}
+
+.tally-team-opp {
+  background: rgba(194, 59, 59, 0.05);
+  border-right: 2px solid rgba(0, 0, 0, 0.12);
+}
+
+.tally-team-opp:last-child {
+  border-right: none;
+}
+
+.tally-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-bottom: 0.4rem;
+}
+
+.tally-table th {
+  padding: 0.2rem 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-align: center;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.12);
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Set header row — gray band, left-aligned label */
+.tally-table .tally-set-hdr td {
+  background: rgba(0, 0, 0, 0.06);
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-align: left;
+  padding-left: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Vertical group dividers on data rows: thin between Us/Opp, thick between groups */
+/* Faint inner separator after first col of each pair (cols 1,3,5,7,9,11) */
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(1),
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(3),
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(5),
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(7),
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(9),
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(11) {
+  border-right: 1px dotted rgba(0, 0, 0, 0.12);
+}
+/* Us/Opp divider after cols 2, 6, 10 */
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(2),
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(6),
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(10) {
+  border-right: 1px solid rgba(0, 0, 0, 0.12);
+}
+/* Group divider after cols 4 and 8 (overrides thin border) */
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(4),
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(8) {
+  border-right: 2px solid rgba(0, 0, 0, 0.18);
+}
+
+/* Column background on stat-label header row (row 3) to match data columns */
+.tally-stat-hdr th:nth-child(1),
+.tally-stat-hdr th:nth-child(2),
+.tally-stat-hdr th:nth-child(5),
+.tally-stat-hdr th:nth-child(6),
+.tally-stat-hdr th:nth-child(9),
+.tally-stat-hdr th:nth-child(10) {
+  background: rgba(42, 125, 79, 0.06);
+}
+.tally-stat-hdr th:nth-child(3),
+.tally-stat-hdr th:nth-child(4),
+.tally-stat-hdr th:nth-child(7),
+.tally-stat-hdr th:nth-child(8),
+.tally-stat-hdr th:nth-child(11),
+.tally-stat-hdr th:nth-child(12) {
+  background: rgba(194, 59, 59, 0.04);
+}
+/* Dividers on stat-label header row */
+.tally-stat-hdr th:nth-child(1),
+.tally-stat-hdr th:nth-child(3),
+.tally-stat-hdr th:nth-child(5),
+.tally-stat-hdr th:nth-child(7),
+.tally-stat-hdr th:nth-child(9),
+.tally-stat-hdr th:nth-child(11) {
+  border-right: 1px dotted rgba(0, 0, 0, 0.12);
+}
+.tally-stat-hdr th:nth-child(2),
+.tally-stat-hdr th:nth-child(6),
+.tally-stat-hdr th:nth-child(10) {
+  border-right: 1px solid rgba(0, 0, 0, 0.12);
+}
+.tally-stat-hdr th:nth-child(4),
+.tally-stat-hdr th:nth-child(8) {
+  border-right: 2px solid rgba(0, 0, 0, 0.18);
+}
+
+/* Column background shading — Us columns (1,2,5,6,9,10) */
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(1),
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(2),
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(5),
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(6),
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(9),
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(10) {
+  background: rgba(42, 125, 79, 0.06);
+}
+/* Column background shading — Opponent columns (3,4,7,8,11,12) */
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(3),
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(4),
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(7),
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(8),
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(11),
+.tally-table tbody tr:not(.tally-set-hdr) td:nth-child(12) {
+  background: rgba(194, 59, 59, 0.04);
+}
+
+.tally-table td {
+  padding: 0.12rem 0.2rem;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.band-a { background: rgba(0, 0, 0, 0.02); }
+.band-b { background: rgba(0, 0, 0, 0.05); }
+
+.tally-subtotal td {
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: 0.8rem;
+  padding-bottom: 0.3rem;
+}
+
+.tally-match-total td {
+  border-top: 2px solid rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.04);
+  font-size: 0.85rem;
+  padding: 0.25rem 0.2rem;
+  text-align: center;
+}
+
+.tally-jersey {
+  font-weight: 700;
+  font-size: 0.75em;
+  color: var(--ours);
+}
+
+.tally-code {
+  font-size: 0.68em;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 3px;
+  padding: 0 3px;
+  font-family: monospace;
+}
+
+.tally-rot {
+  font-size: 0.68em;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 3px;
+  padding: 0 3px;
+  font-family: monospace;
+  color: #1b1b28;
+  font-style: normal;
+}
+
+/* Tally legend */
+.tally-legend {
+  margin-top: 1.2rem;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.tally-legend-title {
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(0, 0, 0, 0.5);
+  margin-bottom: 0.6rem;
+}
+
+.tally-legend-section {
+  font-weight: 700;
+  font-size: 0.76rem;
+  color: rgba(0, 0, 0, 0.45);
+  margin: 0.65rem 0 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tally-legend-dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.1rem 0.75rem;
+  margin: 0;
+}
+
+.tally-legend-dl dt {
+  font-weight: 700;
+  font-family: monospace;
+  color: rgba(0, 0, 0, 0.7);
+  white-space: nowrap;
+}
+
+.tally-legend-dl dd {
+  margin: 0;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+/* SVG charts */
+.report-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0.5rem 0 0.3rem;
+}
+
+/* Momentum / Set Flow legend & hints */
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+.chart-toggle {
+  font-size: 0.8rem;
+  padding: 0.2rem 0.55rem 0.2rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.04);
+  color: #1b1b28;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  font-weight: 600;
+}
+
+.chart-toggle:not(.active) {
+  opacity: 0.35;
+}
+
+.chart-hint {
+  font-size: 0.78rem;
+  color: rgba(0, 0, 0, 0.4);
+  font-style: italic;
+  margin: 0.2rem 0 0;
+}
+
+/* Per-set expandable sections */
+.report-per-set-wrap {
+  margin-top: 1.2rem;
+}
+
+.report-per-set-outer {
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.report-per-set-outer > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(0,0,0,0.03);
+  user-select: none;
+}
+
+.report-per-set-outer > summary::before {
+  content: "▶";
+  font-size: 0.65rem;
+  transition: transform 0.15s;
+}
+
+.report-per-set-outer[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.report-per-set-inner-list {
+  padding: 0.5rem 0.8rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.report-set-details {
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.report-set-details > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(0,0,0,0.02);
+  user-select: none;
+}
+
+.report-set-details > summary::before {
+  content: "▶";
+  font-size: 0.6rem;
+  transition: transform 0.15s;
+}
+
+.report-set-details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.report-set-details-body {
+  padding: 0.5rem 0.65rem 0.65rem;
+}
+
+/* Match Log report — full height, no scroll, same row styling as live log */
+.report-log-body {
+  border-top: 1px solid rgba(0,0,0,0.08);
+  font-size: 0.82rem;
+}
+
+/* ---- Multi-match reports (Phase 4) ---- */
+
+.report-multi-wrap {
+  padding: 0.2rem 0 0.5rem;
+}
+
+/* Progress Trend line-chart legend */
+.report-trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.4rem;
+  justify-content: center;
+  margin-bottom: 0.6rem;
+  font-size: 0.85rem;
+  color: rgba(0,0,0,0.65);
+}
+
 /* Print styles */
 @media print {
   .page-nav,
