@@ -319,6 +319,27 @@ body {
   text-align: center;
 }
 
+.report-selection-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin: 1.5rem 0;
+  padding: 0.75rem 1rem;
+  background: rgba(230, 168, 23, 0.12);
+  border: 1px solid rgba(230, 168, 23, 0.45);
+  border-left: 4px solid #e6a817;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.report-selection-hint::before {
+  content: "\26A0\FE0F";
+  font-style: normal;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
 /* ---- Report content styles ---------------------------------------- */
 
 .report-title {

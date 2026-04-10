@@ -1721,7 +1721,7 @@ async function importData(file) {
 
 // ---- Reports --------------------------------------------------
 
-var reportsScope = "current";          // "current"|"single"|"event"|"season"|"custom"
+var reportsScope = "current";          // "current"|"picker"
 var selectedMatchIds = new Set();      // IDs of matches checked in the data picker
 var loadedFileRecords = [];            // { matchId, matchName, record, source } — session only
 var currentReport = null;             // which report is active
@@ -1743,6 +1743,7 @@ async function getSelectedMatches() {
   if (reportsScope === "current") {
     var rec2 = controller.toRecord();
     if (rec2) results = [{ record: rec2, source: "current" }];
+    else results = [];
   }
   return results;
 }
@@ -1767,7 +1768,7 @@ async function buildDataPickerTree() {
     cb.addEventListener("change", function () {
       if (cb.checked) selectedMatchIds.add(match.matchId);
       else selectedMatchIds.delete(match.matchId);
-      updateSidebarAvailability();
+      refreshAfterSelectionChange();
     });
     var label = document.createElement("span");
     var dateStr = match.matchDate ? new Date(match.matchDate).toLocaleDateString() : "";
@@ -1787,20 +1788,22 @@ async function buildDataPickerTree() {
     });
   }
 
-  function makeSelectAllCb(matches, parentEl) {
+  function makeSelectAllCb(matches, childrenEl) {
     var cb = document.createElement("input");
     cb.type = "checkbox";
-    cb.title = "Select all";
+    cb.title = "Select all in this group";
     cb.addEventListener("change", function () {
       matches.forEach(function (m) {
         if (cb.checked) selectedMatchIds.add(m.matchId);
         else selectedMatchIds.delete(m.matchId);
       });
-      // refresh checkboxes in children
-      parentEl.querySelectorAll("input[type=checkbox]").forEach(function (c) {
-        if (c !== cb) c.checked = cb.checked;
-      });
-      updateSidebarAvailability();
+      // sync child match checkboxes
+      if (childrenEl) {
+        childrenEl.querySelectorAll("input[type=checkbox]").forEach(function (c) {
+          c.checked = cb.checked;
+        });
+      }
+      refreshAfterSelectionChange();
     });
     return cb;
   }
@@ -1828,14 +1831,13 @@ async function buildDataPickerTree() {
     var seasonMatchesDirect = allMatches.filter(function (m) { return m.seasonId === season.id && !m.eventId; });
     var seasonMatchesFull = allMatches.filter(function (m) { return m.seasonId === season.id; });
 
-    var sCb = makeSelectAllCb(seasonMatchesFull, seasonHeader);
+    var seasonChildren = document.createElement("div");
+    seasonChildren.className = "picker-children";
+    var sCb = makeSelectAllCb(seasonMatchesFull, seasonChildren);
     seasonHeader.appendChild(stoggle);
     seasonHeader.appendChild(sCb);
     seasonHeader.appendChild(sLabel);
     container.appendChild(seasonHeader);
-
-    var seasonChildren = document.createElement("div");
-    seasonChildren.className = "picker-children";
     makeCollapsible(seasonHeader, seasonChildren);
 
     // Events under this season
@@ -1849,14 +1851,13 @@ async function buildDataPickerTree() {
       etoggle.textContent = "▶";
       var eLabel = document.createElement("span");
       eLabel.textContent = evt.name;
-      var eCb = makeSelectAllCb(evtMatches, evtHeader);
+      var evtChildren = document.createElement("div");
+      evtChildren.className = "picker-children";
+      var eCb = makeSelectAllCb(evtMatches, evtChildren);
       evtHeader.appendChild(etoggle);
       evtHeader.appendChild(eCb);
       evtHeader.appendChild(eLabel);
       seasonChildren.appendChild(evtHeader);
-
-      var evtChildren = document.createElement("div");
-      evtChildren.className = "picker-children";
       makeCollapsible(evtHeader, evtChildren);
       evtMatches.forEach(function (m) { evtChildren.appendChild(makeMatchItem(m, false)); });
       seasonChildren.appendChild(evtChildren);
@@ -1879,14 +1880,13 @@ async function buildDataPickerTree() {
     otoggle.textContent = "▶";
     var oLabel = document.createElement("span");
     oLabel.textContent = oEvt.name;
-    var oCb = makeSelectAllCb(oMatches, oHeader);
+    var oChildren = document.createElement("div");
+    oChildren.className = "picker-children";
+    var oCb = makeSelectAllCb(oMatches, oChildren);
     oHeader.appendChild(otoggle);
     oHeader.appendChild(oCb);
     oHeader.appendChild(oLabel);
     container.appendChild(oHeader);
-
-    var oChildren = document.createElement("div");
-    oChildren.className = "picker-children";
     makeCollapsible(oHeader, oChildren);
     oMatches.forEach(function (m) { oChildren.appendChild(makeMatchItem(m, false)); });
     container.appendChild(oChildren);
@@ -1920,7 +1920,7 @@ function buildLoadedFilesTree() {
     cb.addEventListener("change", function () {
       if (cb.checked) selectedMatchIds.add(entry.matchId);
       else selectedMatchIds.delete(entry.matchId);
-      updateSidebarAvailability();
+      refreshAfterSelectionChange();
     });
     var label = document.createElement("span");
     label.textContent = (entry.matchName || "Untitled") + " [file]";
@@ -1937,14 +1937,47 @@ var MULTI_REPORTS  = ["eventSummary", "progressTrend", "rotationHeatmap", "playe
 function updateSidebarAvailability() {
   var isCurrent = reportsScope === "current";
   var count = isCurrent ? 1 : selectedMatchIds.size;
-  var hasSingle = count >= 1;
-  var hasMulti  = count >= 2;
+  var hasExactlyOne = count === 1;
+  var hasMulti      = count >= 2;
 
   document.querySelectorAll(".report-link").forEach(function (btn) {
     var r = btn.dataset.report;
     var isSingle = SINGLE_REPORTS.indexOf(r) !== -1;
-    btn.disabled = isSingle ? !hasSingle : !hasMulti;
+    btn.disabled = isSingle ? !hasExactlyOne : !hasMulti;
   });
+
+  // Show a hint in the content area when not enough matches are selected
+  var output = $("reportOutput");
+  if (!currentReport) {
+    if (isCurrent) {
+      var rec = controller.toRecord();
+      var hasActive = !!(rec && deriveMatchState({ events: rec.events, cursor: rec.cursor }));
+      if (!hasActive) {
+        output.innerHTML = '<p class="report-selection-hint">No active match. Go to the Stats page and start a match, or switch to another scope and select a saved match.</p>';
+      }
+    } else if (count === 0) {
+      output.innerHTML = '<p class="report-selection-hint">Select one or more matches in the data picker above to view reports. Select at least 2 to enable multi-match reports.</p>';
+    } else if (count === 1) {
+      output.innerHTML = '<p class="report-selection-hint">1 match selected \u2014 single-match reports are now available. Select a second match to also enable multi-match reports.</p>';
+    } else {
+      output.innerHTML = '<p class="report-selection-hint">' + count + ' matches selected \u2014 multi-match reports are available. To view a single-match report, select exactly 1 match.</p>';
+    }
+  }
+}
+
+// Call after any change to selectedMatchIds: update sidebar then re-render or show hint
+function refreshAfterSelectionChange() {
+  updateSidebarAvailability();
+  if (currentReport) {
+    var activeBtn = document.querySelector('[data-report="' + currentReport + '"]');
+    if (activeBtn && !activeBtn.disabled) {
+      showReport(currentReport);
+    } else {
+      document.querySelectorAll(".report-link").forEach(function (b) { b.classList.remove("active"); });
+      currentReport = null;
+      updateSidebarAvailability();
+    }
+  }
 }
 
 function setReportsScope(scope) {
@@ -1958,21 +1991,22 @@ function setReportsScope(scope) {
     picker.hidden = true;
   } else {
     picker.hidden = false;
-    void buildDataPickerTree();
-  }
-
-  // Auto-select sensible reports per scope
-  if (scope === "current" || scope === "single") {
-    // disable multi
-    MULTI_REPORTS.forEach(function (r) {
-      var btn = document.querySelector('[data-report="' + r + '"]');
-      if (btn) btn.disabled = true;
-    });
+    void buildDataPickerTree(); // scope === "picker"
   }
 
   updateSidebarAvailability();
-  // Re-render the active report if possible
-  if (currentReport) showReport(currentReport);
+  // Re-render the active report if possible, otherwise show the placeholder
+  if (currentReport) {
+    var activeBtn = document.querySelector('[data-report="' + currentReport + '"]');
+    if (activeBtn && !activeBtn.disabled) {
+      showReport(currentReport);
+    } else {
+      // Active report is no longer available with this selection — clear it
+      document.querySelectorAll(".report-link").forEach(function (b) { b.classList.remove("active"); });
+      currentReport = null;
+      updateSidebarAvailability(); // re-run so the placeholder is shown
+    }
+  }
 }
 
 function showReport(reportName) {
@@ -1988,7 +2022,7 @@ function showReport(reportName) {
     var state = record ? deriveMatchState({ events: record.events, cursor: record.cursor }) : null;
     output.innerHTML = "";
     if (!state) {
-      output.innerHTML = '<p class="report-placeholder">No match data available. Start a match or select one via the data picker.</p>';
+      output.innerHTML = '<p class="report-selection-hint">No match data available. Go to the Stats page and start a match, or switch to another scope and select a saved match.</p>';
       return;
     }
     var MULTI = ["eventSummary", "progressTrend", "rotationHeatmap", "playerLeaderboard", "opponentCompare"];
@@ -3080,9 +3114,21 @@ document.addEventListener("DOMContentLoaded", function () {
       loadedFileRecords.push({ matchId: m.matchId, matchName: m.matchName || "Untitled", record: m, source: "file" });
       added++;
     }
-    if (data.type === "match" && data.match) addRecord(data.match);
-    else if (data.type === "bulk" && data.matches) data.matches.forEach(addRecord);
-    else if (data.matchId) addRecord(data);
+    if (data.type === "match" && data.match) {
+      addRecord(data.match);
+      // Persist related opponent/season/event so reports can resolve them
+      if (data.opponent && data.opponent.id) { dbLoadOpponent(data.opponent.id).then(function (ex) { if (!ex) dbSaveOpponent(data.opponent); }); }
+      if (data.season  && data.season.id)   { dbLoadSeason(data.season.id).then(function (ex)   { if (!ex) dbSaveSeason(data.season); }); }
+      if (data.event   && data.event.id)    { dbLoadEvent(data.event.id).then(function (ex)     { if (!ex) dbSaveEvent(data.event); }); }
+    } else if (data.type === "bulk" && data.matches) {
+      data.matches.forEach(addRecord);
+      // Persist opponents/seasons/events from bulk file
+      if (data.opponents) data.opponents.forEach(function (o) { if (o.id) dbLoadOpponent(o.id).then(function (ex) { if (!ex) dbSaveOpponent(o); }); });
+      if (data.seasons)   data.seasons.forEach(function (s)   { if (s.id) dbLoadSeason(s.id).then(function (ex)   { if (!ex) dbSaveSeason(s); }); });
+      if (data.events)    data.events.forEach(function (e)    { if (e.id) dbLoadEvent(e.id).then(function (ex)     { if (!ex) dbSaveEvent(e); }); });
+    } else if (data.matchId) {
+      addRecord(data);
+    }
     if (!added) { alert("No match records found in file."); return; }
     buildLoadedFilesTree();
     updateSidebarAvailability();
