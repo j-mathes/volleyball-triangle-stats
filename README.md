@@ -7,7 +7,7 @@ No build tools, npm, or server required — open `index.html` in any modern brow
 ## How to Use
 
 1. Open `index.html` in a modern web browser (Chrome, Firefox, Edge).
-2. Optionally go to **Setup** to configure match format, number of sets, rotation tracking, season/event organization, and to manage opponents.
+2. Optionally go to **Setup** to configure match format, number of sets, rotation tracking, season/event organization, manage opponents, and customize event codes.
 3. On the **Stats** page, enter a match name, set the date/time, and optionally select an opponent from the picker.
 4. Click **Start Match**. The opponent picker locks for the duration of the match.
 5. Optionally enter a jersey number, select a rotation, and/or select an event code before pressing a stat button. The **Last** display on the right of the metadata panel always shows what was just recorded.
@@ -40,7 +40,7 @@ docs/
 | **Stats** | Live match tracking — control panel, triangle stat buttons, metadata panel (rotation/jersey/event code), score display, snapshot table, undo/redo |
 | **Reports** | Scope selector, data picker, and sidebar with 12 report types (single-match and multi-match) |
 | **History** | Browse, preview, export, import, resume, and delete saved matches |
-| **Setup** | Match configuration (format, sets, season/event), opponent management, and App Settings |
+| **Setup** | Match configuration (format, sets, season/event), opponent management, event code management, and App Settings |
 
 ## Stats Page Layout
 
@@ -79,11 +79,19 @@ If a field is left blank or a code is not applicable to the stat type, it is sim
 
 ### Event Codes
 
-| Color | Applies to | Codes |
-|-------|-----------|-------|
-| Purple | Serve misses **and** stops | Net, Out |
-| Orange | Serve misses only | Foot, Rot, Penalty |
-| Blue | Stops only | UfE, Drop, Roof, Catch, Double |
+Event codes are **user-defined** and managed on the Setup page. Each code has:
+- **Code** — the identifier stored in match records (e.g. `UFE`)
+- **Abbr** — the short label shown on the button and in tally cells (e.g. `UfE`)
+- **Description** — human-readable label used in the event log and tally legend
+- **Category** — controls which stat buttons accept the code and the button color:
+
+| Color | Category | Applies to |
+|-------|---------|------------|
+| Purple | Both | Serve misses **and** stops |
+| Orange | Serve miss only | Serve misses only |
+| Blue | Stop/error only | Stops and defensive errors only |
+
+The app ships with 10 default codes (Net, Out, Foot, Rot, UfE, Drop, Roof, Catch, Double, Penalty). You can add custom codes, delete any code, or **Reset to Defaults** to restore the originals.
 
 If you press a stat button that does not accept the selected code, the code is silently ignored.
 
@@ -103,6 +111,16 @@ Matches can optionally be organized into a hierarchy:
 - **Match** — the individual stat-tracked game
 
 All organization is optional.
+
+## Event Codes
+
+Event codes are managed on the **Setup page** in the Event Codes card:
+
+- **Add**: enter a Code, Abbreviation, Description, and Category, then press **Add**
+- **Delete**: click **✗** next to any code
+- **Reset to Defaults**: restores the 10 built-in codes (with confirmation)
+
+Changes take effect immediately — buttons on the Stats page rebuild automatically. The Event Codes card is locked while a match is active.
 
 ## Opponents
 
@@ -146,14 +164,15 @@ Actions available:
 
 ## Persistence
 
-Match data is stored in the browser's IndexedDB (`triangle-stats`, version 3):
+Match data is stored in the browser's IndexedDB (`triangle-stats`, version 4):
 
 | Store | Contents |
-|-------|---------|
+|-------|----------|
 | `matches` | Match records with full event timeline |
 | `seasons` | Season names |
 | `events` | Event names with type and optional season link |
 | `opponents` | Opponent names |
+| `eventCodes` | User-defined event codes (code, abbr, label, category, order) |
 
 On page load, the most recent in-progress match is automatically restored. Completed matches are not auto-restored.
 
@@ -163,8 +182,8 @@ On page load, the most recent in-progress match is automatically restored. Compl
 |--------|--------|-----------------|
 | **Export JSON** | Single match + season/event/opponent context | `{name}_{YYYY-MM-DD}.json` |
 | **Export CSV** | Coach-readable set-by-set summary | `{name}_{YYYY-MM-DD}.csv` |
-| **Export All** | Bulk backup of all data including opponents | `triangle-stats-backup-{YYYY-MM-DD-HH-MM-SS}.json` |
-| **Import** | Reads single or bulk JSON, skips duplicates by ID | — |
+| **Export All** | Bulk backup of all data including opponents and event codes | `triangle-stats-backup-{YYYY-MM-DD-HH-MM-SS}.json` |
+| **Import** | Reads single or bulk JSON, skips duplicates by ID/code | — |
 
 Import never silently overwrites — duplicates are skipped and counted in the summary.
 
@@ -189,7 +208,7 @@ Found on the Setup page:
 ## How to Use
 
 1. Open `index.html` in a modern web browser (Chrome, Firefox, Edge).
-2. Optionally go to **Setup** to configure match format, number of sets, rotation tracking, and match organization (season/event).
+2. Optionally go to **Setup** to configure match format, number of sets, rotation tracking, match organization (season/event), manage opponents, and customize event codes.
 3. On the **Stats** page, enter a match name, set the date/time, and click **Start Match**.
 4. Optionally enter a jersey number, select a rotation, and/or select an event code before pressing a stat button. The **Last** display on the right of the metadata panel always shows what was just recorded.
 5. Tap the 12 stat buttons in the triangle layout to record events.

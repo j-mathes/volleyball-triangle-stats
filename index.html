@@ -107,6 +107,24 @@
         <div id="opponentList" class="opponent-list"></div>
         <button id="btnDeleteAllOpponents" class="danger-btn">Delete All Opponents</button>
       </div>
+
+      <!-- Event Codes card -->
+      <div class="config-card">
+        <h2>Event Codes</h2>
+        <div class="ec-add-row">
+          <input id="newEcCode"  type="text" placeholder="Code (e.g. Ant)" maxlength="12">
+          <input id="newEcAbbr"  type="text" placeholder="Abbr (e.g. Ant)" maxlength="6">
+          <input id="newEcLabel" type="text" placeholder="Description">
+          <select id="newEcCat">
+            <option value="both">Both (purple)</option>
+            <option value="miss">Serve miss only (orange)</option>
+            <option value="stop">Stop/error only (teal)</option>
+          </select>
+          <button id="btnAddEventCode">Add</button>
+        </div>
+        <div id="eventCodeList" class="ec-list"></div>
+        <button id="btnResetEventCodes" class="danger-btn">Reset to Defaults</button>
+      </div>
     </div>
 
     <!-- ===== Stats Page ===== -->
@@ -143,17 +161,8 @@
           <label class="jersey-label" for="jerseyInput">Jersey #</label>
           <input id="jerseyInput" type="text" inputmode="numeric" placeholder="—" class="jersey-input">
         </div>
-        <div class="event-code-btns">
-          <button class="ec-btn ec-both" data-ec="Net">Net</button>
-          <button class="ec-btn ec-both" data-ec="Out">Out</button>
-          <button class="ec-btn ec-miss" data-ec="Foot">Foot</button>
-          <button class="ec-btn ec-miss" data-ec="Rot">Rot</button>
-          <button class="ec-btn ec-stop" data-ec="UFE">UfE</button>
-          <button class="ec-btn ec-stop" data-ec="Drop">Drop</button>
-          <button class="ec-btn ec-stop" data-ec="Roof">Roof</button>
-          <button class="ec-btn ec-stop" data-ec="Catch">Catch</button>
-          <button class="ec-btn ec-stop" data-ec="Double">Double</button>
-          <button class="ec-btn ec-miss" data-ec="Penalty">Penalty</button>
+        <div class="event-code-btns" id="eventCodeBtns">
+          <!-- Populated dynamically by renderEventCodeButtons() -->
         </div>
         <div id="lastStatPanel" class="last-stat-panel">
           <div class="last-stat-label">Last</div>

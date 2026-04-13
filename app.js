@@ -22,19 +22,17 @@ function createEmptyTotals() {
 
 // ---- Event metadata constants -----------------------------
 
-// Codes and their applicable stat categories
-const EVENT_CODES = [
-  { code: "Net",     cat: "both" },
-  { code: "Out",     cat: "both" },
-  { code: "Foot",    cat: "miss" },
-  { code: "Rot",     cat: "miss" },
-  { code: "UFE",     cat: "stop" },
-  { code: "Drop",    cat: "stop" },
-  { code: "Roof",    cat: "stop" },
-  { code: "Catch",   cat: "stop" },
-  { code: "Double",  cat: "stop" },
-  { code: "Penalty", cat: "miss" },
-];
+// Runtime event codes — loaded from IndexedDB at boot, updated by Setup card
+var userEventCodes = [];
+
+async function loadEventCodes() {
+  userEventCodes = await dbListEventCodes();
+}
+
+function getEventCodeLabel(code) {
+  var ec = userEventCodes.find(function (e) { return e.code === code; });
+  return ec ? ec.label : null;
+}
 
 // Which event code categories are valid per stat key (null = no event codes)
 const STAT_EC_CATS = {
@@ -266,11 +264,26 @@ function toExportCsv(state) {
 // ---- IndexedDB Persistence --------------------------------
 
 const DB_NAME = "triangle-stats";
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const STORE_NAME = "matches";
 const SEASON_STORE = "seasons";
 const EVENT_STORE = "events";
 const OPPONENT_STORE = "opponents";
+const EC_STORE = "eventCodes";
+
+// Default event codes — used to seed the DB on first open and to reset
+const DEFAULT_EVENT_CODES = [
+  { code: "Net",     abbr: "Net",  label: "Net Fault",       cat: "both", order: 0 },
+  { code: "Out",     abbr: "Out",  label: "Out of Bounds",   cat: "both", order: 1 },
+  { code: "Foot",    abbr: "Ft",   label: "Foot Fault",      cat: "miss", order: 2 },
+  { code: "Rot",     abbr: "Rot",  label: "Rotation Fault",  cat: "miss", order: 3 },
+  { code: "UFE",     abbr: "UfE",  label: "Unforced Error",  cat: "stop", order: 4 },
+  { code: "Drop",    abbr: "Drp",  label: "Ball Dropped",    cat: "stop", order: 5 },
+  { code: "Roof",    abbr: "Rof",  label: "Ball Hit Ceiling",cat: "stop", order: 6 },
+  { code: "Catch",   abbr: "Ctch", label: "Catch Fault",     cat: "stop", order: 7 },
+  { code: "Double",  abbr: "Dbl",  label: "Double Contact",  cat: "stop", order: 8 },
+  { code: "Penalty", abbr: "Pn",   label: "Penalty",         cat: "miss", order: 9 },
+];
 
 function openDatabase() {
   return new Promise(function (resolve, reject) {
@@ -290,6 +303,13 @@ function openDatabase() {
       }
       if (!db.objectStoreNames.contains(OPPONENT_STORE)) {
         db.createObjectStore(OPPONENT_STORE, { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains(EC_STORE)) {
+        var ecStore = db.createObjectStore(EC_STORE, { keyPath: "id" });
+        // Seed defaults — each gets a stable id based on its code
+        DEFAULT_EVENT_CODES.forEach(function (ec) {
+          ecStore.put(Object.assign({ id: "default-" + ec.code }, ec));
+        });
       }
     };
     request.onsuccess = function () { resolve(request.result); };
@@ -381,6 +401,32 @@ async function dbLoadOpponent(id) {
 async function dbDeleteOpponent(id) {
   var db = await openDatabase();
   await runTransaction(db, OPPONENT_STORE, "readwrite", function (store) { return store.delete(id); });
+  db.close();
+}
+
+// Event Codes
+async function dbListEventCodes() {
+  var db = await openDatabase();
+  var all = await runTransaction(db, EC_STORE, "readonly", function (store) { return store.getAll(); });
+  db.close();
+  return all.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+}
+
+async function dbSaveEventCode(ec) {
+  var db = await openDatabase();
+  await runTransaction(db, EC_STORE, "readwrite", function (store) { return store.put(ec); });
+  db.close();
+}
+
+async function dbDeleteEventCode(id) {
+  var db = await openDatabase();
+  await runTransaction(db, EC_STORE, "readwrite", function (store) { return store.delete(id); });
+  db.close();
+}
+
+async function dbClearEventCodes() {
+  var db = await openDatabase();
+  await runTransaction(db, EC_STORE, "readwrite", function (store) { return store.clear(); });
   db.close();
 }
 
@@ -763,17 +809,8 @@ const OUR_STATS = new Set([
   "transitionUsKills", "transitionUsStops",
 ]);
 
-// Expanded event code labels for the event log
-const EVENT_CODE_LOG_LABELS = {
-  "Foot":   "Foot Fault",
-  "Rot":    "Rotation Fault",
-  "UFE":    "Unforced Error",
-  "Double": "Double Contact",
-  "Net":    "Net Fault",
-};
-
 function expandEventCode(code) {
-  return code ? (EVENT_CODE_LOG_LABELS[code] || code) : null;
+  return code ? (getEventCodeLabel(code) || code) : null;
 }
 
 function formatLogTime(iso) {
@@ -982,6 +1019,13 @@ function renderState() {
   $("statsOpponentSelect").disabled = matchActive;
   $("statsOpponentName").disabled = matchActive;
   $("btnConfirmOpponent").disabled = matchActive;
+  $("btnAddEventCode").disabled = matchActive;
+  $("newEcCode").disabled = matchActive;
+  $("newEcAbbr").disabled = matchActive;
+  $("newEcLabel").disabled = matchActive;
+  $("newEcCat").disabled = matchActive;
+  $("btnResetEventCodes").disabled = matchActive;
+  document.querySelectorAll(".ec-list-delete").forEach(function (btn) { btn.disabled = matchActive; });
 
   // Sync opponent picker to current match
   var oppSel = $("statsOpponentSelect");
@@ -1370,7 +1414,7 @@ async function incrementStat(stat) {
   var eventCode = null;
   var allowedCats = STAT_EC_CATS[stat];
   if (allowedCats && selectedEventCode) {
-    var ecDef = EVENT_CODES.find(function (e) { return e.code === selectedEventCode; });
+    var ecDef = userEventCodes.find(function (e) { return e.code === selectedEventCode; });
     if (ecDef && allowedCats.indexOf(ecDef.cat) >= 0) {
       eventCode = selectedEventCode;
     }
@@ -1550,6 +1594,56 @@ async function applyOpponentToMatch(opponentId) {
   if (record) await dbSaveTimeline(record);
 }
 
+// Swatch background colors matching ec-both/ec-miss/ec-stop CSS
+var EC_CAT_COLORS = { both: "#7c5cbf", miss: "#c4622d", stop: "#2a6b8a" };
+
+async function renderEventCodeList() {
+  var list = $("eventCodeList");
+  if (!list) return;
+  list.innerHTML = "";
+  if (!userEventCodes.length) {
+    var empty = document.createElement("p");
+    empty.className = "ec-empty";
+    empty.textContent = "No event codes defined.";
+    list.appendChild(empty);
+    return;
+  }
+  userEventCodes.forEach(function (ec) {
+    var item = document.createElement("div");
+    item.className = "ec-list-item";
+
+    var swatch = document.createElement("span");
+    swatch.className = "ec-list-swatch";
+    swatch.style.background = EC_CAT_COLORS[ec.cat] || "#555";
+    swatch.textContent = ec.abbr;
+
+    var details = document.createElement("span");
+    details.className = "ec-list-details";
+
+    var codeSpan = document.createElement("span");
+    codeSpan.className = "ec-list-code";
+    codeSpan.textContent = ec.code;
+
+    var labelSpan = document.createElement("span");
+    labelSpan.className = "ec-list-label";
+    labelSpan.textContent = ec.label || "";
+
+    details.appendChild(codeSpan);
+    if (ec.label) details.appendChild(labelSpan);
+
+    var delBtn = document.createElement("button");
+    delBtn.className = "ec-list-delete";
+    delBtn.textContent = "\u2715";
+    delBtn.title = "Delete " + ec.code;
+    delBtn.dataset.id = ec.id;
+
+    item.appendChild(swatch);
+    item.appendChild(details);
+    item.appendChild(delBtn);
+    list.appendChild(item);
+  });
+}
+
 async function renderOpponentList() {
   var list = $("opponentList");
   if (!list) return;
@@ -1620,6 +1714,7 @@ async function exportAll() {
   var seasons = await dbListSeasons();
   var events = await dbListEvents();
   var opponents = await dbListOpponents();
+  var eventCodes = await dbListEventCodes();
   var matches = await dbListMatches();
   var payload = {
     version: 1,
@@ -1628,6 +1723,7 @@ async function exportAll() {
     seasons: seasons,
     events: events,
     opponents: opponents,
+    eventCodes: eventCodes,
     matches: matches.map(function (m) {
       return { matchId: m.matchId, matchName: m.matchName, matchFormat: m.matchFormat, totalSets: m.totalSets, matchDate: m.matchDate || null, seasonId: m.seasonId || null, eventId: m.eventId || null, opponentId: m.opponentId || null, createdAt: m.createdAt, updatedAt: m.updatedAt, cursor: m.cursor, events: m.events };
     }),
@@ -1643,7 +1739,7 @@ async function importData(file) {
 
   if (!data || typeof data !== "object" || !data.version) { alert("Unrecognized file format."); return; }
 
-  var stats = { seasons: 0, events: 0, opponents: 0, matches: 0, skipped: 0 };
+  var stats = { seasons: 0, events: 0, opponents: 0, eventCodes: 0, matches: 0, skipped: 0 };
 
   // Handle single-match export (legacy or per-match)
   if (data.type === "match" || (!data.type && data.timeline)) {
@@ -1701,6 +1797,21 @@ async function importData(file) {
         }
       }
     }
+    if (data.eventCodes) {
+      var currentCodes = await dbListEventCodes();
+      for (var ci = 0; ci < data.eventCodes.length; ci++) {
+        var ec = data.eventCodes[ci];
+        if (ec.id && ec.code) {
+          // Skip if same id already exists OR same code already exists (avoid duplicates by code)
+          var dup = currentCodes.find(function (x) { return x.id === ec.id || x.code === ec.code; });
+          if (!dup) { await dbSaveEventCode(ec); stats.eventCodes++; } else { stats.skipped++; }
+        }
+      }
+      // Reload to reflect any additions
+      await loadEventCodes();
+      await renderEventCodeList();
+      renderEventCodeButtons();
+    }
     if (data.matches) {
       for (var mi = 0; mi < data.matches.length; mi++) {
         var match = data.matches[mi];
@@ -1712,7 +1823,7 @@ async function importData(file) {
     }
   }
 
-  alert("Import complete.\nSeasons: " + stats.seasons + "\nEvents: " + stats.events + "\nOpponents: " + stats.opponents + "\nMatches: " + stats.matches + "\nSkipped (duplicates): " + stats.skipped);
+  alert("Import complete.\nSeasons: " + stats.seasons + "\nEvents: " + stats.events + "\nOpponents: " + stats.opponents + "\nEvent Codes: " + stats.eventCodes + "\nMatches: " + stats.matches + "\nSkipped (duplicates): " + stats.skipped);
   await renderHistory();
   await refreshSeasonPicker();
   void refreshOpponentPicker();
@@ -2172,7 +2283,8 @@ function renderTallySheet(output, record, state, opponent) {
     allKeys.forEach(function (k) { maxRows = Math.max(maxRows, (buckets[k][sn] || []).length); });
     var band = si % 2 === 0 ? "band-a" : "band-b";
     html += '<tr class="tally-set-hdr ' + band + '"><td colspan="' + allKeys.length + '">Set ' + sn + '</td></tr>';
-    var _EC_ABBR = { Net: "Net", Out: "Out", Foot: "Ft", Rot: "Rot", UFE: "UfE", Drop: "Drp", Roof: "Rof", Catch: "Ctch", Double: "Dbl", Penalty: "Pn" };
+    var _EC_ABBR = {};
+    userEventCodes.forEach(function (ec) { _EC_ABBR[ec.code] = ec.abbr; });
     for (var r = 0; r < maxRows; r++) {
       html += '<tr class="' + band + '">';
       allKeys.forEach(function (k) {
@@ -2215,16 +2327,9 @@ function renderTallySheet(output, record, state, opponent) {
   html += '</dl>';
   html += '<div class="tally-legend-section">Event codes</div>';
   html += '<dl class="tally-legend-dl">';
-  html += '<dt>Net</dt><dd>Ball hit the net</dd>';
-  html += '<dt>Out</dt><dd>Ball out of bounds</dd>';
-  html += '<dt>Ft</dt><dd>Foot fault on serve</dd>';
-  html += '<dt>Rot</dt><dd>Rotation / overlap error</dd>';
-  html += '<dt>UfE</dt><dd>Unforced Error</dd>';
-  html += '<dt>Drp</dt><dd>Ball dropped</dd>';
-  html += '<dt>Rof</dt><dd>Ball hit ceiling</dd>';
-  html += '<dt>Ctch</dt><dd>Catch fault</dd>';
-  html += '<dt>Dbl</dt><dd>Double contact fault</dd>';
-  html += '<dt>Pn</dt><dd>Penalty point awarded</dd>';
+  userEventCodes.forEach(function (ec) {
+    html += '<dt>' + escHtml(ec.abbr) + '</dt><dd>' + escHtml(ec.label || ec.code) + '</dd>';
+  });
   html += '</dl>';
   html += '<div class="tally-legend-section">Cell indicators</div>';
   html += '<dl class="tally-legend-dl">';
@@ -3069,6 +3174,33 @@ function renderOpponentCompare(output, enriched) {
   output.innerHTML = html;
 }
 
+// ---- Event Code Button Rendering --------------------------
+
+function renderEventCodeButtons() {
+  var container = $("eventCodeBtns");
+  if (!container) return;
+  container.innerHTML = "";
+  userEventCodes.forEach(function (ec) {
+    var btn = document.createElement("button");
+    btn.className = "ec-btn ec-" + ec.cat;
+    btn.setAttribute("data-ec", ec.code);
+    btn.textContent = ec.abbr;
+    container.appendChild(btn);
+  });
+  wireEventCodeButtons();
+  renderState(); // refresh disabled/selected state
+}
+
+function wireEventCodeButtons() {
+  document.querySelectorAll(".ec-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var ec = btn.getAttribute("data-ec");
+      selectedEventCode = selectedEventCode === ec ? null : ec;
+      renderState();
+    });
+  });
+}
+
 // ---- Bootstrap --------------------------------------------
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -3076,7 +3208,7 @@ document.addEventListener("DOMContentLoaded", function () {
   $("matchDateInput").value = toLocalDatetime(new Date());
 
   // Nav bar
-  $('navConfig').addEventListener('click', function () { showPage('config'); void refreshSeasonPicker(); void refreshEventPicker(); void renderOpponentList(); });
+  $('navConfig').addEventListener('click', function () { showPage('config'); void refreshSeasonPicker(); void refreshEventPicker(); void renderOpponentList(); void renderEventCodeList(); });
   $("navStats").addEventListener("click", function () { showPage("stats"); renderState(); void refreshOpponentPicker(); });
   $("navHistory").addEventListener("click", function () { showPage("history"); void renderHistory(); });
   $("navReports").addEventListener("click", function () {
@@ -3224,6 +3356,55 @@ document.addEventListener("DOMContentLoaded", function () {
   });
   $('btnConfirmOpponent').addEventListener('click', function () { void commitNewOpponent(); });
 
+  // Event Codes management (Setup card)
+  $("btnAddEventCode").addEventListener("click", async function () {
+    var code  = $("newEcCode").value.trim();
+    var abbr  = $("newEcAbbr").value.trim();
+    var label = $("newEcLabel").value.trim();
+    var cat   = $("newEcCat").value;
+    if (!code) { alert("Code is required."); return; }
+    if (!abbr) { abbr = code; }
+    // Enforce unique code (case-insensitive)
+    if (userEventCodes.some(function (ec) { return ec.code.toLowerCase() === code.toLowerCase(); })) {
+      alert("An event code with that name already exists.");
+      return;
+    }
+    var maxOrder = userEventCodes.reduce(function (mx, ec) { return Math.max(mx, ec.order || 0); }, -1);
+    await dbSaveEventCode({ id: crypto.randomUUID(), code: code, abbr: abbr, label: label, cat: cat, order: maxOrder + 1 });
+    $("newEcCode").value = "";
+    $("newEcAbbr").value = "";
+    $("newEcLabel").value = "";
+    await loadEventCodes();
+    await renderEventCodeList();
+    renderEventCodeButtons();
+  });
+  $("newEcCode").addEventListener("keydown", function (e) { if (e.key === "Enter") { $("btnAddEventCode").click(); } });
+  $("eventCodeList").addEventListener("click", async function (e) {
+    var btn = e.target.closest(".ec-list-delete");
+    if (!btn) return;
+    var id = btn.dataset.id;
+    await dbDeleteEventCode(id);
+    // Clear selected code if it was the deleted one
+    var deleted = userEventCodes.find(function (ec) { return ec.id === id; });
+    if (deleted && selectedEventCode === deleted.code) { selectedEventCode = null; }
+    await loadEventCodes();
+    await renderEventCodeList();
+    renderEventCodeButtons();
+  });
+  $("btnResetEventCodes").addEventListener("click", async function () {
+    if (!confirm("Reset all event codes to the built-in defaults? Custom codes will be deleted.")) return;
+    await dbClearEventCodes();
+    var db = await openDatabase();
+    for (var i = 0; i < DEFAULT_EVENT_CODES.length; i++) {
+      var ec = DEFAULT_EVENT_CODES[i];
+      await dbSaveEventCode(Object.assign({ id: "default-" + ec.code }, ec));
+    }
+    selectedEventCode = null;
+    await loadEventCodes();
+    await renderEventCodeList();
+    renderEventCodeButtons();
+  });
+
   // Persist match name changes (before match starts or after it ends)
   $('matchNameInput').addEventListener('blur', async function () {
     if (!controller.currentMatchId) return;
@@ -3325,14 +3506,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  // Event code buttons
-  document.querySelectorAll(".ec-btn").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var ec = btn.getAttribute("data-ec");
-      selectedEventCode = selectedEventCode === ec ? null : ec;
-      renderState();
-    });
-  });
+  // Event code buttons wired dynamically via renderEventCodeButtons() at boot
 
   // Route digit/backspace keypresses to jersey input when a set is active
   document.addEventListener("keydown", function (e) {
@@ -3388,6 +3562,10 @@ document.addEventListener("DOMContentLoaded", function () {
   showPage("stats");
   renderState();
   (async function () {
+    // Load user-defined event codes first, then render buttons
+    await loadEventCodes();
+    renderEventCodeButtons();
+
     var matches = await dbListMatches();
     for (var i = 0; i < matches.length; i++) {
       var record = await dbLoadMatch(matches[i].matchId);

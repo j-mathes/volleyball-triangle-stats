@@ -95,7 +95,7 @@ All IDs use `crypto.randomUUID()` for global uniqueness across devices.
 ### IndexedDB Configuration
 
 - **Database name:** `triangle-stats`
-- **Version:** 2
+- **Version:** 4
 
 | Store | Key | Indexes | Description |
 |-------|-----|---------|-------------|
@@ -103,8 +103,9 @@ All IDs use `crypto.randomUUID()` for global uniqueness across devices.
 | `seasons` | `id` | — | Season names |
 | `events` | `id` | `seasonId` | Event names with type and optional seasonId |
 | `opponents` | `id` | — | Opponent names |
+| `eventCodes` | `id` | — | User-defined event codes |
 
-**Database version:** 3 (v2 added `events`; v3 added `opponents`)
+**Database version history:** v2 added `events`; v3 added `opponents`; v4 added `eventCodes` (seeded with 10 defaults on first open)
 
 ### Match Record Fields
 
@@ -123,6 +124,19 @@ All IDs use `crypto.randomUUID()` for global uniqueness across devices.
 | `endedAt` | ISO timestamp \| null | When the match was ended (null if in-progress) |
 | `cursor` | number | Event replay position (for undo/redo) |
 | `events` | array | Domain events timeline |
+
+### Event Code Record Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Primary key (defaults use `"default-{code}"` for seeded entries) |
+| `code` | string | Identifier stored in `STAT_INCREMENTED` events (e.g. `"UFE"`) |
+| `abbr` | string | Short label shown on button and in tally cells (e.g. `"UfE"`) |
+| `label` | string | Human-readable description used in event log and tally legend |
+| `cat` | `"both"\|"miss"\|"stop"` | Controls which stat buttons accept the code and the button colour class |
+| `order` | number | Sort order for button display |
+
+User-defined event codes are loaded at boot into `var userEventCodes = []` and used everywhere statically-defined codes used to be. Adding or deleting a code reloads `userEventCodes` and calls `renderEventCodeButtons()` to rebuild the stats-page button strip immediately.
 
 ### Opponent Record Fields
 
@@ -184,7 +198,7 @@ During an active match, the Reset button is protected by a padlock:
 The metadata panel is always visible below the control bar (controls are disabled when no set is active). It is a single horizontal card with four zones left to right:
 
 - **Jersey #**: A `Jersey #` label and text input side by side. Shrinks to fit content.
-- **Event Code Buttons**: 10 color-coded buttons that fill remaining space and wrap as needed.
+- **Event Code Buttons**: Variable number of color-coded buttons (user-defined, loaded from `userEventCodes`). Fill remaining space and wrap as needed.
 - **Last Stat Display**: A read-only panel showing the most recent recorded stat. Updates on every stat press and on undo/redo. Displays on one line: stat name · jersey · event code · rotation(s). Rotation is shown as just `R1`–`R6` (team context is already implied by the stat name). Shows `—` when no stat has been recorded yet.
 
 The rotation cards (Our Rotation / Their Rotation) are separate cards that appear as direct grid children of `stats-layout`, flanking the triangle content rows — not inside the metadata panel itself.
@@ -208,11 +222,13 @@ Event codes are silently dropped when the stat type doesn't accept them. The `ST
 
 ### Event Code Color Groups
 
-| Color | Category | Codes |
-|-------|---------|-------|
-| Purple | Both misses and stops | Net, Out |
-| Orange | Misses only | Foot, Rot, Penalty |
-| Blue | Stops only | UfE, Drop, Roof, Catch, Double |
+Color is determined by the `cat` field of each user-defined code. The CSS classes are fixed; the codes assigned to each color are user-configurable.
+
+| CSS class | Color | Category | Accepts |
+|-----------|-------|---------|----------|
+| `ec-both` | Purple | `"both"` | Misses and stops |
+| `ec-miss` | Orange | `"miss"` | Serve misses only |
+| `ec-stop` | Teal | `"stop"` | Stops and defensive errors only |
 
 ### Metadata Clearing Rules
 
@@ -237,9 +253,10 @@ Controlled by the `rotationMode` radio group in App Settings (locked during acti
 
 The bootstrap sequence:
 1. `showPage("stats")` called synchronously (prevents page flash)
-2. Async: opens IndexedDB, loads all matches
-3. Finds the most recent match by `updatedAt`
-4. **Only restores if in-progress** (i.e., `endedAt` is null) — completed matches are not auto-restored
+2. Async: loads event codes from IndexedDB → `userEventCodes`; renders event code buttons
+3. Async: opens IndexedDB, loads all matches
+4. Finds the most recent match by `updatedAt`
+5. **Only restores if in-progress** (i.e., `endedAt` is null) — completed matches are not auto-restored
 
 ## Snapshot Table
 
@@ -281,6 +298,7 @@ On the Stats page, only completed + active sets are shown. A totals footer row a
   "seasons": [...],
   "events": [...],
   "opponents": [...],
+  "eventCodes": [...],
   "matches": [...]
 }
 ```
@@ -291,9 +309,9 @@ Header row + one row per set + match-total row. Columns include set label, score
 ### Import Logic
 
 - Detects format (single match vs bulk) from `type` field
-- Checks each record's ID against existing data
+- Checks each record's ID against existing data; event codes are also deduplicated by `code` value
 - Skips duplicates — never silently overwrites
-- Reports summary: seasons / events / opponents / matches imported vs. skipped
+- Reports summary: seasons / events / opponents / event codes / matches imported vs. skipped
 
 ## Stats Page Control Panel
 
@@ -313,8 +331,9 @@ Four cards:
 1. **Match Setup** — Format picker, sets stepper, and a collapsible "Match Organization" section (season + event combo pickers with optional new-entry input)
 2. **App Settings** — Lock time stepper, triangle totals toggle, rotation mode, rotation persist, highlight color, event log colors
 3. **Opponents** — Add by name (Enter or Add button), scrollable list with per-item ✕ delete and inline rename (click name → edit → Enter/blur saves), Delete All button with confirmation
+4. **Event Codes** — Add (code + abbr + label + category), scrollable list with colored swatches and per-item ✕ delete, Reset to Defaults button (restores `DEFAULT_EVENT_CODES` seed with confirmation)
 
-Controls in Match Setup and the opponent picker are **disabled during an active match** — `renderState()` sets `.disabled` on each element when `matchActive` is true.
+Controls in Match Setup, the opponent picker, and the Event Codes card are **disabled during an active match** — `renderState()` sets `.disabled` on each element when `matchActive` is true.
 
 ## Reports Page
 
@@ -370,6 +389,11 @@ Single-match reports require exactly 1 selected match; multi-match reports requi
 | `showReport(name)` | Activates sidebar link, renders report into `#reportOutput` |
 | `SINGLE_REPORTS` | Array of report names requiring 1 match |
 | `MULTI_REPORTS` | Array of report names requiring 2+ matches |
+| `userEventCodes` | Runtime array of event code objects loaded from DB at boot |
+| `loadEventCodes()` | Async — reloads `userEventCodes` from IndexedDB |
+| `renderEventCodeButtons()` | Clears and rebuilds the stats-page EC button strip from `userEventCodes` |
+| `renderEventCodeList()` | Rebuilds the Setup page Event Codes list |
+| `DEFAULT_EVENT_CODES` | Seed array used for DB migration and Reset to Defaults |
 
 ### Implementation Status
 
@@ -414,3 +438,9 @@ Actions:
 15. Press any stat button with a non-applicable code selected (e.g. "Drop" + "Our Ace") → verify event code is null in export
 16. End Set → verify all rotation/jersey/code selections are cleared
 17. Enable "Keep rotation", select R2, press two stat buttons → verify rotation persists across both; End Set → verify it clears
+18. Setup → Event Codes → add a custom code (e.g. Code `"Ant"`, Abbr `"Ant"`, Label `"Antenna hit"`, Category `"both"`) → verify button appears purple in stats panel
+19. Record a stat with the custom code, export JSON → verify `eventCode: "Ant"` in event record
+20. Delete the custom code → verify button disappears; existing match data still shows `"Ant"` raw in tally fallback
+21. Reset to Defaults → verify 10 original codes restored, custom code gone
+22. Export All → open backup JSON, verify `eventCodes` array is present with all current codes
+23. Import the backup on a fresh profile → verify event codes are restored; duplicate codes skipped on re-import

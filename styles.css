@@ -1705,6 +1705,101 @@ button:disabled {
   background: #9a0e18;
 }
 
+/* Event Codes management card */
+.ec-add-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+}
+
+.ec-add-row input[id="newEcCode"],
+.ec-add-row input[id="newEcAbbr"] {
+  width: 6rem;
+  flex: none;
+}
+
+.ec-add-row input[id="newEcLabel"] {
+  flex: 1;
+  min-width: 8rem;
+}
+
+.ec-add-row select {
+  flex: none;
+}
+
+.ec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 18rem;
+  overflow-y: auto;
+  margin-bottom: 0.6rem;
+}
+
+.ec-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+}
+
+.ec-list-swatch {
+  width: 2.2rem;
+  text-align: center;
+  border-radius: 6px;
+  padding: 0.15rem 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  flex: none;
+}
+
+.ec-list-details {
+  flex: 1;
+  font-size: 0.9rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.ec-list-code {
+  font-weight: 600;
+}
+
+.ec-list-label {
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 0.82rem;
+}
+
+.ec-list-delete {
+  background: rgba(193, 18, 31, 0.85);
+  color: #fff;
+  border: none;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.85rem;
+  border-radius: 7px;
+  min-width: unset;
+  cursor: pointer;
+  line-height: 1;
+  flex: none;
+}
+
+.ec-list-delete:hover {
+  background: #c1121f;
+  transform: none;
+}
+
+.ec-empty {
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
 /* History global actions (always visible) */
 .history-global-actions {
   margin-top: 0.8rem;
