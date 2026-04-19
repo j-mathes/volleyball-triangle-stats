@@ -210,6 +210,12 @@ Found on the Setup page:
 
 - [Architecture](docs/ARCHITECTURE.md)
 
+## License
+
+This project is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
+
+See [LICENSE](LICENSE) for the full text.
+
 
 ## How to Use
 
