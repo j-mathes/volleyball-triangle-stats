@@ -1399,6 +1399,21 @@ button:disabled {
   border-bottom: 3px solid var(--accent-2);
 }
 
+.nav-github {
+  position: absolute;
+  left: 1rem;
+  display: flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  padding: 0.5rem;
+  transition: color 0.15s;
+}
+
+.nav-github:hover {
+  color: #fff;
+}
+
 .history-list {
   display: flex;
   flex-direction: column;

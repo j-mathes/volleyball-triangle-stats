@@ -4,6 +4,12 @@ Web-based volleyball stat tracker built around **The Triangle** — an analytica
 
 No build tools, npm, or server required — open `index.html` in any modern browser.
 
+## Screenshots
+
+| Stats | Reports | Setup |
+|-------|---------|-------|
+| ![Stats page](screenshots/stats.png) | ![Reports page](screenshots/reports.png) | ![Setup page](screenshots/setup.png) |
+
 ## How to Use
 
 1. Open `index.html` in a modern web browser (Chrome, Firefox, Edge).
