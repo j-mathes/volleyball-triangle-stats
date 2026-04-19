@@ -1399,9 +1399,15 @@ button:disabled {
   border-bottom: 3px solid var(--accent-2);
 }
 
-.nav-github {
+.nav-links-left {
   position: absolute;
   left: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-github {
   display: flex;
   align-items: center;
   color: rgba(255, 255, 255, 0.6);
@@ -1410,8 +1416,18 @@ button:disabled {
   transition: color 0.15s;
 }
 
-.nav-github:hover {
+.nav-github:hover,
+.nav-readme:hover {
   color: #fff;
+}
+
+.nav-readme {
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.5rem 0.6rem;
+  transition: color 0.15s;
 }
 
 .history-list {
