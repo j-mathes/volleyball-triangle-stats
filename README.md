@@ -1,8 +1,17 @@
 # Triangle Stats
 
-Web-based volleyball stat tracker built around **The Triangle** — an analytical framework created by [Joe Trinsey](https://smartervolley.substack.com/). Joe developed the Triangle during his time as an assistant coach for the USA Women's National Team, and has refined it over years of coaching at every level. It breaks a volleyball match into three distinct areas — Terminal Serves, First Ball, and Transition — giving coaches a fast, triage-style lens for identifying where matches are won and lost and where to focus their next practice. Read Joe's original writeup at [Smarter Volley: The Triangle](https://smartervolley.substack.com/p/thetriangle).
+Triangle Stats is a browser-based volleyball tracking tool built around **The Triangle**, created by [Joe Trinsey](https://smartervolley.substack.com/).
 
-No build tools, npm, or server required — open `index.html` in any modern browser.
+The Triangle breaks a match into three areas:
+- Terminal Serves
+- First Ball Points
+- Transition Points
+
+It gives coaches a fast triage view of where sets are being won or lost.
+
+Read Joe's original write-up at [Smarter Volley: The Triangle](https://smartervolley.substack.com/p/thetriangle).
+
+No install process is required. Open `index.html` in a modern browser.
 
 ## Screenshots
 
@@ -10,251 +19,46 @@ No build tools, npm, or server required — open `index.html` in any modern brow
 |-------|---------|-------|
 | ![Stats page](screenshots/stats.png) | ![Reports page](screenshots/reports.png) | ![Setup page](screenshots/setup.png) |
 
-## How to Use
+## Features
 
-1. Open `index.html` in a modern web browser (Chrome, Firefox, Edge).
-2. Optionally go to **Setup** to configure match format, number of sets, rotation tracking, season/event organization, manage opponents, and customize event codes.
-3. On the **Stats** page, enter a match name, set the date/time, and optionally select an opponent from the picker.
-4. Click **Start Match**. The opponent picker locks for the duration of the match.
-5. Optionally enter a jersey number, select a rotation, and/or select an event code before pressing a stat button. The **Last** display on the right of the metadata panel always shows what was just recorded.
-6. Tap one of the the 12 stat buttons in the triangle layout to record events.
-7. Use **Undo** / **Redo** to correct mistakes.
-8. **End Set** progresses to the next set; **End Match** when finished.
-9. On the **History** page, browse saved matches grouped by season and event.
-   - **Export JSON** for a single match with full replay data.
-   - **Export CSV** for a coach-readable summary.
-   - **Export All** to back up all seasons, events, opponents, and matches.
-   - **Import** to load data from a JSON export file (single match or bulk).
-   - **Resume Match** to continue an unfinished match.
-   - **Delete** individual matches or **Clear All** data.
-10. On the **Reports** page, choose a scope and select data, then pick a report from the sidebar.
+- Fast in-match tracking with 12 Triangle stat buttons
+- Dedicated pages for live tracking, reports, history, and setup
+- Rotation tracking options (none, ours only, both sides)
+- Optional context on each touch: jersey number, rotation, and event code
+- Opponent management and assignment before match start
+- Custom event codes for your staff's language and tagging style
+- Undo/redo for quick correction during live charting
+- Single-match and multi-match reports for review
+- Import/export for sharing and backup
 
-## File Structure
+## Coach Workflow
 
-```
-index.html   — HTML shell and layout (4-page SPA)
-app.js       — Domain engine, IndexedDB persistence, and UI wiring
-styles.css   — Visual styling
-docs/
-  ARCHITECTURE.md — Technical architecture reference
-```
+1. Open `index.html` in Chrome, Firefox, or Edge.
+2. Go to **Setup** and configure as needed:
+   - match format and set count
+   - rotation tracking mode
+   - season/event organization
+   - opponents
+   - event codes
+3. Go to **Stats**, enter match metadata, then click **Start Match**.
+4. Record events with the Triangle stat buttons.
+5. Use **Undo** and **Redo** during play when needed.
+6. End sets with **End Set**, and finish with **End Match**.
+7. Use **History** to resume unfinished matches or manage saved ones.
+8. Use **Reports** for debriefs, film sessions, and practice planning.
 
 ## Pages
 
 | Page | Purpose |
 |------|---------|
-| **Stats** | Live match tracking — control panel, triangle stat buttons, metadata panel (rotation/jersey/event code), score display, snapshot table, undo/redo |
-| **Reports** | Scope selector, data picker, and sidebar with 12 report types (single-match and multi-match) |
-| **History** | Browse, preview, export, import, resume, and delete saved matches |
-| **Setup** | Match configuration (format, sets, season/event), opponent management, event code management, and App Settings |
+| **Stats** | Live touch-by-touch tracking during sets |
+| **Reports** | Turn tracked data into usable coaching summaries |
+| **History** | Resume, review, export, import, and clean up saved matches |
+| **Setup** | Configure match format, tracking behavior, opponents, and event codes |
 
-## Stats Page Layout
+## What the Triangle Measures
 
-The stats page control panel is split into two rows:
-
-| Row | Contents |
-|-----|---------|
-| Top | Match name · Date/time · Opponent picker |
-| Bottom | Start Match · End Set · End Match · Undo · Redo · Reset · Set indicator |
-
-The opponent picker is available before a match starts. Once **Start Match** is clicked it becomes read-only for the rest of the match. To add a new opponent inline, choose "— New Opponent —" from the dropdown, type the name, then press **Enter** or click **✓**.
-
-## Tracked Categories
-
-Based on [Joe Trinsey's Triangle framework](https://smartervolley.substack.com/p/thetriangle), the triangle layout has three vertices, each tracking four stats (12 buttons total):
-
-| Category | Formula | Buttons |
-|----------|---------|----------|
-| **Terminal Serves** | (our aces + their misses) − (their aces + our misses) | Our Ace, Their Ace, Our Miss, Their Miss |
-| **First Ball Points** | (our kills + our stops) − (their kills + their stops) | Our Kill, Their Kill, Our Stop, Their Stop |
-| **Transition Points** | (our kills + our stops) − (their kills + their stops) | Our Kill, Their Kill, Our Stop, Their Stop |
-
-## Metadata per Stat Event
-
-The **metadata panel** is always visible between the control bar and the triangle. Controls are disabled until a set is active. The panel is a single horizontal card with four zones left to right:
-
-| Zone | Description |
-|------|-------------|
-| **Jersey #** | Label and text input side by side. Type any jersey number. Cleared after each stat press. |
-| **Event code buttons** | 10 color-coded buttons. Cleared after each stat press. |
-| **Last** | Read-only display of the most recent recorded stat — updates on every press and on undo/redo. Shows stat name plus any jersey, event code, and rotation that were captured. |
-
-Rotation buttons (R1–R6) appear as flanking cards beside the triangle rows. See **Rotation Tracking** under App Settings.
-
-If a field is left blank or a code is not applicable to the stat type, it is simply not recorded.
-
-### Event Codes
-
-Event codes are **user-defined** and managed on the Setup page. Each code has:
-- **Code** — the identifier stored in match records (e.g. `UFE`)
-- **Abbr** — the short label shown on the button and in tally cells (e.g. `UfE`)
-- **Description** — human-readable label used in the event log and tally legend
-- **Category** — controls which stat buttons accept the code and the button color:
-
-| Color | Category | Applies to |
-|-------|---------|------------|
-| Purple | Both | Serve misses **and** stops |
-| Orange | Serve miss only | Serve misses only |
-| Blue | Stop/error only | Stops and defensive errors only |
-
-The app ships with 10 default codes (Net, Out, Foot, Rot, UfE, Drop, Roof, Catch, Double, Penalty). You can add custom codes, delete any code, or **Reset to Defaults** to restore the originals.
-
-If you press a stat button that does not accept the selected code, the code is silently ignored.
-
-## Match Configuration
-
-- **Match format**: Best Of (odd: 3, 5, 7…) or Straight Sets (1, 2, 4, 6…)
-- **Number of sets**: Adjustable via stepper, constrained by format rules
-- **Auto-progression**: Ending a set automatically starts the next one
-
-## Data Organization
-
-Matches can optionally be organized into a hierarchy:
-
-- **Season** (e.g., "Spring 2026") — broadest grouping
-- **Event** (e.g., "Spring Invitational") — with a type: Tournament, League, or Practice
-- **Opponent** (e.g., "Riverside Volleyball Club") — assigned before starting a match
-- **Match** — the individual stat-tracked game
-
-All organization is optional.
-
-## Event Codes
-
-Event codes are managed on the **Setup page** in the Event Codes card:
-
-- **Add**: enter a Code, Abbreviation, Description, and Category, then press **Add**
-- **Delete**: click **✗** next to any code
-- **Reset to Defaults**: restores the 10 built-in codes (with confirmation)
-
-Changes take effect immediately — buttons on the Stats page rebuild automatically. The Event Codes card is locked while a match is active.
-
-## Opponents
-
-Opponents are managed on the **Setup page** in the Opponents card:
-
-- **Add**: type a name and press **Add** (or Enter)
-- **Rename**: click an opponent's name to edit it inline; press Enter or click away to save
-- **Delete**: click **✗** next to any opponent, or use **Delete All** (with confirmation)
-
-Deleting an opponent that is assigned to a match safely nullifies that match's `opponentId` in the database.
-
-## Reports
-
-The Reports page lets you analyze recorded data across any scope:
-
-| Scope | Data source |
-|-------|-----------|
-| Current Match | Whatever is loaded in the Stats page right now |
-| Select Matches | Any combination of matches chosen from the data picker (IndexedDB or loaded JSON files) |
-
-Use the **Select Data** panel to navigate the Season → Event → Match hierarchy with checkboxes. You can also click **Load JSON File…** to bring in matches from an exported file without importing them permanently.
-
-**Single-match reports** require exactly 1 match selected. **Multi-match reports** require ≥ 2.
-
-| Group | Reports |
-|-------|---------|
-| Single Match | Tally Sheet, Match Summary, Momentum Chart, Set Flow, Error Breakdown, Player Stats, Rotation Performance |
-| Multi Match | Event Summary, Progress Trend, Rotation Heat Map, Player Leaderboard, Opponent Comparison |
-
-Use the **Print / Save PDF** button to print the current report or save it as a PDF via your browser's print dialog.
-
-## History
-
-The History page groups matches by Season → Event using collapsible sections. Each match shows its name, status badge (Complete / In Progress), and date. Matches are sorted oldest-first.
-
-Actions available:
-- **Resume** an in-progress match
-- **Export** a single match (JSON or CSV)
-- **Delete** individual matches (with confirmation)
-- **Clear All** data (prompts to Export All first, then confirms deletion)
-
-## Persistence
-
-Match data is stored in the browser's IndexedDB (`triangle-stats`, version 4):
-
-| Store | Contents |
-|-------|----------|
-| `matches` | Match records with full event timeline |
-| `seasons` | Season names |
-| `events` | Event names with type and optional season link |
-| `opponents` | Opponent names |
-| `eventCodes` | User-defined event codes (code, abbr, label, category, order) |
-
-On page load, the most recent in-progress match is automatically restored. Completed matches are not auto-restored.
-
-## Import / Export
-
-| Action | Output | Filename Pattern |
-|--------|--------|-----------------|
-| **Export JSON** | Single match + season/event/opponent context | `{name}_{YYYY-MM-DD}.json` |
-| **Export CSV** | Coach-readable set-by-set summary | `{name}_{YYYY-MM-DD}.csv` |
-| **Export All** | Bulk backup of all data including opponents and event codes | `triangle-stats-backup-{YYYY-MM-DD-HH-MM-SS}.json` |
-| **Import** | Reads single or bulk JSON, skips duplicates by ID/code | — |
-
-Import never silently overwrites — duplicates are skipped and counted in the summary.
-
-## App Settings
-
-Found on the Setup page:
-
-- **Reset Auto-Lock** — Seconds before Reset re-locks during an active match (default: 3). The padlock must be clicked to unlock Reset while a match is active.
-- **Show match totals in triangle** — Toggles aggregate scores inside the triangle SVG.
-- **Rotation Tracking** — Choose what rotation data to collect:
-  - *None* — rotation buttons hidden
-  - *Ours Only* — left-side R1–R6 buttons shown
-  - *Both Sides* — our rotation (left) and their rotation (right) both shown
-- **Keep rotation selected between stats** — When on, the selected rotation persists across stat presses within a set. Always clears at End Set, End Match, and Reset.
-- **Highlight / event log colors** — Customize the selection highlight color and per-team event log row colors.
-
-## Docs
-
-- [Architecture](docs/ARCHITECTURE.md)
-
-## License
-
-This project is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
-
-See [LICENSE](LICENSE) for the full text.
-
-
-## How to Use
-
-1. Open `index.html` in a modern web browser (Chrome, Firefox, Edge).
-2. Optionally go to **Setup** to configure match format, number of sets, rotation tracking, match organization (season/event), manage opponents, and customize event codes.
-3. On the **Stats** page, enter a match name, set the date/time, and click **Start Match**.
-4. Optionally enter a jersey number, select a rotation, and/or select an event code before pressing a stat button. The **Last** display on the right of the metadata panel always shows what was just recorded.
-5. Tap the 12 stat buttons in the triangle layout to record events.
-6. Use **Undo** / **Redo** to correct mistakes.
-7. **End Set** progresses to the next set; **End Match** when finished.
-7. On the **History** page, browse saved matches grouped by season and event.
-   - **Export JSON** for a single match with full replay data.
-   - **Export CSV** for a coach-readable summary.
-   - **Export All** to back up all seasons, events, and matches.
-   - **Import** to load data from a JSON export file (single match or bulk).
-   - **Resume Match** to continue an unfinished match.
-   - **Delete** individual matches or **Clear All** data.
-
-## File Structure
-
-```
-index.html   — HTML shell and layout (3-page SPA)
-app.js       — Domain engine, IndexedDB persistence, and UI wiring
-styles.css   — Visual styling
-docs/
-  ARCHITECTURE.md — Technical architecture reference
-```
-
-## Pages
-
-| Page | Purpose |
-|------|---------|
-| **Stats** | Live match tracking — triangle stat buttons, metadata panel (rotation/jersey/event code), score display, snapshot table, undo/redo |
-| **Setup** | Match configuration (format, sets, rotation tracking, season/event) and App Settings |
-| **History** | Browse, preview, export, import, resume, and delete saved matches |
-
-## Tracked Categories
-
-Based on [Joe Trinsey's Triangle framework](https://smartervolley.substack.com/p/thetriangle), the triangle layout has three vertices, each tracking four stats (12 buttons total):
+The Triangle has three categories, each with four tracked actions (12 total buttons):
 
 | Category | Formula | Buttons |
 |----------|---------|---------|
@@ -262,87 +66,102 @@ Based on [Joe Trinsey's Triangle framework](https://smartervolley.substack.com/p
 | **First Ball Points** | (our kills + our stops) − (their kills + their stops) | Our Kill, Their Kill, Our Stop, Their Stop |
 | **Transition Points** | (our kills + our stops) − (their kills + their stops) | Our Kill, Their Kill, Our Stop, Their Stop |
 
-Stat boxes show the current set totals. Aggregate match totals can be displayed inside the triangle (toggle in App Settings).
+## Metadata and Event Codes
 
-## Metadata per Stat Event
+Each stat can include optional metadata:
+- Jersey number
+- Rotation (based on your selected tracking mode)
+- Event code
 
-The **metadata panel** is always visible between the control bar and the triangle. Controls are disabled until a set is active. The panel is a single horizontal card with four zones left to right:
+Blank fields are not recorded.
 
-| Zone | Description |
-|------|-------------|
-| **Jersey #** | Label and text input side by side. Type any jersey number. Cleared after each stat press. |
-| **Event code buttons** | 10 color-coded buttons. Cleared after each stat press. |
-| **Last** | Read-only display of the most recent recorded stat — updates on every press and on undo/redo. Shows stat name plus any jersey, event code, and rotation that were captured. |
+Event codes are user-defined on the Setup page. Each code includes:
+- code (stored value)
+- abbreviation (button and tally label)
+- description
+- category
 
-Rotation buttons (R1–R6) appear as flanking cards beside the triangle rows, not inside the metadata panel. See **Rotation Tracking** under App Settings.
+Code category controls which stat types accept the code and the button color:
 
-If a field is left blank or a code is not applicable to the stat type, it is simply not recorded.
+| Color | Category | Applies to |
+|-------|---------|------------|
+| Purple | Both | Serve misses and stops |
+| Orange | Serve miss only | Serve misses only |
+| Blue | Stop/error only | Stops and defensive errors only |
 
-### Event Codes
+If a selected code does not apply to the pressed stat, it is ignored.
 
-Codes are color-coded by the stat types they apply to:
+## Reports
 
-| Color | Applies to | Codes |
-|-------|-----------|-------|
-| Purple | Serve misses **and** stops | Net, Out |
-| Orange | Serve misses only | Foot, Rot, Penalty |
-| Blue | Stops only | UfE, Drop, Roof, Catch, Double |
+Reports can be generated from:
+- Current Match
+- Any selected group of saved or imported matches
 
-If you press a stat button that does not accept the selected code, the code is silently ignored.  For example, selecting "Foot" (a miss-only code) then pressing "Our Kill" will record the kill with no event code.
+Selection rules:
+- Single-match reports require exactly 1 match
+- Multi-match reports require 2 or more matches
 
-## Match Configuration
+Available report groups:
+- Single Match: Tally Sheet, Match Summary, Momentum Chart, Set Flow, Error Breakdown, Player Stats, Rotation Performance
+- Multi Match: Event Summary, Progress Trend, Rotation Heat Map, Player Leaderboard, Opponent Comparison
 
-- **Match format**: Best Of (odd: 3, 5, 7…) or Straight Sets (1, 2, 4, 6…)
-- **Number of sets**: Adjustable via stepper, constrained by format rules
-- **Auto-progression**: Ending a set automatically starts the next one
+Common coaching questions these reports help answer:
+- Where did we give away points?
+- Which rotations are strongest or weakest?
+- Are we trending up across recent matches?
 
-## Data Organization
+## Data and Persistence
 
-Matches can optionally be organized into a hierarchy:
+All data is saved locally in your browser (IndexedDB) in the `triangle-stats` database.
 
-- **Season** (e.g., "Spring 2026") — broadest grouping
-- **Event** (e.g., "Spring Invitational") — with a type: Tournament, League, or Practice
-- **Match** — the individual stat-tracked game
+Object stores:
+- `matches`
+- `seasons`
+- `events`
+- `opponents`
+- `eventCodes`
 
-All organization is optional. Matches work fine without any season or event. Default names are generated when fields are left blank.
+When the app reopens, the most recent in-progress match is restored automatically.
 
-## History
-
-The History page groups matches by Season → Event using collapsible sections. Each match shows its name, status badge (Complete / In Progress), and date. Matches are sorted oldest-first.
-
-Actions available:
-- **Resume** an in-progress match
-- **Export** a single match (JSON or CSV)
-- **Delete** individual matches (with confirmation)
-- **Clear All** data (prompts to Export All first, then confirms deletion)
-
-## Persistence
-
-Match data is stored in the browser's IndexedDB (database: `triangle-stats`, version 2, stores: `matches`, `seasons`, `events`). On page load, the most recent in-progress match is automatically restored. Completed matches are not auto-restored.
-
-## Import / Export
+## Import and Export
 
 | Action | Output | Filename Pattern |
-|--------|--------|-----------------|
-| **Export JSON** | Single match + season/event context | `{name}_{YYYY-MM-DD}.json` |
-| **Export CSV** | Coach-readable set-by-set summary | `{name}_{YYYY-MM-DD}.csv` |
-| **Export All** | Bulk backup of all data | `triangle-stats-backup-{YYYY-MM-DD-HH-MM-SS}.json` |
-| **Import** | Reads single or bulk JSON, skips duplicates by ID | — |
+|--------|--------|------------------|
+| **Export JSON** | Single match with related context | `{name}_{YYYY-MM-DD}.json` |
+| **Export CSV** | Coach-readable set summary | `{name}_{YYYY-MM-DD}.csv` |
+| **Export All** | Full backup (matches + lookup data) | `triangle-stats-backup-{YYYY-MM-DD-HH-MM-SS}.json` |
+| **Import** | Single or bulk JSON import | — |
 
-Import never silently overwrites — duplicates are skipped. Use this for backup, sharing between devices, or combining data from multiple trackers.
+Import skips duplicates and does not silently overwrite existing records.
 
 ## App Settings
 
-Found at the bottom of the Setup page:
+Setup options include:
+- Reset Auto-Lock timeout
+- Show match totals in triangle
+- Rotation tracking mode (None, Ours Only, Both Sides)
+- Keep rotation selected between stat presses
+- Highlight and event-log color customization
 
-- **Reset Auto-Lock** — Configurable seconds before the Reset button re-locks (default: 3). During an active match, Reset is guarded by a padlock that must be clicked to unlock.
-- **Show match totals in triangle** — Toggle aggregate scores displayed inside the triangle SVG.
-- **Rotation Tracking** — Choose what rotation data to collect:
-  - *None* — rotation buttons hidden, nothing recorded
-  - *Ours Only* — only the left-side (our) R1–R6 buttons shown
-  - *Both Sides* — our rotation (left) and their rotation (right) both shown
-- **Keep rotation selected between stats** — When on, the selected rotation persists across stat button presses within a set. Always clears at End Set, End Match, and Reset.
+## Project Structure
 
-## Docs
+```text
+index.html             # App shell and page layout
+app.js                 # Domain logic, IndexedDB, and UI wiring
+styles.css             # Styling
+generate-test-match.js # Test match generation helper
+test-data.json         # Test fixture data
+test-match.json        # Test fixture data
+docs/
+  ARCHITECTURE.md      # Technical architecture notes
+```
+
+## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
+
+## License
+
+This project is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
+
+See [LICENSE](LICENSE) for the full license text.
