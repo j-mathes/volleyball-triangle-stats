@@ -36,7 +36,7 @@ The stats page uses a multi-row CSS grid (`stats-layout`) below the control bar.
 
 **Rule:** Never change one grid's column template without changing the other. Any divergence breaks outer-edge alignment.
 
-### Grid Row Structure
+### Grid Row Structure (desktop)
 
 ```
 Row 1: [metadataPanel ─────────── grid-column: 1/-1 ──────────]
@@ -49,6 +49,14 @@ Row 4: [bottom-bar ─────────────  grid-column: 1/-1 �
 
 **Rule:** If rotation cards need to appear beside multiple rows, use `grid-row` spanning + `align-self: start`. Never put rotation cards and triangle content as siblings in the same row.
 
+### `serves-row` Wrapper
+
+`#rotOursPanel`, `.vertex.top`, and `#rotTheirsPanel` are wrapped in `<div class="serves-row">` in the HTML. On desktop, `.serves-row { display: contents }` makes the wrapper completely transparent to the outer CSS grid — its children remain direct grid items exactly as described above.
+
+On mobile breakpoints (`≤600px` and landscape), `.serves-row` is overridden to `display: flex; flex-direction: row` so the rotation panels always physically flank Terminal Serves regardless of JS toggling their `display` property. This avoids an iOS Safari bug where grid items toggled from `display:none` → `display:flex` sometimes ignore their explicit `grid-row`/`grid-column` values and fall back to auto-placement in the wrong row.
+
+**Rule:** Never remove the `serves-row` wrapper or change its desktop `display: contents` rule. If you need to place additional items beside Terminal Serves on desktop, add them inside `serves-row` and give them explicit `grid-column`/`grid-row` — they will participate in the outer grid normally.
+
 ### Subgrid for Alignment
 
 `triangle-row` uses `grid-template-columns: subgrid` to inherit the outer grid's three column tracks verbatim. The First Ball card lands in column 1 (same track as `rotOursPanel`), the triangle center in column 2, and Transition in column 3 (same track as `rotTheirsPanel`). The snapshot (`bottom-bar`) also spans `1/-1`.
@@ -59,10 +67,72 @@ Row 4: [bottom-bar ─────────────  grid-column: 1/-1 �
 
 | Change | Problem |
 |--------|---------|
-| Adding a wrapper div around rotation cards + Terminal Serves | Rotation card height pushes triangle down |
-| Giving rotation cards `align-self: stretch` or removing `grid-row` span | Row 2 becomes as tall as rotation cards |
+| Removing `display: contents` from `.serves-row` on desktop | Children become block items and fall out of the grid |
+| Giving rotation cards `align-self: stretch` or removing `grid-row` span (desktop) | Row 2 becomes as tall as rotation cards |
 | Using different column counts or widths on `triangle-row` vs `stats-layout` | First Ball / Transition no longer align with rotation card edges |
 | Moving `triangle-row` or `bottom-bar` inside a nested flex/grid container | They lose access to the outer subgrid and break column inheritance |
+
+---
+
+## Responsive Layout
+
+Three media query breakpoints are defined in `styles.css`. Desktop rules are never modified inside these blocks — they only add or override.
+
+### Tablet (`@media (max-width: 700px)`)
+
+Only non-stats-page adjustments: history and reports pages collapse to single-column. The stats layout is unchanged at this breakpoint.
+
+### Portrait Phone (`@media (max-width: 600px)`)
+
+`stats-layout` switches from CSS grid to `display: flex; flex-direction: column`. The item order from top to bottom:
+
+```
+[metadataPanel  ── full width ──]
+[serves-row: rotOurs | Terminal Serves | rotTheirs ]
+[triangle-row   ── full width ──]
+[bottom-bar     ── full width ──]
+```
+
+`serves-row` becomes `display: flex; flex-direction: row` so rotation panels flank Terminal Serves regardless of how many are visible.
+
+The **metadata panel** becomes a 3-row `flex-direction: column` stack:
+- Row 1: Jersey # label + input (horizontal, `flex-direction: row`)
+- Row 2: Event code buttons (`flex-wrap: wrap` — horizontal, spills to a second line if too wide)
+- Row 3: Last stat indicator (full width, horizontal)
+
+The rotation panel buttons use a 2×3 grid (`grid-template-columns: 1fr 1fr`) instead of the desktop flex row.
+
+### Landscape Phone (`@media (max-height: 500px) and (orientation: landscape)`)
+
+`stats-page` becomes `display: flex; flex-direction: row`. The control panel is a fixed-width left column (~190px). `stats-layout` becomes the right column (`flex: 1 1 0`, scrollable).
+
+`stats-layout` uses the same `display: flex; flex-direction: column` + `serves-row` flex approach as portrait, but with tighter padding and font sizes throughout. The triangle row uses a `display: grid; grid-template-columns: 1fr 1fr` layout with the SVG spanning both columns above the two bottom vertex cards.
+
+---
+
+## Platform Compatibility
+
+### iOS Safari (`file://` and GitHub Pages)
+
+iOS Safari blocks IndexedDB on `file://` origins. `openDatabase()` wraps the `indexedDB.open()` call in a try/catch and also listens for the `onerror` event. On failure it calls `showStorageError()` which injects a dismissible red banner below the nav bar (`.storage-banner`) explaining the limitation and linking to the GitHub Pages URL.
+
+**The app is fully functional when served over HTTPS** (e.g., GitHub Pages). The storage error only appears when opened directly from the file system on iOS.
+
+### `crypto.randomUUID` Polyfill
+
+A polyfill at the top of `app.js` provides `crypto.randomUUID` on browsers that lack it (older iOS Safari, some WebViews):
+
+```js
+if (typeof crypto.randomUUID !== "function") {
+  crypto.randomUUID = function () { /* RFC-4122 v4 via getRandomValues */ };
+}
+```
+
+### iOS File Download
+
+`downloadText()` detects `_isIOS` (via `navigator.userAgent`) and uses `window.open(blobURL)` instead of a synthetic `<a>` click, since iOS Safari does not trigger file downloads from blob anchor clicks.
+
+---
 
 ---
 
@@ -191,7 +261,7 @@ During an active match, the Reset button is protected by a padlock:
 - Auto-relocks after a configurable number of seconds (default: 3)
 - Timer configurable via App Settings stepper on the Setup page
 
-**When no match is active**, the Reset button is always enabled with no padlock — clicking it refreshes the date/time field to the current time. `lockReset()` must **only** be called when a match is active (`state && !state.endedAt`). Calling it unconditionally will start the auto-lock timer and leave the button disabled after the timer fires, even with no match in progress.
+**Reset always clears** — clicking Reset when a match is active or already ended clears the timeline, all match fields, and re-renders the stats page blank. The only case where Reset does nothing is when no match record exists at all (`controller.getState()` returns `null`), in which case it only refreshes the date/time field. `lockReset()` must **only** be called when a match is active (`state && !state.endedAt`). Calling it unconditionally will start the auto-lock timer and leave the button disabled after the timer fires, even with no match in progress.
 
 ## Metadata Panel
 
@@ -433,14 +503,18 @@ Actions:
 10. History → verify matches grouped by season/event, delete works
 11. Clear All → verify export prompt appears first, then confirmation
 12. Reset during active match → verify padlock guard prevents accidental reset
-13. Setup → set Rotation Tracking to "Both Sides", start a match, verify rotation buttons appear on both sides
-14. Select R3 (ours), enter jersey "12", select "Net", press "Our Miss" → verify metadata in exported JSON event
-15. Press any stat button with a non-applicable code selected (e.g. "Drop" + "Our Ace") → verify event code is null in export
-16. End Set → verify all rotation/jersey/code selections are cleared
-17. Enable "Keep rotation", select R2, press two stat buttons → verify rotation persists across both; End Set → verify it clears
-18. Setup → Event Codes → add a custom code (e.g. Code `"Ant"`, Abbr `"Ant"`, Label `"Antenna hit"`, Category `"both"`) → verify button appears purple in stats panel
-19. Record a stat with the custom code, export JSON → verify `eventCode: "Ant"` in event record
-20. Delete the custom code → verify button disappears; existing match data still shows `"Ant"` raw in tally fallback
-21. Reset to Defaults → verify 10 original codes restored, custom code gone
-22. Export All → open backup JSON, verify `eventCodes` array is present with all current codes
-23. Import the backup on a fresh profile → verify event codes are restored; duplicate codes skipped on re-import
+13. End Match, then click Reset → verify snapshot table and event log clear completely
+14. Setup → set Rotation Tracking to "Both Sides", start a match, verify rotation buttons appear on both sides
+15. Select R3 (ours), enter jersey "12", select "Net", press "Our Miss" → verify metadata in exported JSON event
+16. Press any stat button with a non-applicable code selected (e.g. "Drop" + "Our Ace") → verify event code is null in export
+17. End Set → verify all rotation/jersey/code selections are cleared
+18. Enable "Keep rotation", select R2, press two stat buttons → verify rotation persists across both; End Set → verify it clears
+19. Setup → Event Codes → add a custom code (e.g. Code `"Ant"`, Abbr `"Ant"`, Label `"Antenna hit"`, Category `"both"`) → verify button appears purple in stats panel
+20. Record a stat with the custom code, export JSON → verify `eventCode: "Ant"` in event record
+21. Delete the custom code → verify button disappears; existing match data still shows `"Ant"` raw in tally fallback
+22. Reset to Defaults → verify 10 original codes restored, custom code gone
+23. Export All → open backup JSON, verify `eventCodes` array is present with all current codes
+24. Import the backup on a fresh profile → verify event codes are restored; duplicate codes skipped on re-import
+25. **Mobile — portrait (≤600px):** verify metadata panel shows jersey row on top, code buttons wrap horizontally below, Last stat on third row; rotation panels appear beside Terminal Serves (not beside jersey panel)
+26. **Mobile — landscape phone:** verify left control panel + right scrollable stats column; rotation panels flank Terminal Serves; code buttons wrap horizontally
+27. **iOS Safari / GitHub Pages:** verify no blank screen when served over HTTPS; storage error banner appears (and no crash) when opened from file system on iOS

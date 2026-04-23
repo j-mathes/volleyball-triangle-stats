@@ -652,7 +652,8 @@ var currentPage = "config";
 function showPage(page) {
   currentPage = page;
   $("configPage").style.display = page === "config" ? "flex" : "none";
-  $("statsPage").style.display = page === "stats" ? "block" : "none";
+  // Use "" (not "block") so CSS media queries (e.g. landscape flex layout) are not overridden by the inline style.
+  $("statsPage").style.display = page === "stats" ? "" : "none";
   $("historyPage").style.display = page === "history" ? "grid" : "none";
   $("reportsPage").style.display = page === "reports" ? "block" : "none";
 
@@ -1409,9 +1410,8 @@ async function createMatch() {
 
 async function resetMatch() {
   var state = controller.getState();
-  var matchActive = !!(state && !state.endedAt);
-  if (!matchActive) {
-    // No match in progress — just refresh the date/time
+  if (!state) {
+    // Nothing loaded at all — just refresh the date/time
     $("matchDateInput").value = toLocalDatetime(new Date());
     return;
   }
