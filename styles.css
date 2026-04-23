@@ -2398,48 +2398,49 @@ button:disabled {
     padding: 0.4rem 0.35rem;
   }
 
-  /* 2-column grid: R1 R4 / R2 R5 / R3 R6 */
+  /* 2-column grid, column-fill: R1 R2 R3 (col 1) | R4 R5 R6 (col 2) */
   .rotation-btns {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(3, auto);
+    grid-auto-flow: column;
     gap: 0.25rem;
-    flex-direction: unset; /* clear any inherited flex override */
+    flex-direction: unset;
   }
 
   /* -- Control panel ------------------------------------- */
-  /* Tighter padding so the panel doesn't eat as much vertical space */
+  /* Flatten into a single flex-wrap container so we can use CSS order
+     to place Reset beside the opponent picker without changing HTML.
+     display:contents on .control-row makes its children direct flex
+     items of .control-panel. */
   .control-panel {
     padding: 0.5rem 0.6rem;
     gap: 0.3rem;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
   }
 
-  /* Override hard min-widths so inputs don't force a horizontal scroll */
-  .match-name-input {
-    min-width: 0;
-  }
+  .control-row { display: contents; }
 
-  .match-date-input {
-    min-width: 0;
-  }
+  /* Visual order of every direct flex child */
+  .match-name-input          { order: 1;  flex: 1 1 100%; min-width: 0; }
+  .match-date-input          { order: 2;  flex: 1 1 auto; min-width: 0; font-size: 0.82rem; }
+  .control-panel .combo-picker { order: 3; flex: 1 1 auto; min-width: 0; }
+  #resetGroup                { order: 4;  flex: 0 0 auto; }
+  #btnStartMatch             { order: 10; flex: 1 1 auto !important; }
+  #btnEndSet                 { order: 11; flex: 0 0 auto; }
+  #btnEndMatch               { order: 12; flex: 0 0 auto; }
+  #btnUndo                   { order: 13; flex: 0 0 auto; }
+  #btnRedo                   { order: 14; flex: 0 0 auto; }
+  #setIndicator              { order: 20; flex: 0 0 100%; text-align: center;
+                               font-size: 0.88rem; padding: 0.4rem 0.6rem; }
 
-  /* Row 2 action buttons: compact so more fit per line */
-  .control-row button {
+  /* All control-panel buttons: compact */
+  .control-panel button {
     padding: 0.4rem 0.55rem;
     font-size: 0.83rem;
-  }
-
-  /* Start Match is the primary CTA — let it grow to fill remaining space */
-  .start-match-btn {
-    flex: 1 1 auto;
-  }
-
-  /* Set indicator pushed to its own full-width line at the bottom */
-  .set-indicator {
-    width: 100%;
-    text-align: center;
-    order: 10;
-    font-size: 0.88rem;
-    padding: 0.4rem 0.6rem;
   }
 
   /* -- Metadata panel ------------------------------------- */
@@ -2454,8 +2455,12 @@ button:disabled {
     align-items: center;
   }
 
-  /* jersey-row: shrinks to content width, sits at left of row 1 */
+  /* Row 1 (visually): jersey-row left + last-stat right, same line.
+     Row 2: event-code-btns full width.
+     DOM order is jersey → event-code-btns → last-stat, so we use
+     CSS order to swap last-stat before event-code-btns. */
   .jersey-row {
+    order: 1;
     flex: 0 0 auto;
     display: flex;
     flex-direction: row;
@@ -2465,8 +2470,9 @@ button:disabled {
     grid-row: unset;
   }
 
-  /* Last stat: fills remaining space in row 1, beside jersey */
+  /* Last stat: order 2 puts it on the same line as jersey-row */
   .last-stat-panel {
+    order: 2;
     flex: 1 1 0;
     min-width: 0;
     width: auto;
@@ -2487,8 +2493,9 @@ button:disabled {
     white-space: nowrap;
   }
 
-  /* Event codes: flex: 0 0 100% forces it to its own row below */
+  /* Event codes: order 3 forces to its own row below jersey + last */
   .event-code-btns {
+    order: 3;
     flex: 0 0 100%;
     display: flex;
     flex-direction: row;
