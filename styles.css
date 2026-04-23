@@ -2616,10 +2616,17 @@ button:disabled {
     gap: 0.3rem;
   }
 
+  /* Terminal Serves: don't grow — stays portrait-like width */
   .serves-row > .vertex.top {
-    flex: 1 1 0;
+    flex: 0 0 auto;
     width: auto;
+    max-width: 220px;
     min-width: 0;
+  }
+
+  /* Center the serves-row content so it doesn't hug the left edge */
+  .serves-row {
+    justify-content: center;
   }
 
   #rotOursPanel, #rotTheirsPanel { flex: 0 0 auto; }
@@ -2704,13 +2711,19 @@ button:disabled {
     gap: 0.3rem;
   }
 
-  /* First Ball and Transition fill remaining space left/right of SVG */
+  /* First Ball and Transition: don't grow, stay portrait-like width */
   .vertex.bottom-left,
   .vertex.bottom-right {
-    flex: 1 1 0;
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 180px;
     min-width: 0;
     transform: none;
-    width: auto;
+  }
+
+  /* Center the triangle row too */
+  .triangle-row {
+    justify-content: center;
   }
 
   /* SVG centre: fixed height, width set by aspect-ratio */
