@@ -2222,21 +2222,170 @@ button:disabled {
   white-space: nowrap;
 }
 
+/* ============================================================
+   Responsive — tablets  (≤ 700 px)
+   ============================================================ */
 @media (max-width: 700px) {
-  .triangle-row {
+  /* History: drop to single column */
+  .history-page {
     grid-template-columns: 1fr;
+  }
+
+  /* Reports: sidebar stacks above the output panel */
+  .reports-body {
+    grid-template-columns: 1fr;
+  }
+
+  .reports-sidebar {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    padding: 0.5rem;
+  }
+
+  .sidebar-group {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+  }
+
+  .sidebar-group + .sidebar-group {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+  }
+
+  .sidebar-group-label {
+    width: 100%;
+    padding-bottom: 0.1rem;
+  }
+}
+
+/* ============================================================
+   Responsive — phones  (≤ 600 px)
+   All desktop selectors are intentionally left untouched;
+   these rules only add / override inside this breakpoint.
+   ============================================================ */
+@media (max-width: 600px) {
+  /* -- Nav bar -------------------------------------------- */
+  /* Hide the absolutely-positioned title — it overlaps buttons */
+  .nav-title {
+    display: none;
+  }
+
+  /* Hide the GitHub / README links — no room on small screens */
+  .nav-links-left {
+    display: none;
+  }
+
+  /* Compact nav buttons so all four fit on one row */
+  .nav-btn {
+    padding: 0.75rem 0.65rem;
+    font-size: 0.85rem;
+  }
+
+  /* Remove the desktop margin-left:auto that right-aligns the first button */
+  .nav-btn:first-of-type {
+    margin-left: 0;
+  }
+
+  /* Storage error banner: adjust top offset for shorter nav */
+  .storage-banner {
+    top: 2.9rem;
+  }
+
+  /* -- Page container ------------------------------------- */
+  .page {
+    padding-top: 3.2rem;
+    width: 96vw;
+  }
+
+  /* -- Inputs: remove hard min-width so nothing overflows -- */
+  input:not([type="radio"]):not([type="checkbox"]) {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Keep the jersey # input compact */
+  .jersey-input {
+    width: 5rem !important;
+    min-width: 0 !important;
+  }
+
+  /* datetime-local picker is very wide on iOS — allow font shrink */
+  .match-date-input {
+    font-size: 0.82rem;
+  }
+
+  /* -- Stats layout --------------------------------------- */
+  /* Switch the 3-column grid to a simple flex column so every
+     child stacks full-width. Desktop grid rules have no effect
+     inside this breakpoint. */
+  .stats-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* Terminal Serves vertex: full width (was 14vw ≈ 55px on iPhone) */
+  .stats-layout > .vertex.top {
+    width: 100%;
+  }
+
+  /* -- Triangle row --------------------------------------- */
+  /* SVG triangle on top, two vertex cards side-by-side below */
+  .triangle-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: flex-start;
   }
 
   .triangle-center {
-    max-width: 260px;
-    margin: 0 auto;
-  }
-
-  .content-area > .vertex.top {
+    width: 100%;
     max-width: 100%;
+    margin: 0;
+    order: -1; /* render the SVG above the two bottom vertex cards */
   }
 
-  .history-page {
-    grid-template-columns: 1fr;
+  .vertex.bottom-left,
+  .vertex.bottom-right {
+    flex: 1 1 130px;
+    width: auto;
+    /* Remove the desktop translateY(50%) that creates the overlap effect */
+    transform: none;
+  }
+
+  /* -- Rotation panels ------------------------------------ */
+  .rotation-panel-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+  }
+
+  .rotation-btns {
+    flex-direction: row;
+    gap: 0.25rem;
+  }
+
+  /* -- Metadata panel ------------------------------------- */
+  /* Allow jersey + event-code + last-stat to wrap onto multiple lines */
+  .metadata-panel {
+    flex-wrap: wrap;
+  }
+
+  /* -- Snapshot / bottom bar ------------------------------ */
+  /* Remove the large top margin that compensated for the desktop
+     translateY triangle overlap */
+  .bottom-bar {
+    margin-top: 1rem;
+  }
+
+  /* -- Config cards --------------------------------------- */
+  .config-page {
+    padding: 0.5rem 0;
   }
 }
