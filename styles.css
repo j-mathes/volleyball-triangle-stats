@@ -2633,6 +2633,8 @@ button:disabled {
   #rotOursPanel, #rotTheirsPanel { flex: 0 0 auto; }
 
   /* ---- Metadata panel: jersey + last on same line, codes below ---- */
+  /* DOM order is jersey → event-code-btns → last-stat-panel, so we use
+     CSS order to move last-stat-panel up beside jersey-row.           */
   .metadata-panel {
     display: flex;
     flex-direction: row;
@@ -2643,6 +2645,7 @@ button:disabled {
   }
 
   .jersey-row {
+    order: 1;
     flex: 0 0 auto;
     display: flex;
     flex-direction: row;
@@ -2650,8 +2653,9 @@ button:disabled {
     gap: 0.3rem;
   }
 
-  /* Last stat: fills remaining space on the same row as jersey */
+  /* Last stat: order 2 — sits beside jersey-row on the same flex line */
   .last-stat-panel {
+    order: 2;
     flex: 1 1 0;
     min-width: 0;
     width: auto;
@@ -2670,8 +2674,9 @@ button:disabled {
     white-space: nowrap;
   }
 
-  /* Event codes: force to own row */
+  /* Event codes: order 3 — forced to own row below jersey + last */
   .event-code-btns {
+    order: 3;
     flex: 0 0 100%;
     display: flex;
     flex-direction: row;
@@ -2679,7 +2684,7 @@ button:disabled {
     gap: 0.2rem;
   }
 
-  .ec-btn { padding: 0.25rem 0.4rem; font-size: 0.75rem; }
+  .ec-btn { padding: 0.4rem 0.7rem; font-size: 0.88rem; }
   .jersey-input { width: 4rem !important; min-width: 0 !important; }
 
   /* ---- Vertex cards: compact ---- */
