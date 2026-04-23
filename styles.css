@@ -2429,6 +2429,9 @@ button:disabled {
   .match-date-input          { order: 2;  flex: 1 1 auto; min-width: 0; font-size: 0.82rem; }
   .control-panel .combo-picker { order: 3; flex: 1 1 auto; min-width: 0; }
   #resetGroup                { order: 4;  flex: 0 0 auto; }
+  /* Zero-height full-width pseudo-element forces a line break between
+     the date/opponent/reset row and the action-button row below */
+  .control-panel::after      { content: ''; order: 5; flex: 0 0 100%; height: 0; }
   #btnStartMatch             { order: 10; flex: 1 1 auto !important; }
   #btnEndSet                 { order: 11; flex: 0 0 auto; }
   #btnEndMatch               { order: 12; flex: 0 0 auto; }
