@@ -2319,18 +2319,58 @@ button:disabled {
   }
 
   /* -- Stats layout --------------------------------------- */
-  /* Switch the 3-column grid to a simple flex column so every
-     child stacks full-width. Desktop grid rules have no effect
-     inside this breakpoint. */
+  /* 3-column grid:
+     Col 1 (auto) = Our Rotation  |  Col 2 (1fr) = metadata  |  Col 3 (auto) = Their Rotation
+     Row 1 = the three panels above
+     Row 2 = Terminal Serves (full width)
+     Row 3 = triangle row (full width)
+     Row 4 = bottom-bar  (full width)
+     When a rotation panel is hidden (display:none) its auto track
+     collapses to zero, so the metadata panel fills the full width. */
   .stats-layout {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     gap: 0.5rem;
   }
 
-  /* Terminal Serves vertex: full width (was 14vw ≈ 55px on iPhone) */
+  /* Rotation panels: placed in row 1, outer columns */
+  #rotOursPanel {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    justify-self: start;
+  }
+
+  #rotTheirsPanel {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: center;
+    justify-self: end;
+  }
+
+  /* Metadata panel: centre column, row 1 */
+  #metadataPanel {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  /* Terminal Serves: full width in row 2 */
   .stats-layout > .vertex.top {
+    grid-column: 1 / -1;
+    grid-row: 2;
     width: 100%;
+  }
+
+  /* Triangle row: full width in row 3 */
+  .stats-layout > .triangle-row {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  /* Bottom bar: full width in row 4 */
+  .stats-layout > .bottom-bar {
+    grid-column: 1 / -1;
+    grid-row: 4;
   }
 
   /* -- Triangle row --------------------------------------- */
@@ -2358,28 +2398,107 @@ button:disabled {
   }
 
   /* -- Rotation panels ------------------------------------ */
+  /* Stack label on top, then 2×3 button grid below */
   .rotation-panel-card {
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
+    gap: 0.3rem;
+    padding: 0.4rem 0.35rem;
+  }
+
+  /* 2-column grid: R1 R4 / R2 R5 / R3 R6 */
+  .rotation-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem;
+    flex-direction: unset; /* clear any inherited flex override */
+  }
+
+  /* -- Control panel ------------------------------------- */
+  /* Tighter padding so the panel doesn't eat as much vertical space */
+  .control-panel {
+    padding: 0.5rem 0.6rem;
+    gap: 0.3rem;
+  }
+
+  /* Override hard min-widths so inputs don't force a horizontal scroll */
+  .match-name-input {
+    min-width: 0;
+  }
+
+  .match-date-input {
+    min-width: 0;
+  }
+
+  /* Row 2 action buttons: compact so more fit per line */
+  .control-row button {
+    padding: 0.4rem 0.55rem;
+    font-size: 0.83rem;
+  }
+
+  /* Start Match is the primary CTA — let it grow to fill remaining space */
+  .start-match-btn {
+    flex: 1 1 auto;
+  }
+
+  /* Set indicator pushed to its own full-width line at the bottom */
+  .set-indicator {
+    width: 100%;
+    text-align: center;
+    order: 10;
+    font-size: 0.88rem;
     padding: 0.4rem 0.6rem;
   }
 
-  .rotation-btns {
-    flex-direction: row;
-    gap: 0.25rem;
+  /* -- Metadata panel ------------------------------------- */
+  /* 2-row grid:
+     Row 1 — jersey # (left)  |  event-code buttons (right, wrapping)
+     Row 2 — Last stat display (full width, horizontal) */
+  .metadata-panel {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    gap: 0.4rem 0.6rem;
+    align-items: start;
   }
 
-  /* -- Metadata panel ------------------------------------- */
-  /* Allow jersey + event-code + last-stat to wrap onto multiple lines */
-  .metadata-panel {
-    flex-wrap: wrap;
+  .jersey-row {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+  }
+
+  .event-code-btns {
+    grid-column: 2;
+    grid-row: 1;
+    flex: none;  /* override the desktop flex: 1 */
+  }
+
+  /* Last stat: spans both columns, horizontal layout */
+  .last-stat-panel {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    flex-direction: row;
+    justify-content: flex-start;
+    min-width: 0;
+    width: auto;
+    padding: 0.3rem 0.6rem;
+    gap: 0.5rem;
+  }
+
+  .last-stat-content {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+  }
+
+  /* Event code buttons: smaller so ~5 fit per row */
+  .ec-btn {
+    padding: 0.3rem 0.45rem;
+    font-size: 0.78rem;
+    border-radius: 8px;
   }
 
   /* -- Snapshot / bottom bar ------------------------------ */
-  /* Remove the large top margin that compensated for the desktop
-     translateY triangle overlap */
   .bottom-bar {
     margin-top: 1rem;
   }
@@ -2388,4 +2507,144 @@ button:disabled {
   .config-page {
     padding: 0.5rem 0;
   }
+}
+
+/* ============================================================
+   Responsive — landscape phones  (short / wide viewport)
+   Targets iPhones (and similar) in landscape: height 375–430 px,
+   width 667–932 px. The ≤600 px portrait rules never fire here,
+   so this block is self-contained.
+   Strategy: left strip = control panel; right area = triangle.
+   ============================================================ */
+@media (max-height: 500px) and (orientation: landscape) {
+
+  /* ---- Nav: slimmer ------------------------------------ */
+  .nav-title      { display: none; }
+  .nav-links-left { display: none; }
+  .nav-btn { padding: 0.45rem 0.65rem; font-size: 0.82rem; }
+  .nav-btn:first-of-type { margin-left: 0; }
+  .storage-banner { top: 2.3rem; }
+
+  /* ---- Page -------------------------------------------- */
+  .page {
+    padding-top: 2.4rem;
+    width: 96vw;
+  }
+
+  /* ---- Stats page: 2-column split ----------------------
+     Left  190 px fixed  — control / match panel
+     Right fill          — metadata + triangle           */
+  .stats-page {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.5rem;
+    height: calc(100vh - 2.5rem); /* fallback */
+    height: calc(100dvh - 2.5rem); /* adapts as iOS browser chrome hides/shows */
+    overflow: hidden;
+  }
+
+  /* ---- Left column: control panel ---------------------- */
+  .control-panel {
+    flex: 0 0 190px;
+    margin-top: 0;
+    overflow-y: auto;
+    max-height: 100%;
+    padding: 0.4rem 0.5rem;
+    gap: 0.25rem;
+  }
+
+  /* Inputs and pickers fill the narrow column */
+  .control-panel input:not([type="radio"]):not([type="checkbox"]) {
+    min-width: 0;
+    width: 100%;
+  }
+  .control-panel .combo-picker { flex-direction: column; }
+  .match-name-input { min-width: 0; }
+  .match-date-input { min-width: 0; font-size: 0.78rem; }
+
+  /* Action buttons: 2 per row inside the left column */
+  .control-row { flex-wrap: wrap; gap: 0.25rem; }
+  .control-row button { flex: 1 1 45%; padding: 0.35rem 0.4rem; font-size: 0.8rem; }
+  .start-match-btn { flex: 1 1 100% !important; }
+  .set-indicator {
+    flex: 1 1 100%;
+    text-align: center;
+    font-size: 0.82rem;
+    padding: 0.3rem 0.4rem;
+    order: 10;
+  }
+  .reset-group { flex: 1 1 45%; justify-content: center; }
+
+  /* ---- Right column: stats layout ----------------------
+     Override the desktop 3-column grid with a flex column  */
+  .stats-layout {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-top: 0;
+    overflow-y: auto;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  /* Metadata panel: compact single row */
+  .metadata-panel { padding: 0.35rem 0.5rem; gap: 0.4rem; }
+  .ec-btn { padding: 0.25rem 0.4rem; font-size: 0.75rem; }
+  .last-stat-panel {
+    flex-direction: row;
+    gap: 0.4rem;
+    padding: 0.25rem 0.5rem;
+    min-width: 4rem;
+  }
+  .jersey-input { width: 4rem !important; min-width: 0 !important; }
+
+  /* Terminal Serves vertex: full width in the flex column */
+  .stats-layout > .vertex.top { width: 100%; }
+
+  /* All vertex cards: compact */
+  .vertex { padding: 0.25rem 0.4rem; }
+  .vertex h2 { font-size: 0.75rem; margin: 0; }
+  .value { font-size: 1.1rem; margin-top: 0.1rem; }
+  .actions { gap: 0.2rem; margin-top: 0.15rem; }
+  .actions button { padding: 0.25rem 0.2rem; font-size: 0.72rem; }
+
+  /* ---- Triangle row: explicit 2-col grid ---------------
+     Row 1: SVG triangle (spans both columns, centered)
+     Row 2: First Ball (left)  |  Transition (right)       */
+  .triangle-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.3rem;
+  }
+
+  /* SVG triangle: centered in row 1 at a height tied to viewport */
+  .triangle-center {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    /* Explicit height so the shape doesn't overflow vertically.
+       aspect-ratio from base CSS keeps width proportional (1/0.85). */
+    height: min(30vh, 155px);
+    width: auto;
+    justify-self: center;
+  }
+
+  /* First Ball and Transition side-by-side in row 2 */
+  .vertex.bottom-left  { grid-column: 1; grid-row: 2; transform: none; width: auto; }
+  .vertex.bottom-right { grid-column: 2; grid-row: 2; transform: none; width: auto; }
+
+  /* ---- Rotation panels: compact horizontal strip ------- */
+  .rotation-panel-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.5rem;
+  }
+  .rotation-btns { flex-direction: row; gap: 0.2rem; }
+  .rot-btn { padding: 0.2rem 0.2rem; font-size: 0.72rem; min-width: 1.8rem; }
+
+  /* ---- Hide tall panels not needed in landscape -------- */
+  .bottom-bar    { display: none; } /* snapshot table */
+  .event-log-card { display: none; } /* event log */
 }
