@@ -1116,8 +1116,12 @@ function renderState() {
 
   // Metadata panel: always visible, controls disabled when no active set
   var rotMode = getRotationMode();
-  $("rotOursPanel").style.display = (rotMode === "ours" || rotMode === "both") ? "" : "none";
-  $("rotTheirsPanel").style.display = rotMode === "both" ? "" : "none";
+  // Use visibility instead of display so hidden panels still occupy space,
+  // keeping Terminal Serves centred regardless of which panels are shown.
+  $("rotOursPanel").style.display = "";
+  $("rotOursPanel").style.visibility = (rotMode === "ours" || rotMode === "both") ? "" : "hidden";
+  $("rotTheirsPanel").style.display = "";
+  $("rotTheirsPanel").style.visibility = rotMode === "both" ? "" : "hidden";
   document.querySelectorAll(".rot-btn").forEach(function (btn) { btn.disabled = !hasActiveSet; });
   $("jerseyInput").disabled = !hasActiveSet;
   document.querySelectorAll(".ec-btn").forEach(function (btn) {
