@@ -2443,58 +2443,59 @@ button:disabled {
   }
 
   /* -- Metadata panel ------------------------------------- */
-  /* 3-row flex column:
-     Row 1 — Jersey # label + input
-     Row 2 — Event code buttons, wrapping horizontally
-     Row 3 — Last stat indicator, full width              */
+  /* Row 1: Jersey input (auto-width left)  |  Last stat (fills rest)
+     Row 2: Event code buttons, wrapping horizontally                */
   .metadata-panel {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     gap: 0.35rem;
     padding: 0.6rem;
-    align-items: stretch;
+    align-items: center;
   }
 
-  /* Row 1: jersey label + input side by side */
+  /* jersey-row: shrinks to content width, sits at left of row 1 */
   .jersey-row {
+    flex: 0 0 auto;
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: 0.4rem;
-    /* reset any grid placement from a previous rule */
     grid-column: unset;
     grid-row: unset;
   }
 
-  /* Row 2: code buttons wrap horizontally */
-  .event-code-btns {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 0.3rem;
-    flex: none;
-    /* reset grid placement */
-    grid-column: unset;
-    grid-row: unset;
-  }
-
-  /* Row 3: Last stat — full width, horizontal */
+  /* Last stat: fills remaining space in row 1, beside jersey */
   .last-stat-panel {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
     flex-direction: row;
     justify-content: flex-start;
     align-items: center;
-    width: 100%;
-    min-width: 0;
-    padding: 0.3rem 0.5rem;
-    gap: 0.5rem;
-    /* reset grid placement */
+    padding: 0.25rem 0.4rem;
+    gap: 0.4rem;
     grid-column: unset;
     grid-row: unset;
   }
 
   .last-stat-content {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: flex-start;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Event codes: flex: 0 0 100% forces it to its own row below */
+  .event-code-btns {
+    flex: 0 0 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    grid-column: unset;
+    grid-row: unset;
   }
 
   /* Event code buttons: compact so several fit per row */
@@ -2502,6 +2503,13 @@ button:disabled {
     padding: 0.3rem 0.45rem;
     font-size: 0.78rem;
     border-radius: 8px;
+  }
+
+  /* Stat action buttons: slightly smaller font to prevent word-wrap
+     on long labels like "Their Miss" in the Terminal Serves card */
+  .actions button {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.3rem;
   }
 
   /* -- Snapshot / bottom bar ------------------------------ */
@@ -2613,88 +2621,112 @@ button:disabled {
 
   #rotOursPanel, #rotTheirsPanel { flex: 0 0 auto; }
 
-  /* Metadata panel: 3-row flex column (same as portrait) */
+  /* ---- Metadata panel: jersey + last on same line, codes below ---- */
   .metadata-panel {
     display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.3rem;
     padding: 0.3rem 0.4rem;
-    align-items: stretch;
+    align-items: center;
   }
 
   .jersey-row {
+    flex: 0 0 auto;
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: 0.3rem;
   }
 
+  /* Last stat: fills remaining space on the same row as jersey */
+  .last-stat-panel {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 0.2rem 0.35rem;
+    gap: 0.35rem;
+  }
+
+  .last-stat-content {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Event codes: force to own row */
   .event-code-btns {
+    flex: 0 0 100%;
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     gap: 0.2rem;
-    flex: none;
   }
-
-  .last-stat-panel {
-    flex-direction: row;
-    justify-content: flex-start;
-    align-items: center;
-    width: 100%;
-    min-width: 0;
-    padding: 0.2rem 0.4rem;
-    gap: 0.4rem;
-  }
-
-  .last-stat-content { flex-wrap: wrap; justify-content: flex-start; }
 
   .ec-btn { padding: 0.25rem 0.4rem; font-size: 0.75rem; }
   .jersey-input { width: 4rem !important; min-width: 0 !important; }
 
-
-  /* All vertex cards: compact */
+  /* ---- Vertex cards: compact ---- */
   .vertex { padding: 0.25rem 0.4rem; }
   .vertex h2 { font-size: 0.75rem; margin: 0; }
   .value { font-size: 1.1rem; margin-top: 0.1rem; }
   .actions { gap: 0.2rem; margin-top: 0.15rem; }
   .actions button { padding: 0.25rem 0.2rem; font-size: 0.72rem; }
 
-  /* ---- Triangle row: explicit 2-col grid ---------------
-     Row 1: SVG triangle (spans both columns, centered)
-     Row 2: First Ball (left)  |  Transition (right)       */
-  .triangle-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.3rem;
-  }
-
-  /* SVG triangle: centered in row 1 at a height tied to viewport */
-  .triangle-center {
-    grid-column: 1 / -1;
-    grid-row: 1;
-    /* Explicit height so the shape doesn't overflow vertically.
-       aspect-ratio from base CSS keeps width proportional (1/0.85). */
-    height: min(30vh, 155px);
-    width: auto;
-    justify-self: center;
-  }
-
-  /* First Ball and Transition side-by-side in row 2 */
-  .vertex.bottom-left  { grid-column: 1; grid-row: 2; transform: none; width: auto; }
-  .vertex.bottom-right { grid-column: 2; grid-row: 2; transform: none; width: auto; }
-
-  /* ---- Rotation panels: compact horizontal strip ------- */
+  /* ---- Rotation panels: title on top, R1-R3 / R4-R6 rows ---- */
   .rotation-panel-card {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.25rem 0.4rem;
+  }
+  .rotation-btns {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.2rem;
+    flex-direction: unset;
+  }
+  .rot-btn { padding: 0.2rem 0.25rem; font-size: 0.7rem; min-width: 1.6rem; }
+
+  /* ---- Triangle row: First Ball | SVG | Transition (side-by-side) ---- */
+  .triangle-row {
+    display: flex;
     flex-direction: row;
     align-items: center;
     gap: 0.3rem;
-    padding: 0.25rem 0.5rem;
   }
-  .rotation-btns { flex-direction: row; gap: 0.2rem; }
-  .rot-btn { padding: 0.2rem 0.2rem; font-size: 0.72rem; min-width: 1.8rem; }
 
-  /* ---- Hide tall panels not needed in landscape -------- */
-  .bottom-bar    { display: none; } /* snapshot table */
-  .event-log-card { display: none; } /* event log */
+  /* First Ball and Transition fill remaining space left/right of SVG */
+  .vertex.bottom-left,
+  .vertex.bottom-right {
+    flex: 1 1 0;
+    min-width: 0;
+    transform: none;
+    width: auto;
+  }
+
+  /* SVG centre: fixed height, width set by aspect-ratio */
+  .triangle-center {
+    flex: 0 0 auto;
+    height: min(26vh, 130px);
+    width: auto;
+    grid-column: unset;
+    grid-row: unset;
+    justify-self: unset;
+  }
+
+  /* Triangle labels: smaller font, pulled inside the shape */
+  .tri-label { font-size: 1rem; }
+  .tri-top   { top: 20%; }
+  .tri-left  { bottom: 16%; left: 28%; }
+  .tri-right { bottom: 16%; right: 28%; }
+
+  /* ---- Snapshot and event log: visible in landscape ---- */
+  .bottom-bar    { display: block; margin-top: 0.5rem; }
+  .event-log-card { display: block; }
 }
