@@ -2624,8 +2624,9 @@ button:disabled {
     min-width: 0;
   }
 
-  /* Center the serves-row content so it doesn't hug the left edge */
+  /* serves-row: larger gap between rotation panels and Terminal Serves */
   .serves-row {
+    gap: 1.5rem;
     justify-content: center;
   }
 
@@ -2688,49 +2689,67 @@ button:disabled {
   .actions { gap: 0.2rem; margin-top: 0.15rem; }
   .actions button { padding: 0.25rem 0.2rem; font-size: 0.72rem; }
 
-  /* ---- Rotation panels: title on top, R1-R3 / R4-R6 rows ---- */
+  /* Rotation panels: same width as Terminal Serves, fill height */
+  #rotOursPanel, #rotTheirsPanel {
+    flex: 0 0 220px;
+    align-self: stretch;
+  }
+
   .rotation-panel-card {
     flex-direction: column;
-    align-items: center;
-    gap: 0.2rem;
-    padding: 0.25rem 0.4rem;
+    align-items: stretch;
+    gap: 0.3rem;
+    padding: 0.4rem 0.5rem;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
   }
+
+  /* 3-col × 2-row grid, fills remaining panel height */
   .rotation-btns {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 0.2rem;
+    grid-template-rows: 1fr 1fr;
+    gap: 0.3rem;
+    flex: 1 1 0;
     flex-direction: unset;
   }
-  .rot-btn { padding: 0.2rem 0.25rem; font-size: 0.7rem; min-width: 1.6rem; }
 
-  /* ---- Triangle row: First Ball | SVG | Transition (side-by-side) ---- */
+  /* Buttons fill their grid cell */
+  .rot-btn {
+    padding: 0.3rem 0.2rem;
+    font-size: 0.85rem;
+    min-width: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ---- Triangle row: First Ball | SVG | Transition ---- */
   .triangle-row {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 0.3rem;
+    justify-content: center;
+    gap: 0.5rem;
   }
 
-  /* First Ball and Transition: don't grow, stay portrait-like width */
+  /* Center the triangle row and remove the duplicate justify-content rule */
   .vertex.bottom-left,
   .vertex.bottom-right {
     flex: 0 0 auto;
     width: auto;
-    max-width: 180px;
-    min-width: 0;
+    max-width: 160px;
+    min-width: 110px;
     transform: none;
   }
 
-  /* Center the triangle row too */
-  .triangle-row {
-    justify-content: center;
-  }
-
-  /* SVG centre: fixed height, width set by aspect-ratio */
+  /* SVG centre: fix margin:auto (from base CSS) which would push vertex cards
+     to the screen edges in flex context; also size it proportionally */
   .triangle-center {
     flex: 0 0 auto;
-    height: min(26vh, 130px);
+    height: min(28vh, 140px);
     width: auto;
+    margin: 0;          /* override base "margin: 0 auto" — critical fix */
     grid-column: unset;
     grid-row: unset;
     justify-self: unset;

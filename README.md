@@ -19,6 +19,8 @@ Works on desktop and iPad/iPhone. No install required — open the link in any m
 
 > **Note for iPad/iPhone users:** Use the link above. Opening `index.html` as a local file on iOS is not supported due to browser storage restrictions.
 
+> **Not seeing recent changes?** Your browser may be serving a cached version of the page. Clear your browser cache and reload to pick up the latest updates. On iPhone/iPad: go to **Settings → Safari → Clear History and Website Data**, then reopen the link. On desktop: press **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac) to force a hard reload.
+
 ## Screenshots
 
 | Stats | Reports | Setup |
