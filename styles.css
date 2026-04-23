@@ -2550,22 +2550,25 @@ button:disabled {
   .nav-btn:first-of-type { margin-left: 0; }
   .storage-banner { top: 2.3rem; }
 
-  /* ---- Page -------------------------------------------- */
+  /* ---- Page: bounded to viewport so stats-layout can scroll internally ---- */
   .page {
     padding-top: 2.4rem;
+    padding-bottom: 0;
     width: 96vw;
+    height: 100vh; /* fallback */
+    height: 100dvh;
+    overflow: hidden;
+    box-sizing: border-box;
   }
 
-  /* ---- Stats page: flex column —
-     Row 1: control panel (compact full-width top bar)
-     Row 2: stats layout (scrollable, fills remaining height) */
+  /* ---- Stats page: fills the padded page area and clips overflow
+     so only stats-layout scrolls, not the page itself ----------- */
   .stats-page {
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 0.4rem;
-    height: calc(100vh - 2.5rem); /* fallback */
-    height: calc(100dvh - 2.5rem);
+    height: 100%;
     overflow: hidden;
   }
 
