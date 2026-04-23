@@ -6,6 +6,24 @@
 
 "use strict";
 
+// ---- Compatibility polyfills ------------------------------
+
+// crypto.randomUUID — available since Safari 15.4; polyfill for older iPadOS
+if (typeof crypto !== "undefined" && typeof crypto.randomUUID !== "function") {
+  crypto.randomUUID = function () {
+    var bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    var hex = Array.from(bytes).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+    return hex.slice(0,8)+"-"+hex.slice(8,12)+"-"+hex.slice(12,16)+"-"+hex.slice(16,20)+"-"+hex.slice(20);
+  };
+}
+
+// iOS/iPadOS detection — iPad Pro reports as MacIntel + maxTouchPoints > 1
+var _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
 // ---- Stat Keys & Constants --------------------------------
 
 const STAT_KEYS = [
@@ -285,9 +303,43 @@ const DEFAULT_EVENT_CODES = [
   { code: "Penalty", abbr: "Pn",   label: "Penalty",         cat: "miss", order: 9 },
 ];
 
+// Show a persistent error banner (called when storage is unavailable)
+var _storageErrorShown = false;
+function showStorageError(msg) {
+  if (_storageErrorShown) return;
+  _storageErrorShown = true;
+  var banner = document.getElementById("storageBanner");
+  if (banner) {
+    banner.textContent = msg;
+    banner.removeAttribute("hidden");
+  }
+}
+
 function openDatabase() {
   return new Promise(function (resolve, reject) {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    // Guard: IndexedDB is blocked in Safari when the file is opened directly
+    // from the filesystem (file:// protocol). Users must serve it via HTTP(S).
+    if (typeof indexedDB === "undefined" || !indexedDB) {
+      showStorageError(
+        "\u26a0\ufe0f Storage unavailable \u2014 This app requires a web server to run on " +
+        "iPad/iPhone. Open it from a hosted URL (e.g. GitHub Pages) instead of " +
+        "as a local file. Desktop Chrome/Firefox/Edge can open it directly."
+      );
+      reject(new Error("IndexedDB unavailable"));
+      return;
+    }
+    var request;
+    try {
+      request = indexedDB.open(DB_NAME, DB_VERSION);
+    } catch (e) {
+      showStorageError(
+        "\u26a0\ufe0f Storage unavailable \u2014 This app requires a web server to run on " +
+        "iPad/iPhone. Open it from a hosted URL (e.g. GitHub Pages) instead of " +
+        "as a local file. Desktop Chrome/Firefox/Edge can open it directly."
+      );
+      reject(e);
+      return;
+    }
     request.onupgradeneeded = function (e) {
       const db = request.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -313,7 +365,14 @@ function openDatabase() {
       }
     };
     request.onsuccess = function () { resolve(request.result); };
-    request.onerror = function () { reject(request.error || new Error("Failed to open IndexedDB")); };
+    request.onerror = function () {
+      showStorageError(
+        "\u26a0\ufe0f Storage unavailable \u2014 This app requires a web server to run on " +
+        "iPad/iPhone. Open it from a hosted URL (e.g. GitHub Pages) instead of " +
+        "as a local file. Desktop Chrome/Firefox/Edge can open it directly."
+      );
+      reject(request.error || new Error("Failed to open IndexedDB"));
+    };
   });
 }
 
@@ -560,13 +619,22 @@ const controller = {
 // ---- UI Wiring --------------------------------------------
 
 function downloadText(filename, content, mimeType) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  var blob = new Blob([content], { type: mimeType });
+  var url = URL.createObjectURL(blob);
+  if (_isIOS) {
+    // iOS Safari ignores the download attribute on anchors; open in a new tab
+    // so the user can long-press → Save / Share the file.
+    window.open(url, "_blank");
+    setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+  } else {
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 }
 
 function matchFilename(name, matchDate, ext) {
@@ -3570,7 +3638,7 @@ document.addEventListener("DOMContentLoaded", function () {
     for (var i = 0; i < matches.length; i++) {
       var record = await dbLoadMatch(matches[i].matchId);
       if (record) {
-        var st = deriveMatchState(record.events, record.matchFormat, record.totalSets, record.matchName);
+        var st = deriveMatchState({ events: record.events, cursor: record.cursor });
         if (st && !st.endedAt) {
           controller.hydrate(record);
           renderState();

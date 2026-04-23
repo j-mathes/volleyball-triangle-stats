@@ -1421,6 +1421,21 @@ button:disabled {
   color: #fff;
 }
 
+.storage-banner {
+  position: fixed;
+  top: 3.4rem;
+  left: 0;
+  right: 0;
+  background: #b91c1c;
+  color: #fff;
+  padding: 0.85rem 1.5rem;
+  text-align: center;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.5;
+  z-index: 98;
+}
+
 .nav-readme {
   color: rgba(255, 255, 255, 0.6);
   text-decoration: none;

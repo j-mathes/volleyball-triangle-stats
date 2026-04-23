@@ -11,7 +11,13 @@ It gives coaches a fast triage view of where sets are being won or lost.
 
 Read Joe's original write-up at [Smarter Volley: The Triangle](https://smartervolley.substack.com/p/thetriangle).
 
-No install process is required. Open `index.html` in a modern browser.
+## Live App
+
+**[https://j-mathes.github.io/volleyball-triangle-stats/](https://j-mathes.github.io/volleyball-triangle-stats/)**
+
+Works on desktop and iPad/iPhone. No install required — open the link in any modern browser.
+
+> **Note for iPad/iPhone users:** Use the link above. Opening `index.html` as a local file on iOS is not supported due to browser storage restrictions.
 
 ## Screenshots
 
