@@ -2555,21 +2555,14 @@ button:disabled {
     padding-top: 2.4rem;
     padding-bottom: 0;
     width: 96vw;
-    height: 100vh; /* fallback */
-    height: 100dvh;
-    overflow: hidden;
-    box-sizing: border-box;
   }
 
-  /* ---- Stats page: fills the padded page area and clips overflow
-     so only stats-layout scrolls, not the page itself ----------- */
+  /* ---- Stats page: normal flex column, page scrolls naturally ---- */
   .stats-page {
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 0.4rem;
-    height: 100%;
-    overflow: hidden;
   }
 
   /* ---- Control panel: compact 2-row top bar ------------ */
@@ -2605,14 +2598,11 @@ button:disabled {
   }
   .reset-group { flex: 0 0 auto; }
 
-  /* ---- Stats layout: scrollable column below control bar --
-     Flex column: metadata → serves-row → triangle.
-     The serves-row wrapper handles rotation panel placement. */
+  /* ---- Stats layout: normal flex column, no internal scroll ---- */
   .stats-layout {
-    flex: 1 1 0;
+    flex: 1 1 auto;
     min-width: 0;
     margin-top: 0;
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
