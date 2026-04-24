@@ -2438,24 +2438,32 @@ function renderTallySheet(output, record, state, opponent) {
   });
   html += '</tr></tbody></table>';
 
-  // Legend
+  // Legend — two columns: left = column header key, right = event codes + cell indicators
   html += '<div class="tally-legend">';
+  html += '<div class="tally-legend-cols">';
+
+  // Left column: Column Header Key
+  html += '<div>';
   html += '<div class="tally-legend-title">Column Header Key</div>';
   html += '<dl class="tally-legend-dl">';
   html += '<dt>Terminal Serves</dt><dd>Points decided directly by the serve (aces &amp; service errors)</dd>';
   html += '<dt>First Ball Points</dt><dd>Points decided on the first contact after the serve</dd>';
   html += '<dt>Transition Points</dt><dd>Points decided during continuing rally play</dd>';
   html += '<dt>Us / Opponent</dt><dd>Which team earned or gave away the point</dd>';
-  html += '<dt>Ace</dt><dd>Serve ace — serve scores a point directly</dd>';
-  html += '<dt>Miss</dt><dd>Service error — point given to the opponent</dd>';
+  html += '<dt>Ace</dt><dd>Serve ace \u2014 serve scores a point directly</dd>';
+  html += '<dt>Miss</dt><dd>Service error \u2014 point given to the opponent</dd>';
   html += '<dt>Kill</dt><dd>Attack or play that earned a point</dd>';
   html += '<dt>Stop</dt><dd>Block or opponent error that earned a point</dd>';
   html += '</dl>';
+  html += '</div>';
+
+  // Right column: Event codes + Cell indicators
+  html += '<div>';
   var _usedCodes = {};
   events.forEach(function (e) { if (e.eventCode) _usedCodes[e.eventCode] = true; });
   var _usedCodeList = Object.keys(_usedCodes);
   if (_usedCodeList.length) {
-    html += '<div class="tally-legend-section">Event codes</div>';
+    html += '<div class="tally-legend-title">Event Codes</div>';
     html += '<dl class="tally-legend-dl">';
     _usedCodeList.forEach(function (code) {
       var ec = userEventCodes.find(function (e) { return e.code === code; });
@@ -2468,9 +2476,12 @@ function renderTallySheet(output, record, state, opponent) {
   html += '<dt>&#x2713;</dt><dd>Stat recorded with no detail</dd>';
   html += '<dt>#N</dt><dd>Jersey number of the player involved</dd>';
   html += '<dt>code</dt><dd>Abbreviated event code</dd>';
-  html += '<dt>RN</dt><dd>Our rotation number (1–6) when the point was scored</dd>';
+  html += '<dt>RN</dt><dd>Our rotation number (1\u20136) when the point was scored</dd>';
   html += '</dl>';
   html += '</div>';
+
+  html += '</div>'; // end tally-legend-cols
+  html += '</div>'; // end tally-legend
 
   html += '</div>';
   output.innerHTML = html;
@@ -2532,6 +2543,9 @@ function renderTallyChart(output, record, state, opponent) {
   html += matchInfoBanner(state, record, opponent);
   html += reportTitle('Tally Chart');
   html += '<p class="chart-hint">Each block = one recorded event, colored by set. Click a set in the legend to show/hide. Hover a block for details.</p>';
+  html += '<div class="tc-mode-bar">';
+  html += '<button class="chart-toggle active" id="tcModeBtn" data-mode="tip">&#128065; Hover tooltips</button>';
+  html += '</div>';
 
   // ---- Header grid (3 rows: group / team / stat) ----
   html += '<div class="tc-header-grid">';
@@ -2571,7 +2585,7 @@ function renderTallyChart(output, record, state, opponent) {
       if (entry) {
         var si = setIndexMap[entry.setNumber] !== undefined ? setIndexMap[entry.setNumber] : 0;
         var color = SET_COLORS[si % SET_COLORS.length];
-        var fill   = isOpp ? hexToRgba(color, 0.18) : hexToRgba(color, 0.62);
+        var fill   = isOpp ? hexToRgba(color, 0.28) : hexToRgba(color, 0.62);
         var border = isOpp ? hexToRgba(color, 0.45)  : color;
         var tipParts = [];
         if (entry.jersey)    tipParts.push("#" + entry.jersey);
@@ -2601,8 +2615,12 @@ function renderTallyChart(output, record, state, opponent) {
   });
   html += '</div>';
 
-  // Column header key + event code legend
+  // Column header key + event code legend — two columns
   html += '<div class="tally-legend" style="margin-top:0.75rem">';
+  html += '<div class="tally-legend-cols">';
+
+  // Left column: Column Header Key
+  html += '<div>';
   html += '<div class="tally-legend-title">Column Header Key</div>';
   html += '<dl class="tally-legend-dl">';
   html += '<dt>Terminal Serves</dt><dd>Points decided directly by the serve (aces &amp; service errors)</dd>';
@@ -2614,11 +2632,15 @@ function renderTallyChart(output, record, state, opponent) {
   html += '<dt>Kill</dt><dd>Attack or play that earned a point</dd>';
   html += '<dt>Stop</dt><dd>Block or opponent error that earned a point</dd>';
   html += '</dl>';
+  html += '</div>';
+
+  // Right column: Event codes (only if any were used)
   var usedCodes = {};
   events.forEach(function (e) { if (e.eventCode) usedCodes[e.eventCode] = true; });
   var usedCodeList = Object.keys(usedCodes);
+  html += '<div>';
   if (usedCodeList.length) {
-    html += '<div class="tally-legend-section">Event Codes</div>';
+    html += '<div class="tally-legend-title">Event Codes</div>';
     html += '<dl class="tally-legend-dl">';
     usedCodeList.forEach(function (code) {
       var ec = userEventCodes.find(function (e) { return e.code === code; });
@@ -2626,6 +2648,9 @@ function renderTallyChart(output, record, state, opponent) {
     });
     html += '</dl>';
   }
+  html += '</div>';
+
+  html += '</div>'; // end tally-legend-cols
   html += '</div>';
 
   html += '</div>'; // end tc-wrap
@@ -2674,7 +2699,7 @@ function renderTallyChart(output, record, state, opponent) {
         if (entry) {
           var si = setIndexMap[entry.setNumber] !== undefined ? setIndexMap[entry.setNumber] : 0;
           var color = SET_COLORS[si % SET_COLORS.length];
-          var fill   = isOpp ? hexToRgba(color, 0.18) : hexToRgba(color, 0.62);
+          var fill   = isOpp ? hexToRgba(color, 0.28) : hexToRgba(color, 0.62);
           var border = isOpp ? hexToRgba(color, 0.45)  : color;
           var tipParts = [];
           if (entry.jersey)    tipParts.push("#" + entry.jersey);
@@ -2700,6 +2725,16 @@ function renderTallyChart(output, record, state, opponent) {
     });
     output.querySelector('.tc-data-grid').innerHTML = buildGridHtml(visibleColumns);
     updateTriangle();
+  }
+
+  // Wire mode toggle button
+  var modeBtn = output.querySelector('#tcModeBtn');
+  if (modeBtn) {
+    modeBtn.addEventListener('click', function () {
+      var wrap = output.querySelector('.tc-wrap');
+      var inline = wrap.classList.toggle('tc-inline-labels');
+      modeBtn.textContent = inline ? '\u2261 Labels in blocks' : '\uD83D\uDC41 Hover tooltips';
+    });
   }
 
   output.querySelectorAll('.tc-legend-btn').forEach(function (btn) {

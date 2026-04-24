@@ -726,6 +726,20 @@ body {
   font-size: 0.82rem;
 }
 
+/* Two-column layout inside .tally-legend: left col = header key, right col = event codes */
+.tally-legend-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 59fr) minmax(0, 41fr);
+  gap: 0 2rem;
+  align-items: start;
+}
+
+@media (max-width: 600px) {
+  .tally-legend-cols {
+    grid-template-columns: 1fr;
+  }
+}
+
 .tally-legend-title {
   font-weight: 700;
   font-size: 0.8rem;
@@ -771,6 +785,8 @@ body {
 
 .tc-wrap {
   overflow-x: auto;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 
 /* 13-column grid: 1 label col + 12 data cols */
@@ -947,6 +963,55 @@ body {
 
 .tc-cell:hover .tc-tip {
   display: block;
+}
+
+/* ---- Mode toggle bar ---- */
+.tc-mode-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ---- Inline-labels mode (class toggled on .tc-wrap) ----
+   The .tc-tip becomes an always-visible in-block label instead of a hover popover. */
+.tc-wrap.tc-inline-labels .tc-cell:hover .tc-tip {
+  /* suppress popover hover trigger — inline mode handles display itself */
+}
+.tc-wrap.tc-inline-labels .tc-cell .tc-tip {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  inset: 0;
+  bottom: 0;
+  left: 1px;
+  right: 1px;
+  top: 0;
+  transform: none;
+  background: none;
+  color: rgba(0,0,0,0.85);
+  font-size: 0.58rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 2px;
+  box-shadow: none;
+  border-radius: 0;
+  pointer-events: none;
+  z-index: 2;
+  text-align: center;
+}
+.tc-wrap.tc-inline-labels .tc-cell .tc-tip::after {
+  display: none;
+}
+/* Suppress tooltip on empty cells in inline mode */
+.tc-wrap.tc-inline-labels .tc-cell.tc-empty .tc-tip {
+  display: none !important;
+}
+/* Slightly taller cells in inline mode so text has room */
+.tc-wrap.tc-inline-labels .tc-cell:not(.tc-empty) {
+  min-height: 1.9rem;
 }
 
 /* Rows near the bottom of the grid: flip tooltip above → below */
@@ -1178,6 +1243,22 @@ body {
     border: none;
     padding: 0;
     box-shadow: none;
+  }
+
+  /* Force block fill colors and borders to print.
+     Browsers suppress backgrounds by default; these properties
+     override that for the tally chart grid cells. */
+  .tc-cell,
+  .tc-cell:not(.tc-empty),
+  .tc-empty,
+  .tc-row-num,
+  .tc-hdr-group,
+  .tc-hdr-team,
+  .tc-hdr-us,
+  .tc-hdr-opp,
+  .tc-hdr-stat {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }
 
