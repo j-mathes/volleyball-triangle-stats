@@ -980,6 +980,14 @@ button:hover:not(:disabled) {
   transform: translateY(-1px);
 }
 
+/* Prevent double-tap zoom / 300ms delay on other tappable elements on iOS */
+summary,
+.picker-season-header,
+.picker-event-header,
+.opponent-name {
+  touch-action: manipulation;
+}
+
 button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
