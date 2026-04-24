@@ -692,7 +692,8 @@ function stepSets(direction) {
       cfgSetsValue = next;
     }
   }
-  $("cfgTotalSets").textContent = cfgSetsValue;
+  $('cfgTotalSets').textContent = cfgSetsValue;
+  renderSetColorPickers();
 }
 
 function stepLockTime(direction) {
@@ -713,6 +714,40 @@ function syncSetsToFormat() {
     if (cfgSetsValue > 1 && cfgSetsValue % 2 !== 0) cfgSetsValue = cfgSetsValue - 1;
   }
   $("cfgTotalSets").textContent = cfgSetsValue;
+  renderSetColorPickers();
+}
+
+// Dynamically render Set Color pickers in App Settings to match the current number of sets.
+// Also re-wires their event listeners (since it replaces innerHTML).
+// Safe to call any time after DOM ready.
+function renderSetColorPickers() {
+  var container = $("setColorPickersContainer");
+  if (!container) return;
+  var count = cfgSetsValue;
+  var html = "";
+  for (var i = 0; i < count; i++) {
+    // Read any saved value from localStorage into SET_COLORS
+    var saved = localStorage.getItem("setColor_" + i);
+    if (saved) SET_COLORS[i] = saved;
+    // Cycle through the pool for sets beyond its length
+    var color = SET_COLORS[i % SET_COLORS.length];
+    html += '<div class="color-picker-row">';
+    html += '<label for="cfgSetColor' + i + '">Set ' + (i + 1) + '</label>';
+    html += '<input type="color" id="cfgSetColor' + i + '" value="' + color + '" class="highlight-color-input">';
+    html += '</div>';
+  }
+  container.innerHTML = html;
+  // Re-wire listeners (innerHTML replaced previous ones)
+  for (var j = 0; j < count; j++) {
+    (function (i) {
+      var el = $("cfgSetColor" + i);
+      if (!el) return;
+      el.addEventListener("input", function () {
+        SET_COLORS[i] = el.value;
+        localStorage.setItem("setColor_" + i, el.value);
+      });
+    })(j);
+  }
 }
 
 // ---- Snapshot rendering (reusable) ----
@@ -2114,7 +2149,21 @@ function buildLoadedFilesTree() {
 
 // Set colors used by charts — lifted to global so Momentum and Tally Chart share the same values
 // and so App Settings color pickers can update them live.
-var SET_COLORS = ["#3b82f6", "#ef4444", "#22c55e", "#a855f7", "#f59e0b"];
+// 12 defaults cover practical maximums; renderSetColorPickers() shows only cfgSetsValue of them.
+var SET_COLORS = [
+  "#3b82f6", // Set 1 — blue
+  "#22c55e", // Set 2 — green
+  "#f97316", // Set 3 — orange
+  "#a855f7", // Set 4 — purple
+  "#ef4444", // Set 5 — red
+  "#06b6d4", // Set 6 — cyan
+  "#eab308", // Set 7 — yellow
+  "#ec4899", // Set 8 — pink
+  "#14b8a6", // Set 9 — teal
+  "#f43f5e", // Set 10 — rose
+  "#8b5cf6", // Set 11 — violet
+  "#84cc16", // Set 12 — lime
+];
 
 // Determine which reports are available for the current scope+selection
 var SINGLE_REPORTS = ["tallySheet", "tallyChart", "matchSummary", "matchLog", "momentum", "setFlow", "errorBreakdown", "playerStats", "rotationPerf"];
@@ -2402,12 +2451,18 @@ function renderTallySheet(output, record, state, opponent) {
   html += '<dt>Kill</dt><dd>Attack or play that earned a point</dd>';
   html += '<dt>Stop</dt><dd>Block or opponent error that earned a point</dd>';
   html += '</dl>';
-  html += '<div class="tally-legend-section">Event codes</div>';
-  html += '<dl class="tally-legend-dl">';
-  userEventCodes.forEach(function (ec) {
-    html += '<dt>' + escHtml(ec.abbr) + '</dt><dd>' + escHtml(ec.label || ec.code) + '</dd>';
-  });
-  html += '</dl>';
+  var _usedCodes = {};
+  events.forEach(function (e) { if (e.eventCode) _usedCodes[e.eventCode] = true; });
+  var _usedCodeList = Object.keys(_usedCodes);
+  if (_usedCodeList.length) {
+    html += '<div class="tally-legend-section">Event codes</div>';
+    html += '<dl class="tally-legend-dl">';
+    _usedCodeList.forEach(function (code) {
+      var ec = userEventCodes.find(function (e) { return e.code === code; });
+      if (ec) html += '<dt>' + escHtml(ec.abbr) + '</dt><dd>' + escHtml(ec.label || ec.code) + '</dd>';
+    });
+    html += '</dl>';
+  }
   html += '<div class="tally-legend-section">Cell indicators</div>';
   html += '<dl class="tally-legend-dl">';
   html += '<dt>&#x2713;</dt><dd>Stat recorded with no detail</dd>';
@@ -2429,18 +2484,20 @@ function renderTallyChart(output, record, state, opponent) {
 
   var setNumbers = state.sets.map(function (s) { return s.setNumber; });
 
-  // Build EC abbreviation lookup
   var _EC_ABBR = {};
   userEventCodes.forEach(function (ec) { _EC_ABBR[ec.code] = ec.abbr; });
 
-  // Same column order as tally sheet
   var allKeys = [
     "usAces", "usMisses", "opponentAces", "opponentMisses",
     "firstBallUsKills", "firstBallUsStops", "firstBallOpponentKills", "firstBallOpponentStops",
     "transitionUsKills", "transitionUsStops", "transitionOpponentKills", "transitionOpponentStops",
   ];
 
-  // Bucket: buckets[statKey][setNumber] = [{jersey, eventCode, rotation}]
+  // Column classification (0-indexed within allKeys)
+  var OPP_COLS     = { 2:1, 3:1, 6:1, 7:1, 10:1, 11:1 }; // opponent columns get grey tint
+  var CAT_SEP_COLS = { 4:1, 8:1 };                         // thick left border — new major group
+  var TEAM_SEP_COLS = { 2:1, 6:1, 10:1 };                  // medium left border — Us→Opp boundary
+
   var buckets = {};
   allKeys.forEach(function (k) { buckets[k] = {}; });
   events.forEach(function (e) {
@@ -2451,118 +2508,213 @@ function renderTallyChart(output, record, state, opponent) {
     buckets[e.stat][e.setNumber].push({ jersey: e.jersey || null, eventCode: e.eventCode || null, rotation: rotation, setNumber: e.setNumber });
   });
 
-  // Flatten each column into a single ordered list (set 1 first, then set 2, etc.)
-  // columns[keyIndex] = [{jersey, eventCode, rotation, setNumber}, ...]
   var columns = allKeys.map(function (k) {
     var col = [];
     setNumbers.forEach(function (sn) { (buckets[k][sn] || []).forEach(function (e) { col.push(e); }); });
     return col;
   });
 
-  // Max rows = max column length
   var maxRows = 0;
   columns.forEach(function (col) { maxRows = Math.max(maxRows, col.length); });
   if (maxRows === 0) { output.innerHTML = '<p class="report-placeholder">No stats recorded yet.</p>'; return; }
 
-  // Helper: convert hex to rgba string
+  // Color helpers
   function hexToRgba(hex, alpha) {
     var r = parseInt(hex.slice(1, 3), 16);
     var g = parseInt(hex.slice(3, 5), 16);
     var b = parseInt(hex.slice(5, 7), 16);
     return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
   }
-
-  // Set index lookup: setNumber → si (0-based)
   var setIndexMap = {};
   setNumbers.forEach(function (sn, si) { setIndexMap[sn] = si; });
 
   var html = '<div class="tc-wrap">';
   html += matchInfoBanner(state, record, opponent);
   html += reportTitle('Tally Chart');
-  html += '<p class="chart-hint">Each block represents one recorded event. Blocks are colored by set. Hover a block for details.</p>';
+  html += '<p class="chart-hint">Each block = one recorded event, colored by set. Click a set in the legend to show/hide. Hover a block for details.</p>';
 
   // ---- Header grid (3 rows: group / team / stat) ----
-  // 1 label col + 12 data cols
   html += '<div class="tc-header-grid">';
-  // Row 1: Y-axis spacer + group spans
+  // Row 1: spacer + group spans
   html += '<div class="tc-hdr-spacer tc-hdr-row1"></div>';
-  html += '<div class="tc-hdr-group tc-span4" style="grid-column:2/6;grid-row:1">Terminal Serves</div>';
-  html += '<div class="tc-hdr-group tc-span4" style="grid-column:6/10;grid-row:1">First Ball Points</div>';
-  html += '<div class="tc-hdr-group tc-span4" style="grid-column:10/14;grid-row:1">Transition Points</div>';
-  // Row 2: Us / Opponent per group
+  html += '<div class="tc-hdr-group" style="grid-column:2/6;grid-row:1">Terminal Serves</div>';
+  html += '<div class="tc-hdr-group tc-cat-sep-hdr" style="grid-column:6/10;grid-row:1">First Ball Points</div>';
+  html += '<div class="tc-hdr-group tc-cat-sep-hdr" style="grid-column:10/14;grid-row:1">Transition Points</div>';
+  // Row 2: Us / Opponent
   html += '<div class="tc-hdr-spacer tc-hdr-row2"></div>';
-  // 3 groups × 2 teams
-  ["Terminal Serves","First Ball Points","Transition Points"].forEach(function (g, gi) {
+  ["Terminal Serves", "First Ball Points", "Transition Points"].forEach(function (g, gi) {
     var base = 2 + gi * 4;
-    html += '<div class="tc-hdr-team tc-hdr-us" style="grid-column:' + base + '/' + (base + 2) + ';grid-row:2">Us</div>';
-    html += '<div class="tc-hdr-team tc-hdr-opp" style="grid-column:' + (base + 2) + '/' + (base + 4) + ';grid-row:2">Opp</div>';
+    var usExtra = gi > 0 ? " tc-cat-sep" : "";
+    html += '<div class="tc-hdr-team tc-hdr-us' + usExtra + '" style="grid-column:' + base + '/' + (base + 2) + ';grid-row:2">Us</div>';
+    html += '<div class="tc-hdr-team tc-hdr-opp tc-team-sep" style="grid-column:' + (base + 2) + '/' + (base + 4) + ';grid-row:2">Opp</div>';
   });
-  // Row 3: individual stat labels
+  // Row 3: stat labels
   html += '<div class="tc-hdr-spacer tc-hdr-row3"></div>';
   var statLabels = ["Ace","Miss","Ace","Miss","Kill","Stop","Kill","Stop","Kill","Stop","Kill","Stop"];
   statLabels.forEach(function (lbl, i) {
-    html += '<div class="tc-hdr-stat" style="grid-column:' + (i + 2) + ';grid-row:3">' + lbl + '</div>';
+    var sepClass = CAT_SEP_COLS[i] ? " tc-cat-sep" : (TEAM_SEP_COLS[i] ? " tc-team-sep" : "");
+    html += '<div class="tc-hdr-stat' + sepClass + '" style="grid-column:' + (i + 2) + ';grid-row:3">' + lbl + '</div>';
   });
   html += '</div>'; // end tc-header-grid
 
   // ---- Data grid ----
   html += '<div class="tc-data-grid">';
   for (var r = 0; r < maxRows; r++) {
-    // Y-axis row number
     html += '<div class="tc-row-num">' + (r + 1) + '</div>';
-    // 12 data cells
-    columns.forEach(function (col) {
+    columns.forEach(function (col, colIdx) {
+      var isCatSep  = !!CAT_SEP_COLS[colIdx];
+      var isTeamSep = !!TEAM_SEP_COLS[colIdx];
+      var isOpp     = !!OPP_COLS[colIdx];
+      var sepClass  = isCatSep ? " tc-cat-sep" : (isTeamSep ? " tc-team-sep" : "");
+      var oppClass  = isOpp ? " tc-opp-cell" : "";
       var entry = col[r];
       if (entry) {
         var si = setIndexMap[entry.setNumber] !== undefined ? setIndexMap[entry.setNumber] : 0;
         var color = SET_COLORS[si % SET_COLORS.length];
-        var fill = hexToRgba(color, 0.35);
-        var border = color;
-        // Build tooltip content
-        var tipParts = ["Set " + entry.setNumber];
-        if (entry.jersey) tipParts.push("#" + entry.jersey);
+        var fill   = isOpp ? hexToRgba(color, 0.18) : hexToRgba(color, 0.62);
+        var border = isOpp ? hexToRgba(color, 0.45)  : color;
+        var tipParts = [];
+        if (entry.jersey)    tipParts.push("#" + entry.jersey);
         if (entry.eventCode) tipParts.push(_EC_ABBR[entry.eventCode] || entry.eventCode);
-        if (entry.rotation) tipParts.push("R" + entry.rotation);
-        var tipText = tipParts.join(" \u00b7 ");
-        html += '<div class="tc-cell" style="background:' + fill + ';border-color:' + border + '" aria-label="' + escHtml(tipText) + '">';
+        if (entry.rotation)  tipParts.push("R" + entry.rotation);
+        var tipText = tipParts.length ? tipParts.join(" \u00b7 ") : "Set " + entry.setNumber;
+        html += '<div class="tc-cell' + sepClass + oppClass + '" data-set-block="' + entry.setNumber + '"' +
+                ' style="background:' + fill + ';border-color:' + border + '"' +
+                ' aria-label="' + escHtml(tipText) + '">';
         html += '<div class="tc-tip">' + escHtml(tipText) + '</div>';
         html += '</div>';
       } else {
-        html += '<div class="tc-cell tc-empty"></div>';
+        html += '<div class="tc-cell tc-empty' + sepClass + oppClass + '"></div>';
       }
     });
   }
   html += '</div>'; // end tc-data-grid
 
-  // ---- Legend ----
+  // ---- Legend (clickable toggle buttons) ----
   html += '<div class="tc-legend">';
-  // Set color swatches
   setNumbers.forEach(function (sn, si) {
     var color = SET_COLORS[si % SET_COLORS.length];
-    html += '<div class="tc-legend-item">';
-    html += '<span class="tc-legend-swatch" style="background:' + hexToRgba(color, 0.35) + ';border-color:' + color + '"></span>';
-    html += '<span class="tc-legend-label">Set ' + sn + '</span>';
-    html += '</div>';
+    html += '<button class="tc-legend-btn" data-tc-set="' + sn + '">';
+    html += '<span class="tc-legend-swatch" style="background:' + hexToRgba(color, 0.45) + ';border-color:' + color + '"></span>';
+    html += '<span>Set ' + sn + '</span>';
+    html += '</button>';
   });
   html += '</div>';
 
-  // Event code legend (if any event codes used in this match)
+  // Column header key + event code legend
+  html += '<div class="tally-legend" style="margin-top:0.75rem">';
+  html += '<div class="tally-legend-title">Column Header Key</div>';
+  html += '<dl class="tally-legend-dl">';
+  html += '<dt>Terminal Serves</dt><dd>Points decided directly by the serve (aces &amp; service errors)</dd>';
+  html += '<dt>First Ball Points</dt><dd>Points decided on the first contact after the serve</dd>';
+  html += '<dt>Transition Points</dt><dd>Points decided during continuing rally play</dd>';
+  html += '<dt>Us / Opponent</dt><dd>Which team earned or gave away the point</dd>';
+  html += '<dt>Ace</dt><dd>Serve ace \u2014 serve scores a point directly</dd>';
+  html += '<dt>Miss</dt><dd>Service error \u2014 point given to the opponent</dd>';
+  html += '<dt>Kill</dt><dd>Attack or play that earned a point</dd>';
+  html += '<dt>Stop</dt><dd>Block or opponent error that earned a point</dd>';
+  html += '</dl>';
   var usedCodes = {};
   events.forEach(function (e) { if (e.eventCode) usedCodes[e.eventCode] = true; });
   var usedCodeList = Object.keys(usedCodes);
   if (usedCodeList.length) {
-    html += '<div class="tally-legend" style="margin-top:0.5rem">';
     html += '<div class="tally-legend-section">Event Codes</div>';
     html += '<dl class="tally-legend-dl">';
     usedCodeList.forEach(function (code) {
       var ec = userEventCodes.find(function (e) { return e.code === code; });
       html += '<dt>' + escHtml(_EC_ABBR[code] || code) + '</dt><dd>' + escHtml(ec ? (ec.label || ec.code) : code) + '</dd>';
     });
-    html += '</dl></div>';
+    html += '</dl>';
   }
+  html += '</div>';
 
   html += '</div>'; // end tc-wrap
   output.innerHTML = html;
+
+  // Wire legend toggle buttons — rebuild grid so visible blocks move up
+  var hiddenSets = {};
+
+  function computeTriStats() {
+    var ts = 0, fb = 0, tr = 0;
+    state.sets.forEach(function (set) {
+      if (!hiddenSets[set.setNumber]) {
+        ts += set.terminalServes;
+        fb += set.firstBallPoints;
+        tr += set.transitionPoints;
+      }
+    });
+    return { ts: ts, fb: fb, tr: tr };
+  }
+
+  function updateTriangle() {
+    var t = computeTriStats();
+    var triEl = output.querySelector('.report-mini-tri');
+    if (!triEl) return;
+    var tmp = document.createElement('div');
+    tmp.innerHTML = miniTriangleSvg(t.ts, t.fb, t.tr);
+    triEl.parentNode.replaceChild(tmp.firstChild, triEl);
+  }
+
+  function buildGridHtml(visibleColumns) {
+    var visMaxRows = 0;
+    visibleColumns.forEach(function (col) { visMaxRows = Math.max(visMaxRows, col.length); });
+    if (visMaxRows === 0) {
+      return '<div style="grid-column:1/-1;padding:0.75rem;text-align:center;color:rgba(0,0,0,0.35);font-size:0.85rem;font-style:italic">All sets hidden</div>';
+    }
+    var gHtml = '';
+    for (var gr = 0; gr < visMaxRows; gr++) {
+      gHtml += '<div class="tc-row-num">' + (gr + 1) + '</div>';
+      visibleColumns.forEach(function (col, colIdx) {
+        var isCatSep  = !!CAT_SEP_COLS[colIdx];
+        var isTeamSep = !!TEAM_SEP_COLS[colIdx];
+        var isOpp     = !!OPP_COLS[colIdx];
+        var sepClass  = isCatSep ? " tc-cat-sep" : (isTeamSep ? " tc-team-sep" : "");
+        var oppClass  = isOpp ? " tc-opp-cell" : "";
+        var entry = col[gr];
+        if (entry) {
+          var si = setIndexMap[entry.setNumber] !== undefined ? setIndexMap[entry.setNumber] : 0;
+          var color = SET_COLORS[si % SET_COLORS.length];
+          var fill   = isOpp ? hexToRgba(color, 0.18) : hexToRgba(color, 0.62);
+          var border = isOpp ? hexToRgba(color, 0.45)  : color;
+          var tipParts = [];
+          if (entry.jersey)    tipParts.push("#" + entry.jersey);
+          if (entry.eventCode) tipParts.push(_EC_ABBR[entry.eventCode] || entry.eventCode);
+          if (entry.rotation)  tipParts.push("R" + entry.rotation);
+          var tipText = tipParts.length ? tipParts.join(" \u00b7 ") : "Set " + entry.setNumber;
+          gHtml += '<div class="tc-cell' + sepClass + oppClass + '"' +
+                   ' style="background:' + fill + ';border-color:' + border + '"' +
+                   ' aria-label="' + escHtml(tipText) + '">';
+          gHtml += '<div class="tc-tip">' + escHtml(tipText) + '</div>';
+          gHtml += '</div>';
+        } else {
+          gHtml += '<div class="tc-cell tc-empty' + sepClass + oppClass + '"></div>';
+        }
+      });
+    }
+    return gHtml;
+  }
+
+  function rebuildGrid() {
+    var visibleColumns = columns.map(function (col) {
+      return col.filter(function (e) { return !hiddenSets[e.setNumber]; });
+    });
+    output.querySelector('.tc-data-grid').innerHTML = buildGridHtml(visibleColumns);
+    updateTriangle();
+  }
+
+  output.querySelectorAll('.tc-legend-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var sn = btn.dataset.tcSet;
+      btn.classList.toggle('tc-legend-inactive');
+      if (btn.classList.contains('tc-legend-inactive')) {
+        hiddenSets[sn] = true;
+      } else {
+        delete hiddenSets[sn];
+      }
+      rebuildGrid();
+    });
+  });
+  updateTriangle();
 }
 
 // ---- Report 2: Match Summary --------------------------------------
@@ -3680,18 +3832,7 @@ document.addEventListener("DOMContentLoaded", function () {
   $("cfgLogOursOpacity").addEventListener("input", function () { syncLogColorUI("ours"); });
   $("cfgLogTheirsColor").addEventListener("input", function () { syncLogColorUI("theirs"); });
   $("cfgLogTheirsOpacity").addEventListener("input", function () { syncLogColorUI("theirs"); });
-
-  // Set colors (used by Momentum chart + Tally Chart) — update global SET_COLORS live
-  for (var _sci = 0; _sci < 5; _sci++) {
-    (function (i) {
-      var el = $("cfgSetColor" + i);
-      if (!el) return;
-      el.addEventListener("input", function () {
-        SET_COLORS[i] = el.value;
-        localStorage.setItem("setColor_" + i, el.value);
-      });
-    })(_sci);
-  }
+  // Set color pickers are wired dynamically inside renderSetColorPickers()
 
   $("btnStartMatch").addEventListener("click", function () { void createMatch(); });
   $("btnEndSet").addEventListener("click", function () { void endSet(); });
@@ -3791,17 +3932,13 @@ document.addEventListener("DOMContentLoaded", function () {
     applyLogColor(side, color, opacity);
   });
 
-  // Restore set colors from localStorage
-  for (var _sri = 0; _sri < 5; _sri++) {
-    (function (i) {
-      var saved = localStorage.getItem("setColor_" + i);
-      if (saved) {
-        SET_COLORS[i] = saved;
-        var el = $("cfgSetColor" + i);
-        if (el) el.value = saved;
-      }
-    })(_sri);
+  // Restore set colors from localStorage and render dynamic pickers
+  // (renderSetColorPickers also reads localStorage internally for each set)
+  for (var _sri = 0; _sri < SET_COLORS.length; _sri++) {
+    var _scSaved = localStorage.getItem("setColor_" + _sri);
+    if (_scSaved) SET_COLORS[_sri] = _scSaved;
   }
+  // renderSetColorPickers() will be called by syncSetsToFormat() below
 
   // Start on stats page immediately, then restore in-progress match if any
   syncSetsToFormat();

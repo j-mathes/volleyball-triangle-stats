@@ -806,6 +806,11 @@ body {
   grid-row: 1;
 }
 
+/* Thick dark left border on First Ball and Transition group headers */
+.tc-cat-sep-hdr {
+  border-left: 3px solid rgba(255,255,255,0.45) !important;
+}
+
 .tc-hdr-team {
   padding: 0.2rem 0;
   border-right: 1px solid rgba(0,0,0,0.12);
@@ -824,7 +829,52 @@ body {
   background: rgba(0,0,0,0.03);
 }
 
-/* Data grid */
+/* Column separator classes — on header cells, direct border-left works fine
+   (no inline border-color to fight with) */
+.tc-cat-sep {
+  border-left: 3px solid #000 !important;
+}
+.tc-team-sep {
+  border-left: 1.5px solid #000 !important;
+}
+
+/* Data cell separators: suppress the cell's own left border and draw a ::before
+   pseudo-element that straddles the column boundary (-1.5px / -0.75px offset).
+   z-index: 1 creates a stacking context above all z-index:auto sibling cells,
+   ensuring the separator paints on top of adjacent colored block borders
+   in every row — not just the current one. */
+.tc-cell.tc-cat-sep,
+.tc-cell.tc-empty.tc-cat-sep {
+  z-index: 1;
+  border-left: 0 !important;
+}
+.tc-cell.tc-cat-sep::before,
+.tc-cell.tc-empty.tc-cat-sep::before {
+  content: '';
+  position: absolute;
+  left: -1.5px;
+  top: -2px;     /* extend 2px above to cover the cell's own colored border-top */
+  bottom: -2px;  /* extend 2px below to cover the cell's own colored border-bottom */
+  width: 3px;
+  background: #000;
+  pointer-events: none;
+}
+.tc-cell.tc-team-sep,
+.tc-cell.tc-empty.tc-team-sep {
+  z-index: 1;
+  border-left: 0 !important;
+}
+.tc-cell.tc-team-sep::before,
+.tc-cell.tc-empty.tc-team-sep::before {
+  content: '';
+  position: absolute;
+  left: -0.75px;
+  top: -2px;     /* extend 2px above to cover the cell's own colored border-top */
+  bottom: -2px;  /* extend 2px below to cover the cell's own colored border-bottom */
+  width: 1.5px;
+  background: #000;
+  pointer-events: none;
+}
 .tc-data-grid {
   display: grid;
   grid-template-columns: 2rem repeat(12, 1fr);
@@ -848,12 +898,12 @@ body {
   position: relative;
   border-right: 1px solid rgba(0,0,0,0.08);
   border-bottom: 1px solid rgba(0,0,0,0.08);
-  border-width: 1px;    /* overridden per-cell by inline style for filled cells */
+  border-width: 1px;
   min-height: 1.6rem;
   cursor: default;
 }
 
-/* Filled cell: colored border is applied via inline style; just need the border style/width */
+/* Filled cell: colored border via inline style */
 .tc-cell:not(.tc-empty) {
   border-style: solid;
   border-width: 2px;
@@ -913,27 +963,44 @@ body {
   border-bottom-color: #1b1b28;
 }
 
-/* Legend */
+/* Legend — clickable toggle buttons */
 .tc-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.4rem;
   margin-top: 0.75rem;
   margin-bottom: 0.25rem;
 }
 
-.tc-legend-item {
+.tc-legend-btn {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.35rem;
   font-size: 0.8rem;
   font-weight: 600;
+  background: none;
+  border: 1px solid rgba(0,0,0,0.12);
+  padding: 0.2rem 0.5rem 0.2rem 0.35rem;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--ink);
+  transition: opacity 0.15s, background 0.1s;
+  min-width: unset;
+}
+
+.tc-legend-btn:hover {
+  background: rgba(0,0,0,0.05);
+  transform: none;
+}
+
+.tc-legend-btn.tc-legend-inactive {
+  opacity: 0.38;
 }
 
 .tc-legend-swatch {
   display: inline-block;
-  width: 1rem;
-  height: 1rem;
+  width: 0.9rem;
+  height: 0.9rem;
   border-radius: 3px;
   border-style: solid;
   border-width: 2px;
