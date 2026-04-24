@@ -432,7 +432,7 @@ Checked match IDs accumulate in `selectedMatchIds: Set<string>`. `loadedFileReco
 
 | Group | Reports |
 |-------|---------|
-| Single Match | Tally Sheet, Match Summary, Momentum Chart, Set Flow, Error Breakdown, Player Stats, Rotation Performance |
+| Single Match | Tally Sheet, Tally Chart, Match Summary, Momentum Chart, Set Flow, Error Breakdown, Player Stats, Rotation Performance |
 | Multi Match | Event Summary, Progress Trend, Rotation Heat Map, Player Leaderboard, Opponent Comparison |
 
 Single-match reports require exactly 1 selected match; multi-match reports require ≥ 2. Items are disabled (`.disabled`) when the selection doesn't qualify. `updateSidebarAvailability()` is called whenever `selectedMatchIds` changes or scope changes.
@@ -473,6 +473,84 @@ Single-match reports require exactly 1 selected match; multi-match reports requi
 | Phase 2 | ✅ Complete | Reports shell (scope strip, data picker, sidebar, print CSS) |
 | Phase 3 | ✅ Complete | Single-match reports (Tally Sheet through Rotation Performance) |
 | Phase 4 | ✅ Complete | Multi-match reports (Event Summary through Opponent Comparison) |
+
+---
+
+## Tally Chart Report
+
+The Tally Chart is a graph-paper block grid single-match report. Each recorded event is represented as a filled colored square positioned in the column for its stat category and row for its sequence within the match.
+
+### Grid Layout
+
+- 13 columns: 1 row-number column + 12 stat columns (one per `STAT_INCREMENTED` stat key)
+- Stat column order: `usAces`, `usMisses`, `opponentAces`, `opponentMisses`, then the 4 First Ball columns, then the 4 Transition columns
+- Three header rows: group (Terminal Serves / First Ball Points / Transition Points), team (Us / Opp), stat (Ace / Miss / Kill / Stop)
+- Data rows are compacted — empty trailing rows are not shown; toggling off a set recompacts the remaining blocks upward
+
+### Column Classification
+
+```js
+var OPP_COLS      = { 2:1, 3:1, 6:1, 7:1, 10:1, 11:1 };  // opponent columns
+var CAT_SEP_COLS  = { 4:1, 8:1 };                          // major group boundary
+var TEAM_SEP_COLS = { 2:1, 6:1, 10:1 };                    // Us→Opp boundary
+```
+
+### Separator Lines
+
+Separators between column groups use CSS `::before` pseudo-elements on the separator cell itself:
+- `z-index: 1` on the separator cell creates a stacking context above `z-index: auto` neighbors
+- `top: -2px; bottom: -2px` extends the pseudo-element past the cell's `border-top`/`border-bottom` (which sit outside the `padding-box` reference used by `position: absolute`)
+- `left: -1.5px; width: 3px` (cat-sep) or `left: -0.75px; width: 1.5px` (team-sep) straddles the column boundary equally
+- Header stat cells use direct `border-left` (no inline border-color conflict there)
+
+### Block Colors
+
+Colors come from the global `SET_COLORS` array, indexed by the set's position in `state.sets`:
+
+- **Our columns** (Us): `hexToRgba(color, 0.62)` fill, full-opacity solid border
+- **Opponent columns** (Opp): `hexToRgba(color, 0.18)` fill, `hexToRgba(color, 0.45)` border — visually washed out
+
+### Set Toggle
+
+The legend below the grid is a row of `<button class="tc-legend-btn">` elements. Clicking one calls `rebuildGrid()` which:
+1. Updates `hiddenSets` (a plain object keyed by set number string)
+2. Filters each column array to exclude events from hidden sets
+3. Re-renders the entire `.tc-data-grid` innerHTML from scratch (blocks move up, rows renumber)
+4. Calls `updateTriangle()` to recompute the match-info banner triangle from visible sets only
+
+### Triangle Banner Update
+
+`computeTriStats()` sums `terminalServes`, `firstBallPoints`, and `transitionPoints` from `state.sets` for every set not in `hiddenSets`. `updateTriangle()` replaces the `.report-mini-tri` SVG element in the output DOM using `miniTriangleSvg()`.
+
+### Hover Tooltip
+
+Each filled block contains a hidden `.tc-tip` div shown on `:hover`. Tooltip text is built from available metadata only (jersey, event code abbreviation, rotation). If none are present it falls back to `"Set N"`.
+
+---
+
+## Set Colors
+
+`SET_COLORS` is a module-level `var` array of 12 hex color defaults at the top of the reports section in `app.js`:
+
+```js
+var SET_COLORS = [
+  "#3b82f6", // Set 1 — blue
+  "#22c55e", // Set 2 — green
+  "#f97316", // Set 3 — orange
+  "#a855f7", // Set 4 — purple
+  "#ef4444", // Set 5 — red
+  // ... 7 more
+];
+```
+
+On boot, localStorage keys `setColor_0` … `setColor_N` override the defaults for each index.
+
+`renderSetColorPickers()` dynamically renders one `<input type="color">` per set (count = `cfgSetsValue`) into `#setColorPickersContainer` on the Setup page. It re-reads localStorage to pre-populate values and re-wires `input` event listeners using IIFEs to close over the correct index. It is called from:
+- `stepSets(direction)` — when the stepper changes the number of sets
+- `syncSetsToFormat()` — when match format changes the default set count
+- Initial page load (container exists in HTML from boot)
+
+For matches with more than 12 sets, `SET_COLORS[i % SET_COLORS.length]` cycles the palette.
 
 
 

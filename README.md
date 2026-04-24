@@ -38,6 +38,7 @@ Works on desktop and iPad/iPhone. No install required — open the link in any m
 - Undo/redo for quick correction during live charting
 - Single-match and multi-match reports for review
 - Import/export for sharing and backup
+- Customizable set colors used across reports and charts
 
 ## Coach Workflow
 
@@ -110,7 +111,7 @@ Selection rules:
 - Multi-match reports require 2 or more matches
 
 Available report groups:
-- Single Match: Tally Sheet, Match Summary, Momentum Chart, Set Flow, Error Breakdown, Player Stats, Rotation Performance
+- Single Match: Tally Sheet, Tally Chart, Match Summary, Momentum Chart, Set Flow, Error Breakdown, Player Stats, Rotation Performance
 - Multi Match: Event Summary, Progress Trend, Rotation Heat Map, Player Leaderboard, Opponent Comparison
 
 Common coaching questions these reports help answer:
@@ -150,6 +151,7 @@ Setup options include:
 - Rotation tracking mode (None, Ours Only, Both Sides)
 - Keep rotation selected between stat presses
 - Highlight and event-log color customization
+- Set Colors — one color picker per set, used in the Tally Chart and Momentum report
 
 ## Project Structure
 
