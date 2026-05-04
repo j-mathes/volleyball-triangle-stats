@@ -1119,6 +1119,29 @@ body {
   margin: 0.2rem 0 0;
 }
 
+.chart-float-tip {
+  position: fixed;
+  background: rgba(30,30,30,0.88);
+  color: #fff;
+  font-size: 0.78rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: 5px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 9999;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+.chart-tip-val {
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+}
+.chart-tip-label {
+  font-size: 0.74rem;
+  opacity: 0.75;
+  margin-top: 0.1rem;
+}
+
 /* Per-set expandable sections */
 .report-per-set-wrap {
   margin-top: 1.2rem;
@@ -1299,6 +1322,37 @@ body {
   margin-bottom: 0.6rem;
   font-size: 0.85rem;
   color: rgba(0,0,0,0.65);
+}
+
+.trend-toolbar {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+.trend-orient-btn {
+  font-size: 0.78rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 5px;
+  border: 1px solid rgba(0,0,0,0.18);
+  background: rgba(0,0,0,0.04);
+  color: rgba(0,0,0,0.5);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.12s, color 0.12s;
+}
+
+.trend-orient-btn.active {
+  background: rgba(0,0,0,0.1);
+  color: var(--ink);
+  border-color: rgba(0,0,0,0.28);
+}
+
+.trend-chart-v-wrap {
+  overflow-y: auto;
+  max-height: 520px;
+  border-radius: 6px;
 }
 
 /* Print styles */
@@ -2660,6 +2714,22 @@ button:disabled {
   outline-offset: 1px;
   filter: brightness(1.35);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--highlight-color, #60a5fa) 25%, transparent);
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.3rem;
+}
+.setting-row label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+.date-format-select {
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 .color-picker-row {

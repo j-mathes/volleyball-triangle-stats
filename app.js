@@ -1298,7 +1298,7 @@ function createMatchItem(entry) {
   var btn = document.createElement("button");
   btn.className = "history-item" + (entry.matchId === selectedHistoryMatchId ? " selected" : "");
   var dateObj = new Date(entry.matchDate || entry.createdAt);
-  var dateStr = dateObj.toLocaleDateString();
+  var dateStr = formatDateShort(dateObj);
   var timeStr = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   var statusClass = entry.events && entry.events.some(function (e) { return e.type === "MATCH_ENDED"; }) ? "status-complete" : "status-active";
   var statusText = statusClass === "status-complete" ? "Complete" : "In Progress";
@@ -1635,6 +1635,23 @@ function exportCsv() {
 }
 
 // ---- Helpers ----
+
+function formatDateShort(d) {
+  var fmt = localStorage.getItem("dateFormat") || "yyyy-mm-dd";
+  var y  = d.getFullYear();
+  var m  = d.getMonth() + 1;
+  var dy = d.getDate();
+  var mm = String(m).padStart(2, "0");
+  var dd = String(dy).padStart(2, "0");
+  var yy = String(y).slice(2);
+  switch (fmt) {
+    case "M/D/YY":      return m + "/" + dy + "/" + yy;
+    case "MM/DD/YYYY":  return mm + "/" + dd + "/" + y;
+    case "D/M/YY":      return dy + "/" + m + "/" + yy;
+    case "DD/MM/YYYY":  return dd + "/" + mm + "/" + y;
+    default:            return y + "-" + mm + "-" + dd; // yyyy-mm-dd
+  }
+}
 
 function toLocalDatetime(d) {
   var y = d.getFullYear();
@@ -2012,7 +2029,7 @@ async function buildDataPickerTree() {
       refreshAfterSelectionChange();
     });
     var label = document.createElement("span");
-    var dateStr = match.matchDate ? new Date(match.matchDate).toLocaleDateString() : "";
+    var dateStr = match.matchDate ? formatDateShort(new Date(match.matchDate)) : "";
     label.textContent = (match.matchName || "Untitled") + (dateStr ? "  (" + dateStr + ")" : "");
     item.appendChild(cb);
     item.appendChild(label);
@@ -2335,7 +2352,8 @@ function reportTitle(text) {
 }
 
 function matchInfoBanner(state, record, opponent) {
-  var matchDate = record.matchDate ? new Date(record.matchDate).toLocaleString() : "\u2014";
+  var _mdate = record.matchDate ? new Date(record.matchDate) : null;
+  var matchDate = _mdate ? formatDateShort(_mdate) + ' ' + _mdate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '\u2014';
   var oppName = opponent ? escHtml(opponent.name) : "\u2014";
   var html = '<div class="report-summary-top">';
   html += '<div class="report-summary-info">';
@@ -3399,7 +3417,7 @@ function renderEventSummary(output, enriched) {
     var agg = m.state.aggregate;
     totTS += agg.terminalServes; totFB += agg.firstBallPoints; totTRN += agg.transitionPoints;
     totUs += agg.usScore; totOpp += agg.opponentScore;
-    var dateStr = m.record.matchDate ? new Date(m.record.matchDate).toLocaleDateString() : '\u2014';
+    var dateStr = m.record.matchDate ? formatDateShort(new Date(m.record.matchDate)) : '\u2014';
     var oppName = m.opponent ? escHtml(m.opponent.name) : '\u2014';
     html += '<tr>';
     html += '<td>' + escHtml(m.state.matchName || 'Untitled') + '</td>';
@@ -3434,11 +3452,14 @@ function renderProgressTrend(output, enriched) {
     return new Date(a.record.matchDate || a.record.createdAt) - new Date(b.record.matchDate || b.record.createdAt);
   });
   var vals = sorted.map(function (m) {
+    var d = new Date(m.record.matchDate || m.record.createdAt);
+    var dateStr = formatDateShort(d);
     return {
       ts:  m.state.aggregate.terminalServes,
       fb:  m.state.aggregate.firstBallPoints,
       trn: m.state.aggregate.transitionPoints,
       label: m.state.matchName || 'Untitled',
+      date: dateStr,
     };
   });
   var n = vals.length;
@@ -3449,63 +3470,213 @@ function renderProgressTrend(output, enriched) {
   var mn = Math.min.apply(null, allNums), mx = Math.max.apply(null, allNums);
   mn = Math.min(mn - 1, -2); mx = Math.max(mx + 1, 2);
 
-  var LM = 42, RM = 12, TM = 20, BM = 54;
-  var svgW = 620, svgH = 280;
-  var plotW = svgW - LM - RM, plotH = svgH - TM - BM;
-
-  function xOf(i) { return LM + (n < 2 ? plotW / 2 : (i / (n - 1)) * plotW); }
-  function yOf(v) { return TM + plotH * (1 - (v - mn) / (mx - mn)); }
-
   var C_TS = '#e6a817', C_FB = '#2a7d4f', C_TRN = '#c23b3b';
 
-  function polyline(key, color) {
-    var pts = vals.map(function (v, i) { return xOf(i) + ',' + yOf(v[key]); }).join(' ');
-    return '<polyline data-series="' + key + '" points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
-  }
-  function dots(key, color) {
-    return vals.map(function (v, i) {
-      return '<circle data-series="' + key + '" cx="' + xOf(i) + '" cy="' + yOf(v[key]) + '" r="4.5" fill="' + color + '" stroke="white" stroke-width="1.5"/>';
+  // ---- Horizontal line chart ------------------------------------------------
+  function buildHorizontalSvg() {
+    var CHUNK = 8; // max matches per chart before splitting
+    var LM = 42, RM = 12, TM = 20, BM = 62;
+    // Fixed coordinate space — SVG always fills 100% container width.
+    // Data points are spread across a fixed 700-unit wide viewBox; more
+    // container width = more physical space between points, not bigger text.
+    var svgW = 700;
+    var PAD = 60; // inset keeps edge-point labels from clipping at SVG boundary
+    var svgH = 280;
+    var plotH = svgH - TM - BM;
+    var usable = svgW - LM - RM - 2 * PAD;
+
+    var range = mx - mn;
+    var tStep = range <= 6 ? 1 : range <= 15 ? 2 : 5;
+    var tStart = Math.ceil(mn / tStep) * tStep;
+
+    function yOf(v) { return TM + plotH * (1 - (v - mn) / (mx - mn)); }
+
+    function buildChunkSvg(chunk, chunkIdx, totalChunks) {
+      var cn = chunk.length;
+      function xOf(i) { return LM + PAD + (cn < 2 ? usable / 2 : (i / (cn - 1)) * usable); }
+
+      function polyline(key, color) {
+        var pts = chunk.map(function (v, i) { return xOf(i) + ',' + yOf(v[key]); }).join(' ');
+        return '<polyline data-series="' + key + '" points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+      }
+      function dots(key, color) {
+        return chunk.map(function (v, i) {
+          var tipVal = (v[key] > 0 ? '+' : '') + v[key];
+          return '<circle data-series="' + key + '" data-tip-val="' + tipVal + '" data-tip-label="' + escHtml(v.label) + '" cx="' + xOf(i) + '" cy="' + yOf(v[key]) + '" r="4.5" fill="' + color + '" stroke="white" stroke-width="1.5"/>';
+        }).join('');
+      }
+
+      var yTicks = '';
+      for (var tv = tStart; tv <= mx; tv += tStep) {
+        var ty = yOf(tv);
+        yTicks += '<line x1="' + (LM - 4) + '" y1="' + ty + '" x2="' + (svgW - RM) + '" y2="' + ty + '" stroke="rgba(0,0,0,' + (tv === 0 ? '0.18' : '0.07') + ')" stroke-dasharray="' + (tv === 0 ? '5 3' : '0') + '" stroke-width="' + (tv === 0 ? '1.5' : '1') + '"/>';
+        yTicks += '<text x="' + (LM - 6) + '" y="' + (ty + 4) + '" text-anchor="end" font-size="10" fill="rgba(0,0,0,0.55)">' + tv + '</text>';
+      }
+      // Three-line centered labels: prefix | date | Opponent (full text, no truncation)
+      var xLabels = chunk.map(function (v, i) {
+        var cx = xOf(i);
+        var y0 = svgH - BM + 13; // first line baseline
+        var vsIdx = v.label.indexOf(' vs ');
+        if (vsIdx >= 0) {
+          var prefix = v.label.slice(0, vsIdx);
+          var opp = v.label.slice(vsIdx + 4);
+          return '<text x="' + cx + '" y="' + y0 + '" text-anchor="middle" font-size="9" font-weight="600" fill="rgba(0,0,0,0.65)">' + escHtml(prefix) + '</text>' +
+                 '<text x="' + cx + '" y="' + (y0 + 12) + '" text-anchor="middle" font-size="8" fill="rgba(0,0,0,0.38)">' + escHtml(v.date) + '</text>' +
+                 '<text x="' + cx + '" y="' + (y0 + 23) + '" text-anchor="middle" font-size="8" fill="rgba(0,0,0,0.5)">' + escHtml(opp) + '</text>';
+        }
+        return '<text x="' + cx + '" y="' + y0 + '" text-anchor="middle" font-size="9" fill="rgba(0,0,0,0.65)">' + escHtml(v.label) + '</text>' +
+               '<text x="' + cx + '" y="' + (y0 + 12) + '" text-anchor="middle" font-size="8" fill="rgba(0,0,0,0.38)">' + escHtml(v.date) + '</text>';
+      }).join('');
+
+      var chunkLabel = totalChunks > 1
+        ? '<text x="' + (svgW - RM) + '" y="14" text-anchor="end" font-size="10" fill="rgba(0,0,0,0.35)">(' + (chunkIdx + 1) + '/' + totalChunks + ')</text>'
+        : '';
+
+      return '<svg class="trend-chart-h" viewBox="0 0 ' + svgW + ' ' + svgH + '" style="width:100%;display:block;margin:0 auto 8px" xmlns="http://www.w3.org/2000/svg">' +
+        '<rect x="0" y="0" width="' + svgW + '" height="' + svgH + '" rx="6" fill="#f9f9f9" stroke="#ccc" stroke-width="1"/>' +
+        yTicks +
+        polyline('ts', C_TS) + polyline('fb', C_FB) + polyline('trn', C_TRN) +
+        dots('ts', C_TS)     + dots('fb', C_FB)     + dots('trn', C_TRN) +
+        xLabels + chunkLabel +
+        '</svg>';
+    }
+
+    // split vals into chunks
+    var chunks = [];
+    for (var ci = 0; ci < n; ci += CHUNK) {
+      chunks.push(vals.slice(ci, ci + CHUNK));
+    }
+    return chunks.map(function (chunk, idx) {
+      return buildChunkSvg(chunk, idx, chunks.length);
     }).join('');
   }
 
-  // Y axis ticks
-  var range = mx - mn;
-  var tStep = range <= 6 ? 1 : range <= 15 ? 2 : 5;
-  var tStart = Math.ceil(mn / tStep) * tStep;
-  var yTicks = '';
-  for (var tv = tStart; tv <= mx; tv += tStep) {
-    var ty = yOf(tv);
-    yTicks += '<line x1="' + (LM - 4) + '" y1="' + ty + '" x2="' + (svgW - RM) + '" y2="' + ty + '" stroke="rgba(0,0,0,' + (tv === 0 ? '0.18' : '0.07') + ')" stroke-dasharray="' + (tv === 0 ? '5 3' : '0') + '" stroke-width="' + (tv === 0 ? '1.5' : '1') + '"/>';
-    yTicks += '<text x="' + (LM - 6) + '" y="' + (ty + 4) + '" text-anchor="end" font-size="10" fill="rgba(0,0,0,0.55)">' + tv + '</text>';
+  // ---- Vertical line chart -------------------------------------------------
+  function buildVerticalSvg() {
+    var LBL = 160, RM = 18, TM = 28, BM = 14;
+    var svgW = 620;
+    var rowH = 44;  // taller rows to fit two-line labels
+    var svgH = TM + n * rowH + BM;
+    var plotW = svgW - LBL - RM;
+    var absMax = Math.max(Math.abs(mn), Math.abs(mx));
+
+    function xOfVal(v) { return LBL + plotW * ((v + absMax) / (2 * absMax)); }
+    function yOfMatch(i) { return TM + (n < 2 ? (svgH - TM - BM) / 2 : (i / (n - 1)) * (svgH - TM - BM)); }
+
+    function polylineV(key, color) {
+      var pts = vals.map(function (v, i) { return xOfVal(v[key]) + ',' + yOfMatch(i); }).join(' ');
+      return '<polyline data-series="' + key + '" points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+    }
+    function dotsV(key, color) {
+      return vals.map(function (v, i) {
+        var tipVal = (v[key] > 0 ? '+' : '') + v[key];
+        return '<circle data-series="' + key + '" data-tip-val="' + tipVal + '" data-tip-label="' + escHtml(v.label) + '" cx="' + xOfVal(v[key]) + '" cy="' + yOfMatch(i) + '" r="4.5" fill="' + color + '" stroke="white" stroke-width="1.5"/>';
+      }).join('');
+    }
+
+    // X axis grid + tick labels at top
+    var range = mx - mn;
+    var tStep = range <= 6 ? 1 : range <= 15 ? 2 : 5;
+    var tStart = Math.ceil((-absMax) / tStep) * tStep;
+    var xTicks = '';
+    for (var tv = tStart; tv <= absMax; tv += tStep) {
+      var tx = xOfVal(tv);
+      xTicks += '<line x1="' + tx + '" y1="' + TM + '" x2="' + tx + '" y2="' + (svgH - BM) + '" stroke="rgba(0,0,0,' + (tv === 0 ? '0.18' : '0.06') + ')" stroke-dasharray="' + (tv === 0 ? '5 3' : '0') + '" stroke-width="' + (tv === 0 ? '1.5' : '1') + '"/>';
+      xTicks += '<text x="' + tx + '" y="' + (TM - 6) + '" text-anchor="middle" font-size="9" fill="rgba(0,0,0,0.45)">' + (tv > 0 ? '+' : '') + tv + '</text>';
+    }
+
+    // Match labels on left — two lines: prefix (+ date) above, "vs Name" below
+    var yLabels = vals.map(function (v, i) {
+      var cy = yOfMatch(i);
+      var vsIdx = v.label.indexOf(' vs ');
+      if (vsIdx >= 0) {
+        var prefix = v.label.slice(0, vsIdx);
+        var vsName = 'vs ' + v.label.slice(vsIdx + 4);
+        return '<text x="' + (LBL - 8) + '" y="' + (cy - 5) + '" text-anchor="end" font-size="10" font-weight="600" fill="rgba(0,0,0,0.7)">' +
+               escHtml(prefix) +
+               '<tspan font-weight="400" font-size="9" fill="rgba(0,0,0,0.4)"> \u00b7 ' + escHtml(v.date) + '</tspan>' +
+               '</text>' +
+               '<text x="' + (LBL - 8) + '" y="' + (cy + 9) + '" text-anchor="end" font-size="10" fill="rgba(0,0,0,0.5)">' + escHtml(vsName) + '</text>';
+      }
+      return '<text x="' + (LBL - 8) + '" y="' + (cy - 3) + '" text-anchor="end" font-size="10" fill="rgba(0,0,0,0.7)">' + escHtml(v.label) + '</text>' +
+             '<text x="' + (LBL - 8) + '" y="' + (cy + 9) + '" text-anchor="end" font-size="9" fill="rgba(0,0,0,0.4)">' + escHtml(v.date) + '</text>';
+    }).join('');
+
+    return '<svg class="trend-chart-v" viewBox="0 0 ' + svgW + ' ' + svgH + '" style="width:100%;display:block" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect x="0" y="0" width="' + svgW + '" height="' + svgH + '" rx="6" fill="#f9f9f9" stroke="#ccc" stroke-width="1"/>' +
+      xTicks +
+      polylineV('ts', C_TS) + polylineV('fb', C_FB) + polylineV('trn', C_TRN) +
+      dotsV('ts', C_TS)     + dotsV('fb', C_FB)     + dotsV('trn', C_TRN) +
+      yLabels +
+      '</svg>';
   }
 
-  // X axis labels
-  var xLabels = vals.map(function (v, i) {
-    var short = v.label.length > 12 ? v.label.slice(0, 12) + '\u2026' : v.label;
-    return '<text transform="translate(' + xOf(i) + ',' + (svgH - BM + 14) + ') rotate(30)" text-anchor="start" font-size="10" fill="rgba(0,0,0,0.55)">' + escHtml(short) + '</text>';
-  }).join('');
-
-  var svg = '<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" style="width:100%;max-width:680px;display:block;margin:0 auto 8px" xmlns="http://www.w3.org/2000/svg">' +
-    '<rect x="0" y="0" width="' + svgW + '" height="' + svgH + '" rx="6" fill="#f9f9f9" stroke="#ccc" stroke-width="1"/>' +
-    yTicks +
-    polyline('ts',  C_TS)  + polyline('fb',  C_FB)  + polyline('trn', C_TRN) +
-    dots('ts',  C_TS)      + dots('fb',  C_FB)      + dots('trn', C_TRN) +
-    xLabels +
-    '</svg>';
-
+  // ---- Assemble HTML --------------------------------------------------------
   var legend = '<div class="report-trend-legend">' +
     '<button class="chart-toggle active" data-series="ts"  style="border-left:4px solid ' + C_TS  + '">Terminal Serves</button>' +
     '<button class="chart-toggle active" data-series="fb"  style="border-left:4px solid ' + C_FB  + '">First Ball</button>' +
     '<button class="chart-toggle active" data-series="trn" style="border-left:4px solid ' + C_TRN + '">Transition</button>' +
     '</div>';
 
+  var chartMode = 'h';
   var html = '<div class="report-multi-wrap">' + reportTitle('Progress Trend');
   html += '<div class="report-multi-tri-header">' + miniTriangleSvg(totalTS, totalFB, totalTRN) + '</div>';
-  html += '<p class="chart-hint">Matches sorted by date. Dashed line = zero. Positive values mean we outscored the opponent in that category. Click legend buttons to show/hide a series.</p>';
-  html += legend + svg;
+  html += '<div class="trend-toolbar">';
+  html += '<button class="trend-orient-btn active" data-orient="h">\u2194 Horizontal</button>';
+  html += '<button class="trend-orient-btn" data-orient="v">\u2195 Vertical</button>';
+  html += '</div>';
+  html += legend;
+  html += '<div class="trend-chart-wrap">' + buildHorizontalSvg() + '</div>';
+  html += '<p class="chart-hint">Matches sorted by date. Zero line = tied. Click legend buttons to show/hide a series. Switch orientation for dense selections.</p>';
   html += '</div>';
   output.innerHTML = html;
 
+  // Tooltip
+  var tip = document.createElement('div');
+  tip.className = 'chart-float-tip';
+  tip.style.display = 'none';
+  document.body.appendChild(tip);
+  var tipWrap = output.querySelector('.trend-chart-wrap');
+  function attachTipEvents(wrap) {
+    wrap.querySelectorAll('circle[data-series]').forEach(function (c) {
+      var titleEl = c.querySelector('title');
+      if (!titleEl && !c.dataset.tipVal) return;
+      var val   = c.dataset.tipVal   || '';
+      var label = c.dataset.tipLabel || (titleEl ? titleEl.textContent : '');
+      c.addEventListener('mouseenter', function (e) {
+        tip.innerHTML = '<div class="chart-tip-val">' + escHtml(val) + '</div>';
+        tip.style.display = 'block';
+      });
+      c.addEventListener('mousemove', function (e) {
+        tip.style.left = (e.clientX + 12) + 'px';
+        tip.style.top  = (e.clientY - 28) + 'px';
+      });
+      c.addEventListener('mouseleave', function () {
+        tip.style.display = 'none';
+      });
+    });
+  }
+  attachTipEvents(tipWrap);
+
+  // Orientation toggle
+  output.querySelectorAll('.trend-orient-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (btn.dataset.orient === chartMode) return;
+      chartMode = btn.dataset.orient;
+      output.querySelectorAll('.trend-orient-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.orient === chartMode); });
+      var wrap = output.querySelector('.trend-chart-wrap');
+      wrap.innerHTML = chartMode === 'h' ? buildHorizontalSvg() : buildVerticalSvg();
+      attachTipEvents(wrap);
+      // Re-apply hidden series state
+      Object.keys(activeSeries).forEach(function (key) {
+        if (!activeSeries[key]) {
+          wrap.querySelectorAll('[data-series="' + key + '"]').forEach(function (el) { el.style.display = 'none'; });
+        }
+      });
+    });
+  });
+
+  // Series toggles
   var activeSeries = { ts: true, fb: true, trn: true };
   output.querySelectorAll('.report-trend-legend .chart-toggle').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -3513,7 +3684,7 @@ function renderProgressTrend(output, enriched) {
       btn.classList.toggle('active');
       activeSeries[series] = btn.classList.contains('active');
       var vis = btn.classList.contains('active') ? '' : 'none';
-      output.querySelectorAll('svg [data-series="' + series + '"]').forEach(function (el) { el.style.display = vis; });
+      output.querySelector('.trend-chart-wrap').querySelectorAll('[data-series="' + series + '"]').forEach(function (el) { el.style.display = vis; });
       var triEl = output.querySelector('.report-mini-tri');
       if (triEl) {
         var tmp = document.createElement('div');
@@ -3972,6 +4143,9 @@ document.addEventListener("DOMContentLoaded", function () {
   $("cfgRotationPersist").addEventListener("change", function () {
     localStorage.setItem("rotationPersist", $("cfgRotationPersist").checked ? "1" : "0");
   });
+  $("cfgDateFormat").addEventListener("change", function () {
+    localStorage.setItem("dateFormat", this.value);
+  });
 
   // Highlight color
   function applyHighlightColor(color) {
@@ -4089,6 +4263,8 @@ document.addEventListener("DOMContentLoaded", function () {
   if (savedRotPersist !== null) {
     $("cfgRotationPersist").checked = savedRotPersist === "1";
   }
+  var savedDateFormat = localStorage.getItem("dateFormat");
+  if (savedDateFormat) { $("cfgDateFormat").value = savedDateFormat; }
   var savedHighlight = localStorage.getItem("highlightColor");
   if (savedHighlight) {
     $("cfgHighlightColor").value = savedHighlight;

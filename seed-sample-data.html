@@ -508,10 +508,13 @@ function generateLeague(seasonName, startDate, rounds, matchesPerRound, winRate,
       var opponent  = roundOpponents[m];
       var setWins   = randomSetOutcomes(maxSets, weWin);
       var matchName = roundName + " vs " + opponent.name;
+      // Spread matches across different days in the week (every 2 days)
+      var matchDay  = new Date(roundDate.getTime() + m * 2 * 24 * 3600 * 1000);
+      var matchDateStr = matchDay.toISOString().slice(0, 10);
       var record = generateMatch(
-        matchName, roundDateStr, maxSets, setWins, lcMin, lcMax,
+        matchName, matchDateStr, maxSets, setWins, lcMin, lcMax,
         results.season.id, eventId, opponent.id,
-        m * 2.5
+        0
       );
       results.matches.push(record);
     }

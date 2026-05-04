@@ -399,7 +399,7 @@ The match name input persists its value to IndexedDB on `blur` when a match reco
 Four cards:
 
 1. **Match Setup** — Format picker, sets stepper, and a collapsible "Match Organization" section (season + event combo pickers with optional new-entry input)
-2. **App Settings** — Lock time stepper, triangle totals toggle, rotation mode, rotation persist, highlight color, event log colors, Set Colors
+2. **App Settings** — Lock time stepper, triangle totals toggle, date format picker, rotation mode, rotation persist, highlight color, event log colors, Set Colors
 3. **Opponents** — Add by name (Enter or Add button), scrollable list with per-item ✕ delete and inline rename (click name → edit → Enter/blur saves), Delete All button with confirmation
 4. **Event Codes** — Add (code + abbr + label + category), scrollable list with colored swatches and per-item ✕ delete, Reset to Defaults button (restores `DEFAULT_EVENT_CODES` seed with confirmation)
 5. **Developer Tools** — A link that opens `seed-sample-data.html` in a new tab for inserting randomized test data
@@ -649,7 +649,9 @@ A standalone browser page for inserting test/demo data directly into the app’s
 | **Single Match** | One match with configurable name, date, format, per-set outcomes |
 | **Tournament** | Season + event + N opponents + N matches, distributed across the day |
 | **League** | Season + round-events (weekly) + opponent pool + M matches per round |
+### League Match Dates
 
+Within each round, matches are spread across separate days rather than all falling on the same date. Match 0 is on the round's base date, match 1 is two days later, match 2 is four days later. With a maximum of 3 matches per round this always stays within the 7-day window before the next round starts.
 ### Lead Change Cadence
 
 A `pointsUntilLeadChange` counter (reset to a random value in `[lcMin, lcMax]`) tracks how many consecutive points have elapsed since the last lead change. When it expires, the scoring bias is reversed to force the lagging team to score, creating the next lead change.
@@ -679,6 +681,54 @@ Sets enforce the `win-by-2` rule by overriding the bias when the loser approache
 | Output | Writes to IndexedDB directly | Writes importable `.json` file |
 | Data | Randomized each run | Hand-scripted, reproducible |
 | Use case | Realistic volume testing | Regression / report testing |
+
+---
+
+## Multi-Match Reports
+
+### Event Summary
+
+Renders a per-match table sorted by date. An aggregate triangle (`miniTriangleSvg`) is displayed above the table, summing `terminalServes`, `firstBallPoints`, and `transitionPoints` across all selected matches.
+
+### Progress Trend
+
+Renders a line chart of TS, FB, and TRN per match over time. Features:
+
+**Triangle** — aggregate totals displayed above the chart. When a series is toggled off, that vertex resets to 0 so the triangle reflects only visible data.
+
+**Series toggles** — three `.chart-toggle` buttons (Terminal Serves / First Ball / Transition) in the legend. Clicking one calls `display: none/""` on all `[data-series="..."]` SVG elements scoped to the chart's `<svg>` (not the buttons themselves).
+
+**Orientation toggle** — two buttons (`↔ Horizontal` / `↕ Vertical`) rendered by `.trend-toolbar`. State is tracked in the local `chartMode` variable (`"h"` or `"v"`). Switching rebuilds the inner `.trend-chart-wrap` by calling `buildHorizontalSvg()` or `buildVerticalSvg()`, then re-applies any hidden series.
+
+**Horizontal mode** (`buildHorizontalSvg`) — matches on X axis, values on Y axis. Fixed 700-unit wide viewBox, `width:100%` (fills container). When there are more than 8 matches the chart is split into chunks of 8, each rendered as a separate SVG stacked vertically; all chunks share the same Y scale so values are visually comparable. A `(1/N)` counter in the top-right corner indicates chunk position when multiple charts exist. Each data point has a 60-unit inset pad on both sides so edge labels never clip at the SVG boundary. Labels are three stacked centered lines: prefix (bold, 9px) / date (8px, dimmed) / opponent name (8px, dimmed). No truncation — the full name renders and scales with the container.
+
+**Vertical mode** (`buildVerticalSvg`) — matches on Y axis (top to bottom), values on X axis. SVG height scales with match count (`TM + n × 44px + BM`). Renders at full height (no scroll wrapper) for clean printing. Match labels split on ` vs ` into a bold prefix line with an inline date `tspan` and a dimmer `vs Opponent` line below; names without ` vs ` render on two lines (name + date).
+
+**Hover tooltip** — a single `.chart-float-tip` `<div>` is appended to `<body>` when the report renders and reused for all dots. Each `<circle>` carries `data-tip-val` (formatted value, e.g. `+3`). On `mouseenter` the tooltip shows just the value in a bold pill near the cursor. Re-wired via `attachTipEvents()` after every orientation switch.
+
+### Opponent Comparison
+
+Renders a per-opponent summary table sorted by win rate. Two triangle additions:
+- **Overall triangle** — sums `rawTS`, `rawFB`, `rawTRN` across all opponents, displayed above the table
+- **Per-opponent cards** (`.report-opp-cards`) — flex-wrap row of `.report-opp-card` elements below the table, one per opponent, each showing the opponent name, W–L record, and a 150×150 triangle with their aggregate totals
+
+`rawTS / rawFB / rawTRN` are the summed (not averaged) category totals, stored alongside the existing per-match averages when each opponent group is built.
+
+---
+
+## Date Formatting
+
+`formatDateShort(d)` is a global utility that formats a `Date` object using the preference stored in `localStorage.dateFormat`. Set in **Setup → App Settings → Date format** and saved on change.
+
+| Key | Example |
+|-----|---------|
+| `yyyy-mm-dd` (default) | 2026-05-04 |
+| `M/D/YY` | 5/4/26 |
+| `MM/DD/YYYY` | 05/04/2026 |
+| `D/M/YY` | 4/5/26 |
+| `DD/MM/YYYY` | 04/05/2026 |
+
+All user-facing date displays use this function: History page match list, Reports data picker labels, match info banner (date portion; time still uses `toLocaleTimeString`), Event Summary table, and Progress Trend chart labels.
 
 ---
 
@@ -729,3 +779,6 @@ Actions:
 28. Reports → Match Summary → Lead Changes section: verify badges appear with correct team color and score labels; verify ties between lead changes do not count as a lead change
 29. Reports → Match Log → verify lead-change rows show a colored score pill and "Lead Change – Us/Them" in column 8; verify non-lead-change rows have an empty column 8
 30. Setup → Developer Tools → click "Open Sample Data Generator" → verify `seed-sample-data.html` opens in a new tab
+31. Setup → App Settings → Date format → change to `MM/DD/YYYY`; verify History list, Reports data picker, match info banner, Event Summary, and Progress Trend all display the new format
+32. Reports → Progress Trend (horizontal, > 8 matches) → verify chart splits into multiple stacked SVGs with matching Y scale and `(1/N)` counter
+33. Reports → Progress Trend → hover a data point → verify only the value pill appears (no native browser tooltip below it)

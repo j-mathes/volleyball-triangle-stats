@@ -121,6 +121,8 @@ Common coaching questions these reports help answer:
 - Which rotations are strongest or weakest?
 - Are we trending up across recent matches?
 
+Multi-match reports include aggregate Triangle stat graphics so the overall TS/FB/TRN picture is visible at a glance. The Progress Trend chart has a horizontal/vertical orientation toggle — useful when many matches are selected and labels become crowded. The Opponent Comparison report includes an individual triangle for each opponent alongside the overall summary.
+
 ## Data and Persistence
 
 All data is saved locally in your browser (IndexedDB) in the `triangle-stats` database.
