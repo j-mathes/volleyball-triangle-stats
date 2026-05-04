@@ -505,8 +505,8 @@ async function dbListMatches() {
   db.close();
   return all.sort(function (a, b) {
     var da = new Date(a.matchDate || a.updatedAt).getTime();
-    var db2 = new Date(b.matchDate || b.updatedAt).getTime();
-    return da - db2;
+    var dateB = new Date(b.matchDate || b.updatedAt).getTime();
+    return da - dateB;
   });
 }
 
@@ -1259,8 +1259,8 @@ async function renderHistory() {
         eventEl.open = true;
         var eventSummary = document.createElement("summary");
         eventSummary.className = "history-event-header";
-        var typeBadge = evt.type ? " <span class=\"event-type-badge\">" + escapeHtml(evt.type) + "</span>" : "";
-        eventSummary.innerHTML = escapeHtml(evt.name) + typeBadge;
+        var typeBadge = evt.type ? " <span class=\"event-type-badge\">" + escHtml(evt.type) + "</span>" : "";
+        eventSummary.innerHTML = escHtml(evt.name) + typeBadge;
         eventEl.appendChild(eventSummary);
         grouped[sid][eid].forEach(function (m) { eventEl.appendChild(createMatchItem(m)); });
         seasonEl.appendChild(eventEl);
@@ -1303,7 +1303,7 @@ function createMatchItem(entry) {
   var statusClass = entry.events && entry.events.some(function (e) { return e.type === "MATCH_ENDED"; }) ? "status-complete" : "status-active";
   var statusText = statusClass === "status-complete" ? "Complete" : "In Progress";
   btn.innerHTML = "<div class=\"history-item-main\">" +
-    "<span class=\"history-item-name\">" + escapeHtml(entry.matchName) + "</span>" +
+    "<span class=\"history-item-name\">" + escHtml(entry.matchName) + "</span>" +
     "<span class=\"history-item-status " + statusClass + "\">" + statusText + "</span>" +
     "</div>" +
     "<div class=\"history-item-meta\">" +
@@ -1414,12 +1414,6 @@ async function resumeMatch() {
   controller.hydrate(record);
   showPage("stats");
   renderState();
-}
-
-function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.appendChild(document.createTextNode(str));
-  return div.innerHTML;
 }
 
 async function persistAndRefresh() {
@@ -2301,8 +2295,7 @@ function showReport(reportName) {
       output.innerHTML = '<p class="report-selection-hint">No match data available. Go to the Stats page and start a match, or switch to another scope and select a saved match.</p>';
       return;
     }
-    var MULTI = ["eventSummary", "progressTrend", "rotationHeatmap", "playerLeaderboard", "opponentCompare"];
-    if (MULTI.indexOf(reportName) !== -1) {
+    if (MULTI_REPORTS.indexOf(reportName) !== -1) {
       var enriched = [];
       for (var mi = 0; mi < matches.length; mi++) {
         var mRec = matches[mi].record;
@@ -3502,7 +3495,7 @@ function renderProgressTrend(output, enriched) {
       function dots(key, color) {
         return chunk.map(function (v, i) {
           var tipVal = (v[key] > 0 ? '+' : '') + v[key];
-          return '<circle data-series="' + key + '" data-tip-val="' + tipVal + '" data-tip-label="' + escHtml(v.label) + '" cx="' + xOf(i) + '" cy="' + yOf(v[key]) + '" r="4.5" fill="' + color + '" stroke="white" stroke-width="1.5"/>';
+          return '<circle data-series="' + key + '" data-tip-val="' + tipVal + '" cx="' + xOf(i) + '" cy="' + yOf(v[key]) + '" r="4.5" fill="' + color + '" stroke="white" stroke-width="1.5"/>';
         }).join('');
       }
 
@@ -3570,7 +3563,7 @@ function renderProgressTrend(output, enriched) {
     function dotsV(key, color) {
       return vals.map(function (v, i) {
         var tipVal = (v[key] > 0 ? '+' : '') + v[key];
-        return '<circle data-series="' + key + '" data-tip-val="' + tipVal + '" data-tip-label="' + escHtml(v.label) + '" cx="' + xOfVal(v[key]) + '" cy="' + yOfMatch(i) + '" r="4.5" fill="' + color + '" stroke="white" stroke-width="1.5"/>';
+        return '<circle data-series="' + key + '" data-tip-val="' + tipVal + '" cx="' + xOfVal(v[key]) + '" cy="' + yOfMatch(i) + '" r="4.5" fill="' + color + '" stroke="white" stroke-width="1.5"/>';
       }).join('');
     }
 
@@ -3641,8 +3634,7 @@ function renderProgressTrend(output, enriched) {
     wrap.querySelectorAll('circle[data-series]').forEach(function (c) {
       var titleEl = c.querySelector('title');
       if (!titleEl && !c.dataset.tipVal) return;
-      var val   = c.dataset.tipVal   || '';
-      var label = c.dataset.tipLabel || (titleEl ? titleEl.textContent : '');
+      var val = c.dataset.tipVal || (titleEl ? titleEl.textContent : '');
       c.addEventListener('mouseenter', function (e) {
         tip.innerHTML = '<div class="chart-tip-val">' + escHtml(val) + '</div>';
         tip.style.display = 'block';

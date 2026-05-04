@@ -4,6 +4,7 @@
   --ink: #1b1b28;
   --accent: #f25f4c;
   --accent-2: #078080;
+  --accent-2-hover: #066a6a;
   --paper: rgba(255, 255, 255, 0.82);
   --ours: #2a7d4f;
   --ours-hover: #236b43;
@@ -142,7 +143,7 @@ body {
 }
 
 .picker-load-btn:hover:not(:disabled) {
-  background: #066a6a;
+  background: var(--accent-2-hover);
 }
 
 .picker-clear-btn {
@@ -363,50 +364,6 @@ body {
   color: rgba(0, 0, 0, 0.65);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-}
-
-.report-header-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.9rem;
-}
-
-/* Shared match info banner (top of every single-match report) */
-.report-match-banner {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding-bottom: 0.75rem;
-  margin-bottom: 0.9rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.report-match-banner-info {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.report-match-banner-name {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--fg);
-  margin-bottom: 0.18rem;
-}
-
-.report-match-banner-meta {
-  font-size: 0.82rem;
-  color: rgba(0, 0, 0, 0.5);
-}
-
-.rmbm-label {
-  font-style: italic;
-}
-
-.rmbm-sep {
-  margin: 0 0.35rem;
-  opacity: 0.4;
 }
 
 .report-mini-tri {
@@ -1432,11 +1389,6 @@ input:not([type="radio"]):not([type="checkbox"]) {
   min-width: 11rem;
 }
 
-.set-input {
-  width: 5rem;
-  min-width: 5rem;
-}
-
 button {
   border: 0;
   border-radius: 10px;
@@ -1463,10 +1415,6 @@ summary,
 button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-}
-
-.content-area {
-  margin-top: 0.6rem;
 }
 
 /* Middle row: inherits column tracks from stats-layout via subgrid for exact outer-edge alignment */
@@ -1703,16 +1651,6 @@ button:disabled {
   font-size: 0.82rem;
 }
 
-.begin-match-btn {
-  background: var(--accent-2);
-  font-size: 1rem;
-  padding: 0.65rem 1rem;
-}
-
-.begin-match-btn:hover:not(:disabled) {
-  background: #066a6a;
-}
-
 /* Stepper control for number of sets */
 .stepper {
   display: flex;
@@ -1790,7 +1728,7 @@ button:disabled {
 }
 
 .start-match-btn:hover:not(:disabled) {
-  background: #066a6a;
+  background: var(--accent-2-hover);
 }
 
 /* History page */
@@ -2206,7 +2144,7 @@ button:disabled {
 }
 
 .confirm-opp-btn:hover:not(:disabled) {
-  background: #066a6a;
+  background: var(--accent-2-hover);
 }
 
 .opponent-rename-input {
@@ -2385,7 +2323,7 @@ button:disabled {
 }
 
 .import-btn:hover:not(:disabled) {
-  background: #066a6a;
+  background: var(--accent-2-hover);
 }
 
 /* ---- Metadata panel (rotation, jersey, event codes) ---- */
@@ -2683,9 +2621,6 @@ button:disabled {
   padding: 0.1rem 0.3rem;
 }
 
-.elr-meta {
-  opacity: 0.72;
-}
 .ec-both {
   background: #7c5cbf;
 }
@@ -2714,6 +2649,12 @@ button:disabled {
   outline-offset: 1px;
   filter: brightness(1.35);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--highlight-color, #60a5fa) 25%, transparent);
+}
+
+.dev-card-hint {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0 0 0.75rem;
 }
 
 .setting-row {

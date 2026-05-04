@@ -550,6 +550,15 @@ function putRecord(db, storeName, record) {
   });
 }
 
+function getExistingOpponents(db) {
+  return new Promise(function(resolve) {
+    var tx = db.transaction(["opponents"], "readonly");
+    var req = tx.objectStore("opponents").getAll();
+    req.onsuccess = function() { resolve(req.result || []); };
+    req.onerror   = function() { resolve([]); };
+  });
+}
+
 function loadEventCodes(db) {
   return new Promise(function(resolve) {
     var tx = db.transaction(["eventCodes"], "readonly");
@@ -765,9 +774,27 @@ async function seedTournament(db) {
   logLine("  Matches:");
   data.matches.forEach(function(m) { logMatchSummary(m); });
 
+  var existingOpps = await getExistingOpponents(db);
+  var existingByName = {};
+  existingOpps.forEach(function(o) { existingByName[o.name] = o.id; });
+  var idRemap = {};
+  var oppsToInsert = [];
+  data.opponents.forEach(function(o) {
+    if (existingByName[o.name]) {
+      idRemap[o.id] = existingByName[o.name];
+    } else {
+      idRemap[o.id] = o.id;
+      oppsToInsert.push(o);
+      existingByName[o.name] = o.id;
+    }
+  });
+  data.matches.forEach(function(m) {
+    if (m.opponentId && idRemap[m.opponentId]) m.opponentId = idRemap[m.opponentId];
+  });
+
   if (data.season)   await putRecord(db, "seasons",   data.season);
   await putRecord(db, "events",    data.event);
-  for (var i = 0; i < data.opponents.length; i++) await putRecord(db, "opponents", data.opponents[i]);
+  for (var i = 0; i < oppsToInsert.length; i++) await putRecord(db, "opponents", oppsToInsert[i]);
   for (var i = 0; i < data.matches.length;   i++) await putRecord(db, STORE_NAME,  data.matches[i]);
 
   logLine("Written to IndexedDB.", "ok");
@@ -809,9 +836,27 @@ async function seedLeague(db) {
     logLine("  " + ev.name + "  (" + roundMatches.map(function(m){ return m.matchName.replace(/^.*? vs /,"vs "); }).join(", ") + ")", "dim");
   });
 
+  var existingOpps = await getExistingOpponents(db);
+  var existingByName = {};
+  existingOpps.forEach(function(o) { existingByName[o.name] = o.id; });
+  var idRemap = {};
+  var oppsToInsert = [];
+  data.opponents.forEach(function(o) {
+    if (existingByName[o.name]) {
+      idRemap[o.id] = existingByName[o.name];
+    } else {
+      idRemap[o.id] = o.id;
+      oppsToInsert.push(o);
+      existingByName[o.name] = o.id;
+    }
+  });
+  data.matches.forEach(function(m) {
+    if (m.opponentId && idRemap[m.opponentId]) m.opponentId = idRemap[m.opponentId];
+  });
+
   await putRecord(db, "seasons", data.season);
   for (var i = 0; i < data.events.length;    i++) await putRecord(db, "events",    data.events[i]);
-  for (var i = 0; i < data.opponents.length;  i++) await putRecord(db, "opponents", data.opponents[i]);
+  for (var i = 0; i < oppsToInsert.length;   i++) await putRecord(db, "opponents", oppsToInsert[i]);
   for (var i = 0; i < data.matches.length;    i++) await putRecord(db, STORE_NAME,  data.matches[i]);
 
   logLine("Written to IndexedDB.", "ok");
