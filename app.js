@@ -3377,6 +3377,7 @@ function renderEventSummary(output, enriched) {
   var totalWins = 0, totalLosses = 0, totTS = 0, totFB = 0, totTRN = 0, totUs = 0, totOpp = 0;
 
   var html = '<div class="report-multi-wrap">' + reportTitle('Event Summary');
+  html += '##ESTRIANGLE##';
   html += '<table class="report-table"><thead><tr>';
   html += '<th title="Match name">Match</th>';
   html += '<th title="Opponent name">Opponent</th>';
@@ -3422,6 +3423,7 @@ function renderEventSummary(output, enriched) {
   html += '</tr>';
 
   html += '</tbody></table></div>';
+  html = html.replace('##ESTRIANGLE##', '<div class="report-multi-tri-header">' + miniTriangleSvg(totTS, totFB, totTRN) + '</div>');
   output.innerHTML = html;
 }
 
@@ -3440,6 +3442,9 @@ function renderProgressTrend(output, enriched) {
     };
   });
   var n = vals.length;
+  var totalTS  = vals.reduce(function (s, v) { return s + v.ts;  }, 0);
+  var totalFB  = vals.reduce(function (s, v) { return s + v.fb;  }, 0);
+  var totalTRN = vals.reduce(function (s, v) { return s + v.trn; }, 0);
   var allNums = vals.reduce(function (arr, v) { return arr.concat([v.ts, v.fb, v.trn]); }, []);
   var mn = Math.min.apply(null, allNums), mx = Math.max.apply(null, allNums);
   mn = Math.min(mn - 1, -2); mx = Math.max(mx + 1, 2);
@@ -3455,11 +3460,11 @@ function renderProgressTrend(output, enriched) {
 
   function polyline(key, color) {
     var pts = vals.map(function (v, i) { return xOf(i) + ',' + yOf(v[key]); }).join(' ');
-    return '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+    return '<polyline data-series="' + key + '" points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
   }
   function dots(key, color) {
     return vals.map(function (v, i) {
-      return '<circle cx="' + xOf(i) + '" cy="' + yOf(v[key]) + '" r="4.5" fill="' + color + '" stroke="white" stroke-width="1.5"/>';
+      return '<circle data-series="' + key + '" cx="' + xOf(i) + '" cy="' + yOf(v[key]) + '" r="4.5" fill="' + color + '" stroke="white" stroke-width="1.5"/>';
     }).join('');
   }
 
@@ -3489,16 +3494,38 @@ function renderProgressTrend(output, enriched) {
     '</svg>';
 
   var legend = '<div class="report-trend-legend">' +
-    '<span><svg width="22" height="10" style="vertical-align:middle"><line x1="0" y1="5" x2="22" y2="5" stroke="' + C_TS  + '" stroke-width="2.5"/></svg> Terminal Serves</span>' +
-    '<span><svg width="22" height="10" style="vertical-align:middle"><line x1="0" y1="5" x2="22" y2="5" stroke="' + C_FB  + '" stroke-width="2.5"/></svg> First Ball</span>' +
-    '<span><svg width="22" height="10" style="vertical-align:middle"><line x1="0" y1="5" x2="22" y2="5" stroke="' + C_TRN + '" stroke-width="2.5"/></svg> Transition</span>' +
+    '<button class="chart-toggle active" data-series="ts"  style="border-left:4px solid ' + C_TS  + '">Terminal Serves</button>' +
+    '<button class="chart-toggle active" data-series="fb"  style="border-left:4px solid ' + C_FB  + '">First Ball</button>' +
+    '<button class="chart-toggle active" data-series="trn" style="border-left:4px solid ' + C_TRN + '">Transition</button>' +
     '</div>';
 
   var html = '<div class="report-multi-wrap">' + reportTitle('Progress Trend');
-  html += '<p class="chart-hint">Matches sorted by date. Dashed line = zero. Positive values mean we outscored the opponent in that category.</p>';
+  html += '<div class="report-multi-tri-header">' + miniTriangleSvg(totalTS, totalFB, totalTRN) + '</div>';
+  html += '<p class="chart-hint">Matches sorted by date. Dashed line = zero. Positive values mean we outscored the opponent in that category. Click legend buttons to show/hide a series.</p>';
   html += legend + svg;
   html += '</div>';
   output.innerHTML = html;
+
+  var activeSeries = { ts: true, fb: true, trn: true };
+  output.querySelectorAll('.report-trend-legend .chart-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var series = btn.dataset.series;
+      btn.classList.toggle('active');
+      activeSeries[series] = btn.classList.contains('active');
+      var vis = btn.classList.contains('active') ? '' : 'none';
+      output.querySelectorAll('svg [data-series="' + series + '"]').forEach(function (el) { el.style.display = vis; });
+      var triEl = output.querySelector('.report-mini-tri');
+      if (triEl) {
+        var tmp = document.createElement('div');
+        tmp.innerHTML = miniTriangleSvg(
+          activeSeries.ts  ? totalTS  : 0,
+          activeSeries.fb  ? totalFB  : 0,
+          activeSeries.trn ? totalTRN : 0
+        );
+        triEl.parentNode.replaceChild(tmp.firstChild, triEl);
+      }
+    });
+  });
 }
 
 // ---- Report 11: Rotation Heat Map (multi) ------------------------------------
@@ -3642,13 +3669,18 @@ function renderOpponentCompare(output, enriched) {
     var n = g.matches.length;
     return { name: g.name, n: n, wins: wins, losses: losses,
       avgTS:  (totTS  / n).toFixed(1), avgFB:  (totFB  / n).toFixed(1), avgTRN: (totTRN / n).toFixed(1),
-      totUs: totUs, totOpp: totOpp };
+      totUs: totUs, totOpp: totOpp, rawTS: totTS, rawFB: totFB, rawTRN: totTRN };
   }).sort(function (a, b) {
     var ar = a.n ? a.wins / a.n : 0, br = b.n ? b.wins / b.n : 0;
     return br !== ar ? br - ar : a.name.localeCompare(b.name);
   });
 
+  var overallTS  = oppRows.reduce(function (s, o) { return s + o.rawTS;  }, 0);
+  var overallFB  = oppRows.reduce(function (s, o) { return s + o.rawFB;  }, 0);
+  var overallTRN = oppRows.reduce(function (s, o) { return s + o.rawTRN; }, 0);
+
   var html = '<div class="report-multi-wrap">' + reportTitle('Opponent Comparison');
+  html += '<div class="report-multi-tri-header">' + miniTriangleSvg(overallTS, overallFB, overallTRN) + '</div>';
   html += '<table class="report-table"><thead><tr>';
   html += '<th title="Opponent name">Opponent</th>';
   html += '<th title="Number of matches played against this opponent">Matches</th>';
@@ -3673,6 +3705,18 @@ function renderOpponentCompare(output, enriched) {
   });
   html += '</tbody></table>';
   html += '<p class="chart-hint">Sorted by win rate. Average scores are per match. Ties in win rate break on opponent name alphabetically.</p>';
+  html += '<h3 class="report-section-title" style="margin-top:1.2rem">Triangle by Opponent</h3>';
+  html += '<div class="report-opp-cards">';
+  oppRows.forEach(function (o) {
+    var win = o.wins > o.losses, loss = o.losses > o.wins;
+    var recCls = win ? 'report-pos' : loss ? 'report-neg' : '';
+    html += '<div class="report-opp-card">';
+    html += '<div class="report-opp-card-name">' + escHtml(o.name) + '</div>';
+    html += '<div class="report-opp-card-record ' + recCls + '">' + o.wins + '\u2013' + o.losses + ' (' + o.n + ' match' + (o.n !== 1 ? 'es' : '') + ')</div>';
+    html += miniTriangleSvg(o.rawTS, o.rawFB, o.rawTRN);
+    html += '</div>';
+  });
+  html += '</div>';
   html += '</div>';
   output.innerHTML = html;
 }
