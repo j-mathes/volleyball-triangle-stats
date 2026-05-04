@@ -2147,6 +2147,23 @@ button:disabled {
   background: #9a0e18;
 }
 
+.seed-link-btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: rgba(96, 165, 250, 0.12);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.seed-link-btn:hover {
+  background: rgba(96, 165, 250, 0.22);
+  border-color: rgba(96, 165, 250, 0.55);
+}
+
 /* Event Codes management card */
 .ec-add-row {
   display: flex;

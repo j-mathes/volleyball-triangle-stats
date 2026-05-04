@@ -1,0 +1,782 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Seed Sample Data &ndash; Triangle Stats</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; padding: 2rem; background: #1a1a2e; color: #e0e0e0; max-width: 720px; margin: 0 auto; }
+  h1 { color: #60a5fa; margin-bottom: 0.25rem; font-size: 1.4rem; }
+  p.subtitle { color: #94a3b8; margin-top: 0; margin-bottom: 1.25rem; font-size: 0.9rem; }
+
+  /* Mode tabs */
+  .mode-tabs { display: flex; gap: 0; border-bottom: 2px solid #334155; margin-bottom: 1.5rem; }
+  .mode-tab { padding: 0.5rem 1.25rem; background: none; border: none; color: #64748b;
+    font-size: 0.9rem; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent;
+    margin-bottom: -2px; border-radius: 4px 4px 0 0; transition: color 0.15s; }
+  .mode-tab:hover { color: #cbd5e1; }
+  .mode-tab.active { color: #60a5fa; border-bottom-color: #60a5fa; }
+
+  .mode-panel { display: none; }
+  .mode-panel.active { display: block; }
+
+  /* Forms */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1.5rem; }
+  .form-group { display: flex; flex-direction: column; gap: 0.25rem; }
+  .form-group.full { grid-column: 1 / -1; }
+  label, .field-label { font-size: 0.78rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; }
+  input, select { background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e0e0e0;
+    padding: 0.45rem 0.65rem; font-size: 0.9rem; width: 100%; }
+  input:focus, select:focus { outline: 2px solid #3b82f6; border-color: transparent; }
+
+  /* Set outcome row (single match) */
+  .outcome-grid { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.25rem; }
+  .outcome-set { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
+  .outcome-set span { font-size: 0.72rem; color: #94a3b8; }
+  .outcome-set select { width: 80px; text-align: center; }
+
+  hr { border-color: #334155; margin: 1.25rem 0; }
+
+  .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; margin-top: 1.25rem; }
+  button { padding: 0.55rem 1.3rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; }
+  #btnSeed  { background: #3b82f6; color: #fff; }
+  #btnSeed:hover  { background: #2563eb; }
+  #btnReset { background: #334155; color: #cbd5e1; }
+  #btnReset:hover { background: #475569; }
+
+  #status { font-size: 0.9rem; color: #94a3b8; }
+  .ok  { color: #4ade80 !important; }
+  .err { color: #f87171 !important; }
+
+  pre#log { background: #0f0f1a; padding: 1rem; border-radius: 8px; overflow-x: auto;
+    font-size: 0.78rem; max-height: 340px; overflow-y: auto; margin-top: 1rem; display: none; font-family: monospace; }
+  pre#log .ok  { color: #4ade80; }
+  pre#log .err { color: #f87171; }
+  pre#log .dim { color: #475569; }
+
+  a { color: #60a5fa; }
+  .note { font-size: 0.78rem; color: #64748b; margin-top: 0.3rem; }
+  .section-label { font-size: 0.78rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 0.3rem; }
+</style>
+</head>
+<body>
+<h1>Triangle Stats &ndash; Seed Sample Data</h1>
+<p class="subtitle">Generate randomized matches, tournaments, or full league seasons and insert them directly into the app&rsquo;s IndexedDB.</p>
+
+<div class="mode-tabs">
+  <button class="mode-tab active" onclick="setMode('single')">Single Match</button>
+  <button class="mode-tab" onclick="setMode('tournament')">Tournament</button>
+  <button class="mode-tab" onclick="setMode('league')">League</button>
+</div>
+
+<!-- ═══ SINGLE MATCH ════════════════════════════════════════════════════════ -->
+<div id="panel-single" class="mode-panel active">
+  <div class="form-grid">
+    <div class="form-group">
+      <label for="s-matchName">Match Name</label>
+      <input type="text" id="s-matchName" value="Sample Match vs River City" />
+    </div>
+    <div class="form-group">
+      <label for="s-matchDate">Match Date</label>
+      <input type="date" id="s-matchDate" />
+    </div>
+    <div class="form-group">
+      <label for="s-matchFormat">Format</label>
+      <select id="s-matchFormat" onchange="onFormatChange()">
+        <option value="3">Best of 3</option>
+        <option value="5" selected>Best of 5</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="s-lcCadence">Lead Change Cadence</label>
+      <select id="s-lcCadence">
+        <option value="2-3">Frequent (every 2&ndash;3 pts)</option>
+        <option value="3-5" selected>Normal (every 3&ndash;5 pts)</option>
+        <option value="5-8">Infrequent (every 5&ndash;8 pts)</option>
+      </select>
+    </div>
+  </div>
+  <hr />
+  <span class="section-label">Set Outcomes</span>
+  <p class="note">Select who wins each set. The final set (deciding) uses first-to-15.</p>
+  <div class="outcome-grid" id="outcomeGrid"></div>
+</div>
+
+<!-- ═══ TOURNAMENT ══════════════════════════════════════════════════════════ -->
+<div id="panel-tournament" class="mode-panel">
+  <div class="form-grid">
+    <div class="form-group">
+      <label for="t-eventName">Tournament Name</label>
+      <input type="text" id="t-eventName" value="Spring Classic" />
+    </div>
+    <div class="form-group">
+      <label for="t-seasonName">Season Name <span style="opacity:0.5">(optional)</span></label>
+      <input type="text" id="t-seasonName" value="2026 Season" />
+    </div>
+    <div class="form-group">
+      <label for="t-startDate">Start Date</label>
+      <input type="date" id="t-startDate" />
+    </div>
+    <div class="form-group">
+      <label for="t-matchFormat">Match Format</label>
+      <select id="t-matchFormat">
+        <option value="3" selected>Best of 3</option>
+        <option value="5">Best of 5</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="t-matchCount">Number of Matches</label>
+      <select id="t-matchCount" onchange="onTournamentMatchCountChange()">
+        <option value="3">3 matches</option>
+        <option value="4" selected>4 matches</option>
+        <option value="5">5 matches</option>
+        <option value="6">6 matches</option>
+        <option value="8">8 matches</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="t-wins">Our Wins</label>
+      <select id="t-wins"></select>
+    </div>
+    <div class="form-group">
+      <label for="t-lcCadence">Lead Change Cadence</label>
+      <select id="t-lcCadence">
+        <option value="2-3">Frequent (every 2&ndash;3 pts)</option>
+        <option value="3-5" selected>Normal (every 3&ndash;5 pts)</option>
+        <option value="5-8">Infrequent (every 5&ndash;8 pts)</option>
+      </select>
+    </div>
+  </div>
+  <p class="note" style="margin-top:0.75rem">Opponents and match times are auto-generated from a realistic name pool. Each match is linked to the tournament event.</p>
+</div>
+
+<!-- ═══ LEAGUE ═══════════════════════════════════════════════════════════════ -->
+<div id="panel-league" class="mode-panel">
+  <div class="form-grid">
+    <div class="form-group">
+      <label for="l-seasonName">Season Name</label>
+      <input type="text" id="l-seasonName" value="2026 Spring League" />
+    </div>
+    <div class="form-group">
+      <label for="l-startDate">Start Date</label>
+      <input type="date" id="l-startDate" />
+    </div>
+    <div class="form-group">
+      <label for="l-rounds">Number of Rounds</label>
+      <select id="l-rounds">
+        <option value="4">4 rounds</option>
+        <option value="6" selected>6 rounds</option>
+        <option value="8">8 rounds</option>
+        <option value="10">10 rounds</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="l-matchesPerRound">Matches per Round</label>
+      <select id="l-matchesPerRound">
+        <option value="1">1 match</option>
+        <option value="2" selected>2 matches</option>
+        <option value="3">3 matches</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="l-winRate">Our Win Rate</label>
+      <select id="l-winRate">
+        <option value="0.30">Struggling (~30%)</option>
+        <option value="0.50">Even (~50%)</option>
+        <option value="0.65" selected>Competitive (~65%)</option>
+        <option value="0.80">Dominant (~80%)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="l-matchFormat">Match Format</label>
+      <select id="l-matchFormat">
+        <option value="3" selected>Best of 3</option>
+        <option value="5">Best of 5</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="l-lcCadence">Lead Change Cadence</label>
+      <select id="l-lcCadence">
+        <option value="2-3">Frequent (every 2&ndash;3 pts)</option>
+        <option value="3-5" selected>Normal (every 3&ndash;5 pts)</option>
+        <option value="5-8">Infrequent (every 5&ndash;8 pts)</option>
+      </select>
+    </div>
+  </div>
+  <p class="note" style="margin-top:0.75rem">Rounds are spaced one week apart. Opponents are drawn from a pool of 6&ndash;8 teams and may repeat across rounds. Each round becomes a separate event linked to the season.</p>
+</div>
+
+<div class="actions">
+  <button id="btnSeed" onclick="seedData()">Insert Sample Data</button>
+  <button id="btnReset" onclick="resetForm()">Reset</button>
+  <span id="status"></span>
+</div>
+
+<pre id="log"></pre>
+
+<script>
+// ============================================================
+// Constants
+// ============================================================
+const DB_NAME    = "triangle-stats";
+const DB_VERSION = 4;
+const STORE_NAME = "matches";
+
+const US_STAT_POOL  = ["usAces","opponentMisses","firstBallUsKills","firstBallUsStops","transitionUsKills","transitionUsStops"];
+const OPP_STAT_POOL = ["opponentAces","usMisses","firstBallOpponentKills","firstBallOpponentStops","transitionOpponentKills","transitionOpponentStops"];
+const US_WEIGHTS    = [0.08, 0.18, 0.28, 0.14, 0.22, 0.10];
+const OPP_WEIGHTS   = [0.07, 0.17, 0.28, 0.14, 0.23, 0.11];
+const US_OWN        = new Set(US_STAT_POOL);
+
+const STAT_JERSEYS = {
+  usAces:            [1, 3, 5, 7, 9, 11],
+  firstBallUsKills:  [3, 5, 11, 7, 9],
+  firstBallUsStops:  [3, 5, 7, 9, 11],
+  transitionUsKills: [3, 5, 11, 9],
+  transitionUsStops: [5, 7, 9, 11],
+};
+
+const TEAM_NAMES = [
+  "River City Rockets","Mountain Thunder","Valley Surge","Lake Shore Lions",
+  "Cedar Ridge Storm","Riverside Hawks","Iron Peak Wolves","Blue Ridge United",
+  "Summit Strikers","Coastal Crush","Prairie Fire","Canyon Kings",
+  "Northern Lights","Desert Blaze","Harbor Waves","Ridgeline Force",
+  "Twin Peaks","Eastside Edge","Lakeview Lynx","Metro Surge"
+];
+
+const LEAGUE_ROUND_NAMES = [
+  "Week 1","Week 2","Week 3","Week 4","Week 5","Week 6",
+  "Week 7","Week 8","Week 9","Week 10"
+];
+
+// BO3 set outcome patterns [us wins first]
+const BO3_WIN  = [["us","us"],["us","them","us"],["them","us","us"]];
+const BO3_LOSS = [["them","them"],["them","us","them"],["us","them","them"]];
+// BO5 set outcome patterns
+const BO5_WIN  = [
+  ["us","us","us"],
+  ["us","us","them","us"],["us","them","us","us"],["them","us","us","us"],
+  ["us","us","them","them","us"],["us","them","us","them","us"],
+  ["them","us","us","them","us"],["us","them","them","us","us"],
+  ["them","us","them","us","us"],
+];
+const BO5_LOSS = [
+  ["them","them","them"],
+  ["them","them","us","them"],["them","us","them","them"],["us","them","them","them"],
+  ["them","them","us","us","them"],["them","us","them","us","them"],
+  ["us","them","them","us","them"],["them","us","us","them","them"],
+  ["us","them","us","them","them"],
+];
+
+// ============================================================
+// RNG helpers
+// ============================================================
+function rng(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function weightedPick(pool, weights) {
+  var r = Math.random(), cum = 0;
+  for (var i = 0; i < pool.length; i++) { cum += weights[i]; if (r < cum) return pool[i]; }
+  return pool[pool.length - 1];
+}
+function mkTs(base, offsetMs) { return new Date(base.getTime() + offsetMs).toISOString(); }
+function uid() { return "sample-" + Date.now() + "-" + Math.random().toString(36).slice(2,7); }
+
+// Shuffle array in place and return it
+function shuffle(arr) {
+  for (var i = arr.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+  }
+  return arr;
+}
+
+// Pick N unique items from array
+function pickN(arr, n) { return shuffle(arr.slice()).slice(0, n); }
+
+// Return random set outcomes for a match result
+function randomSetOutcomes(maxSets, weWin) {
+  if (maxSets === 3) return pick(weWin ? BO3_WIN : BO3_LOSS).slice();
+  return pick(weWin ? BO5_WIN : BO5_LOSS).slice();
+}
+
+// ============================================================
+// Core: generate a single volleyball set
+// ============================================================
+function generateSet(setNumber, matchId, baseTime, msOffset, usWins, targetWinner, lcMin, lcMax) {
+  var events = [];
+  var t = msOffset;
+  var avgPointMs = rng(18000, 32000);
+  var scUs = 0, scOpp = 0;
+  var prevLeader = 0;
+  var pointsUntilLeadChange = rng(lcMin, lcMax);
+  var pointsSinceLast = 0;
+  var ourRot = rng(1, 6), theirRot = rng(1, 6);
+  var ourServe = Math.random() < 0.5;
+
+  events.push({ type: "SET_STARTED", setNumber: setNumber, timestamp: mkTs(baseTime, t) });
+  t += rng(8000, 20000);
+
+  while (true) {
+    var weScore;
+    if (pointsSinceLast >= pointsUntilLeadChange) {
+      if      (prevLeader ===  1) weScore = false;
+      else if (prevLeader === -1) weScore = true;
+      else                        weScore = Math.random() < 0.5;
+    } else {
+      weScore = Math.random() < (usWins ? 0.52 : 0.48);
+    }
+
+    var projUs  = scUs  + (weScore  ? 1 : 0);
+    var projOpp = scOpp + (!weScore ? 1 : 0);
+    var setOver = false;
+
+    if (usWins) {
+      if (projOpp >= targetWinner) { weScore = true; projUs = scUs + 1; projOpp = scOpp; }
+      if (projUs >= targetWinner && projUs - projOpp >= 2) setOver = true;
+    } else {
+      if (projUs >= targetWinner) { weScore = false; projUs = scUs; projOpp = scOpp + 1; }
+      if (projOpp >= targetWinner && projOpp - projUs >= 2) setOver = true;
+    }
+
+    scUs  = weScore  ? scUs  + 1 : scUs;
+    scOpp = !weScore ? scOpp + 1 : scOpp;
+
+    var stat   = weScore ? weightedPick(US_STAT_POOL, US_WEIGHTS) : weightedPick(OPP_STAT_POOL, OPP_WEIGHTS);
+    var jersey = (weScore && STAT_JERSEYS[stat]) ? pick(STAT_JERSEYS[stat]) : null;
+
+    if (weScore) { if (!ourServe)  ourRot  = (ourRot  % 6) + 1; ourServe  = true;  }
+    else         { if ( ourServe)  theirRot = (theirRot % 6) + 1; ourServe = false; }
+
+    var leader = scUs > scOpp ? 1 : scUs < scOpp ? -1 : 0;
+    if (leader !== 0 && leader !== prevLeader) {
+      prevLeader = leader;
+      pointsUntilLeadChange = rng(lcMin, lcMax);
+      pointsSinceLast = 0;
+    } else {
+      pointsSinceLast++;
+    }
+
+    var ev = { type: "STAT_INCREMENTED", matchId: matchId, setNumber: setNumber,
+      stat: stat, value: 1, timestamp: mkTs(baseTime, t),
+      ourRotation: ourRot, theirRotation: theirRot };
+    if (jersey) ev.jersey = jersey;
+    events.push(ev);
+    t += avgPointMs + rng(-5000, 8000);
+
+    if (setOver) break;
+    if (scUs > 45 || scOpp > 45) break;
+  }
+
+  events.push({ type: "SET_ENDED", setNumber: setNumber, timestamp: mkTs(baseTime, t) });
+  t += rng(120000, 240000);
+  return { events: events, nextOffset: t };
+}
+
+// ============================================================
+// Core: generate a complete match record
+// setWinners = array of "us"/"them" for each PLAYED set
+// maxSets    = configured format (3 or 5)
+// ============================================================
+function generateMatch(matchName, matchDate, maxSets, setWinners, lcMin, lcMax, seasonId, eventId, opponentId, startHourOffset) {
+  var matchId  = uid();
+  var baseTime = new Date(matchDate + "T08:00:00");
+  if (startHourOffset) baseTime = new Date(baseTime.getTime() + startHourOffset * 3600000);
+  var t = 0;
+  var allEvents = [];
+
+  allEvents.push({ type: "MATCH_STARTED", matchId: matchId, matchName: matchName,
+    matchFormat: "bestOf", totalSets: maxSets, matchDate: matchDate,
+    seasonId: seasonId || null, eventId: eventId || null, opponentId: opponentId || null,
+    timestamp: mkTs(baseTime, t) });
+  t += rng(30000, 90000);
+
+  for (var s = 0; s < setWinners.length; s++) {
+    var usWins     = setWinners[s] === "us";
+    // Only the last set of a full-distance match uses first-to-15
+    var isDeciding = (s === setWinners.length - 1) && (setWinners.length === maxSets);
+    var targetWin  = isDeciding ? 15 : 25;
+    var result = generateSet(s + 1, matchId, baseTime, t, usWins, targetWin, lcMin, lcMax);
+    allEvents = allEvents.concat(result.events);
+    t = result.nextOffset;
+  }
+
+  allEvents.push({ type: "MATCH_ENDED", matchId: matchId, timestamp: mkTs(baseTime, t) });
+
+  return { matchId: matchId, matchName: matchName, matchFormat: "bestOf",
+    totalSets: maxSets, matchDate: matchDate,
+    seasonId: seasonId || null, eventId: eventId || null, opponentId: opponentId || null,
+    createdAt: baseTime.toISOString(), updatedAt: new Date().toISOString(),
+    cursor: allEvents.length, events: allEvents };
+}
+
+// ============================================================
+// Tournament generator
+// ============================================================
+function generateTournament(eventName, seasonName, startDate, maxSets, matchCount, winCount, lcMin, lcMax) {
+  var results = { season: null, event: null, opponents: [], matches: [] };
+
+  // Season (optional)
+  if (seasonName.trim()) {
+    results.season = { id: uid(), name: seasonName.trim() };
+  }
+
+  // Event
+  var eventId = uid();
+  results.event = { id: eventId, name: eventName.trim(), seasonId: results.season ? results.season.id : null };
+
+  // Opponents — pick unique names
+  var opponentNames = pickN(TEAM_NAMES, matchCount);
+  opponentNames.forEach(function(name) {
+    results.opponents.push({ id: uid(), name: name });
+  });
+
+  // Build win/loss sequence: distribute wins
+  var outcomes = [];
+  for (var i = 0; i < winCount; i++) outcomes.push(true);
+  for (var i = 0; i < matchCount - winCount; i++) outcomes.push(false);
+  shuffle(outcomes);
+
+  // Generate matches — spread through the day (matches start 2.5h apart)
+  outcomes.forEach(function(weWin, idx) {
+    var opponent  = results.opponents[idx];
+    var setWins   = randomSetOutcomes(maxSets, weWin);
+    var matchName = eventName + " vs " + opponent.name;
+    var record = generateMatch(
+      matchName, startDate, maxSets, setWins, lcMin, lcMax,
+      results.season ? results.season.id : null,
+      eventId, opponent.id,
+      idx * 2.5   // stagger start times
+    );
+    results.matches.push(record);
+  });
+
+  return results;
+}
+
+// ============================================================
+// League generator
+// ============================================================
+function generateLeague(seasonName, startDate, rounds, matchesPerRound, winRate, maxSets, lcMin, lcMax) {
+  var results = { season: null, events: [], opponents: [], matches: [] };
+
+  // Season
+  results.season = { id: uid(), name: seasonName.trim() };
+
+  // Opponents pool — 6-8 teams
+  var poolSize = Math.min(6 + Math.floor(matchesPerRound * 1.5), 8);
+  var opponentPool = pickN(TEAM_NAMES, poolSize);
+  opponentPool.forEach(function(name) {
+    results.opponents.push({ id: uid(), name: name });
+  });
+
+  var baseDate = new Date(startDate + "T00:00:00");
+
+  for (var r = 0; r < rounds; r++) {
+    // Each round is 7 days later
+    var roundDate = new Date(baseDate.getTime() + r * 7 * 24 * 3600 * 1000);
+    var roundDateStr = roundDate.toISOString().slice(0, 10);
+    var roundName = (r < LEAGUE_ROUND_NAMES.length ? LEAGUE_ROUND_NAMES[r] : "Round " + (r + 1));
+
+    // Event for this round
+    var eventId = uid();
+    results.events.push({ id: eventId, name: roundName, seasonId: results.season.id });
+
+    // Pick opponents for this round (no duplicate within a round)
+    var roundOpponents = pickN(results.opponents, matchesPerRound);
+
+    for (var m = 0; m < matchesPerRound; m++) {
+      var weWin     = Math.random() < winRate;
+      var opponent  = roundOpponents[m];
+      var setWins   = randomSetOutcomes(maxSets, weWin);
+      var matchName = roundName + " vs " + opponent.name;
+      var record = generateMatch(
+        matchName, roundDateStr, maxSets, setWins, lcMin, lcMax,
+        results.season.id, eventId, opponent.id,
+        m * 2.5
+      );
+      results.matches.push(record);
+    }
+  }
+
+  return results;
+}
+
+// ============================================================
+// IndexedDB helpers
+// ============================================================
+function openDB() {
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onsuccess = function() { resolve(req.result); };
+    req.onerror   = function() { reject(req.error); };
+    req.onupgradeneeded = function(e) {
+      var db = e.target.result;
+      [["matches","matchId"],["seasons","id"],["events","id"],["opponents","id"],["eventCodes","id"]].forEach(function(pair) {
+        if (!db.objectStoreNames.contains(pair[0]))
+          db.createObjectStore(pair[0], { keyPath: pair[1] });
+      });
+    };
+  });
+}
+
+function putRecord(db, storeName, record) {
+  return new Promise(function(resolve, reject) {
+    var tx  = db.transaction([storeName], "readwrite");
+    var req = tx.objectStore(storeName).put(record);
+    req.onsuccess = resolve;
+    req.onerror   = function() { reject(req.error); };
+  });
+}
+
+// ============================================================
+// Logging
+// ============================================================
+function logLine(msg, cls) {
+  var log = document.getElementById("log");
+  log.style.display = "block";
+  var div = document.createElement("div");
+  if (cls) div.className = cls;
+  div.textContent = msg;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function logMatchSummary(record) {
+  var setTotals = {};
+  record.events.filter(function(e){ return e.type === "STAT_INCREMENTED"; }).forEach(function(e) {
+    if (!setTotals[e.setNumber]) setTotals[e.setNumber] = { us: 0, opp: 0 };
+    if (US_OWN.has(e.stat)) setTotals[e.setNumber].us++;
+    else                     setTotals[e.setNumber].opp++;
+  });
+  var setsUs = 0, setsThem = 0;
+  var summary = [];
+  Object.keys(setTotals).sort().forEach(function(s) {
+    var sc = setTotals[s];
+    if (sc.us > sc.opp) setsUs++; else setsThem++;
+    summary.push(sc.us + "-" + sc.opp);
+  });
+  var result = setsUs > setsThem ? "W" : "L";
+  logLine("  " + result + " " + setsUs + "-" + setsThem + "  (" + summary.join(", ") + ")  " + record.matchName, result === "W" ? "ok" : "");
+}
+
+// ============================================================
+// UI
+// ============================================================
+var currentMode = "single";
+
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll(".mode-tab").forEach(function(btn, i) {
+    var modes = ["single","tournament","league"];
+    btn.classList.toggle("active", modes[i] === mode);
+  });
+  document.querySelectorAll(".mode-panel").forEach(function(panel) {
+    panel.classList.toggle("active", panel.id === "panel-" + mode);
+  });
+}
+
+// Single match: set outcome selectors
+function onFormatChange() {
+  var totalSets = parseInt(document.getElementById("s-matchFormat").value);
+  var grid = document.getElementById("outcomeGrid");
+  grid.innerHTML = "";
+  for (var i = 1; i <= totalSets; i++) {
+    var isDeciding = (i === totalSets);
+    var div = document.createElement("div");
+    div.className = "outcome-set";
+    div.innerHTML =
+      "<span>Set " + i + (isDeciding ? " \u2605" : "") + "</span>" +
+      "<select id=\"set" + i + "winner\">" +
+        "<option value=\"us\""   + (i % 2 === 1 ? " selected" : "") + ">Us</option>" +
+        "<option value=\"them\"" + (i % 2 === 0 ? " selected" : "") + ">Them</option>" +
+      "</select>";
+    grid.appendChild(div);
+  }
+}
+
+// Tournament: wins dropdown
+function onTournamentMatchCountChange() {
+  var n = parseInt(document.getElementById("t-matchCount").value);
+  var sel = document.getElementById("t-wins");
+  sel.innerHTML = "";
+  for (var i = 0; i <= n; i++) {
+    var opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = i + " wins (" + i + "\u2013" + (n - i) + ")";
+    if (i === Math.round(n * 0.6)) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+function resetForm() {
+  document.getElementById("s-matchName").value = "Sample Match vs River City";
+  document.getElementById("s-matchDate").value = new Date().toISOString().slice(0,10);
+  document.getElementById("s-matchFormat").value = "5";
+  document.getElementById("s-lcCadence").value = "3-5";
+  onFormatChange();
+  document.getElementById("t-startDate").value = new Date().toISOString().slice(0,10);
+  document.getElementById("l-startDate").value = new Date().toISOString().slice(0,10);
+  document.getElementById("status").textContent = "";
+  var log = document.getElementById("log");
+  log.innerHTML = "";
+  log.style.display = "none";
+}
+
+// ============================================================
+// Init
+// ============================================================
+(function init() {
+  var today = new Date().toISOString().slice(0, 10);
+  document.getElementById("s-matchDate").value = today;
+  document.getElementById("t-startDate").value = today;
+  document.getElementById("l-startDate").value = today;
+  onFormatChange();
+  onTournamentMatchCountChange();
+})();
+
+// ============================================================
+// Seed dispatcher
+// ============================================================
+async function seedData() {
+  var statusEl = document.getElementById("status");
+  statusEl.className = "";
+  statusEl.textContent = "Generating\u2026";
+  document.getElementById("log").innerHTML = "";
+  document.getElementById("log").style.display = "none";
+
+  try {
+    var db = await openDB();
+
+    if (currentMode === "single") {
+      await seedSingle(db);
+    } else if (currentMode === "tournament") {
+      await seedTournament(db);
+    } else {
+      await seedLeague(db);
+    }
+
+    db.close();
+  } catch(err) {
+    logLine("ERROR: " + err, "err");
+    document.getElementById("status").className = "err";
+    document.getElementById("status").textContent = "\u2717 " + err;
+  }
+}
+
+// ---- Single match -----------------------------------------
+async function seedSingle(db) {
+  var matchName = document.getElementById("s-matchName").value.trim() || "Sample Match";
+  var matchDate = document.getElementById("s-matchDate").value;
+  var maxSets   = parseInt(document.getElementById("s-matchFormat").value);
+  var cadence   = document.getElementById("s-lcCadence").value.split("-").map(Number);
+  var lcMin = cadence[0], lcMax = cadence[1];
+
+  var setWinners = [];
+  for (var i = 1; i <= maxSets; i++) {
+    setWinners.push(document.getElementById("set" + i + "winner").value);
+  }
+
+  var usWins   = setWinners.filter(function(w){ return w === "us"; }).length;
+  var needed   = Math.ceil(maxSets / 2);
+  var themWins = setWinners.filter(function(w){ return w === "them"; }).length;
+  if (usWins !== needed && themWins !== needed) {
+    document.getElementById("status").className = "err";
+    document.getElementById("status").textContent = "\u2717 One team must win exactly " + needed + " sets for a best-of-" + maxSets + ".";
+    return;
+  }
+
+  // Only pass played sets
+  var playedSets = [];
+  var usCount = 0, themCount = 0;
+  for (var i = 0; i < setWinners.length; i++) {
+    playedSets.push(setWinners[i]);
+    if (setWinners[i] === "us") usCount++; else themCount++;
+    if (usCount === needed || themCount === needed) break;
+  }
+
+  var record = generateMatch(matchName, matchDate, maxSets, playedSets, lcMin, lcMax);
+  logLine("Generated: " + record.matchName);
+  logMatchSummary(record);
+
+  await putRecord(db, STORE_NAME, record);
+  logLine("Written to IndexedDB.", "ok");
+  document.getElementById("status").className = "ok";
+  document.getElementById("status").innerHTML = "\u2713 Inserted. Open <a href=\"index.html\">index.html</a> and check Match History.";
+}
+
+// ---- Tournament -------------------------------------------
+async function seedTournament(db) {
+  var eventName  = document.getElementById("t-eventName").value.trim() || "Tournament";
+  var seasonName = document.getElementById("t-seasonName").value.trim();
+  var startDate  = document.getElementById("t-startDate").value;
+  var maxSets    = parseInt(document.getElementById("t-matchFormat").value);
+  var matchCount = parseInt(document.getElementById("t-matchCount").value);
+  var winCount   = parseInt(document.getElementById("t-wins").value);
+  var cadence    = document.getElementById("t-lcCadence").value.split("-").map(Number);
+  var lcMin = cadence[0], lcMax = cadence[1];
+
+  var data = generateTournament(eventName, seasonName, startDate, maxSets, matchCount, winCount, lcMin, lcMax);
+
+  logLine("Tournament: " + eventName + "  (" + winCount + "\u2013" + (matchCount - winCount) + " record)");
+  if (data.season)   { logLine("  Season:   " + data.season.name, "dim"); }
+  logLine("  Event:    " + data.event.name, "dim");
+  logLine("  Opponents: " + data.opponents.map(function(o){ return o.name; }).join(", "), "dim");
+  logLine("  Matches:");
+  data.matches.forEach(function(m) { logMatchSummary(m); });
+
+  if (data.season)   await putRecord(db, "seasons",   data.season);
+  await putRecord(db, "events",    data.event);
+  for (var i = 0; i < data.opponents.length; i++) await putRecord(db, "opponents", data.opponents[i]);
+  for (var i = 0; i < data.matches.length;   i++) await putRecord(db, STORE_NAME,  data.matches[i]);
+
+  logLine("Written to IndexedDB.", "ok");
+  document.getElementById("status").className = "ok";
+  document.getElementById("status").innerHTML = "\u2713 " + matchCount + " matches inserted under &ldquo;" + eventName + "&rdquo;. Open <a href=\"index.html\">index.html</a>.";
+}
+
+// ---- League -----------------------------------------------
+async function seedLeague(db) {
+  var seasonName      = document.getElementById("l-seasonName").value.trim() || "League Season";
+  var startDate       = document.getElementById("l-startDate").value;
+  var rounds          = parseInt(document.getElementById("l-rounds").value);
+  var matchesPerRound = parseInt(document.getElementById("l-matchesPerRound").value);
+  var winRate         = parseFloat(document.getElementById("l-winRate").value);
+  var maxSets         = parseInt(document.getElementById("l-matchFormat").value);
+  var cadence         = document.getElementById("l-lcCadence").value.split("-").map(Number);
+  var lcMin = cadence[0], lcMax = cadence[1];
+
+  var data = generateLeague(seasonName, startDate, rounds, matchesPerRound, winRate, maxSets, lcMin, lcMax);
+
+  var totalMatches = data.matches.length;
+  var wins = data.matches.filter(function(m) {
+    var setTotals = {};
+    m.events.filter(function(e){ return e.type === "STAT_INCREMENTED"; }).forEach(function(e) {
+      if (!setTotals[e.setNumber]) setTotals[e.setNumber] = { us: 0, opp: 0 };
+      if (US_OWN.has(e.stat)) setTotals[e.setNumber].us++; else setTotals[e.setNumber].opp++;
+    });
+    var us = 0, them = 0;
+    Object.values(setTotals).forEach(function(sc){ if (sc.us > sc.opp) us++; else them++; });
+    return us > them;
+  }).length;
+
+  logLine("League: " + seasonName + "  (" + rounds + " rounds, " + matchesPerRound + " matches/round)");
+  logLine("  Opponents pool: " + data.opponents.map(function(o){ return o.name; }).join(", "), "dim");
+  logLine("  " + totalMatches + " matches  |  " + wins + " wins, " + (totalMatches - wins) + " losses");
+  logLine("  Rounds:");
+  data.events.forEach(function(ev) {
+    var roundMatches = data.matches.filter(function(m){ return m.eventId === ev.id; });
+    logLine("  " + ev.name + "  (" + roundMatches.map(function(m){ return m.matchName.replace(/^.*? vs /,"vs "); }).join(", ") + ")", "dim");
+  });
+
+  await putRecord(db, "seasons", data.season);
+  for (var i = 0; i < data.events.length;    i++) await putRecord(db, "events",    data.events[i]);
+  for (var i = 0; i < data.opponents.length;  i++) await putRecord(db, "opponents", data.opponents[i]);
+  for (var i = 0; i < data.matches.length;    i++) await putRecord(db, STORE_NAME,  data.matches[i]);
+
+  logLine("Written to IndexedDB.", "ok");
+  document.getElementById("status").className = "ok";
+  document.getElementById("status").innerHTML = "\u2713 " + totalMatches + " matches across " + rounds + " rounds inserted under &ldquo;" + seasonName + "&rdquo;. Open <a href=\"index.html\">index.html</a>.";
+}
+</script>
+</body>
+</html>

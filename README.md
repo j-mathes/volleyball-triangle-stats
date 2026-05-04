@@ -39,6 +39,8 @@ Works on desktop and iPad/iPhone. No install required — open the link in any m
 - Single-match and multi-match reports for review
 - Import/export for sharing and backup
 - Customizable set colors used across reports and charts
+- Lead Changes tracking in Match Summary — highlights every moment the lead flipped, colored by team
+- Match Log with per-event lead-change highlights and a dedicated lead-change column
 
 ## Coach Workflow
 
@@ -111,7 +113,7 @@ Selection rules:
 - Multi-match reports require 2 or more matches
 
 Available report groups:
-- Single Match: Tally Sheet, Tally Chart, Match Summary, Momentum Chart, Set Flow, Error Breakdown, Player Stats, Rotation Performance
+- Single Match: Tally Sheet, Tally Chart, Match Summary, Match Log, Momentum Chart, Set Flow, Error Breakdown, Player Stats, Rotation Performance
 - Multi Match: Event Summary, Progress Trend, Rotation Heat Map, Player Leaderboard, Opponent Comparison
 
 Common coaching questions these reports help answer:
@@ -152,6 +154,7 @@ Setup options include:
 - Keep rotation selected between stat presses
 - Highlight and event-log color customization
 - Set Colors — one color picker per set, used in the Tally Chart and Momentum report
+- **Developer Tools** — link to the Sample Data Generator for inserting test matches, tournaments, and league seasons into the app
 
 ## Project Structure
 
@@ -159,9 +162,10 @@ Setup options include:
 index.html             # App shell and page layout
 app.js                 # Domain logic, IndexedDB, and UI wiring
 styles.css             # Styling
-generate-test-match.js # Test match generation helper
+generate-test-match.js # Script to generate a reproducible test match JSON file
+seed-sample-data.html  # Browser-based tool to seed randomized sample data into IndexedDB
 test-data.json         # Test fixture data
-test-match.json        # Test fixture data
+test-match.json        # Test fixture data (output of generate-test-match.js)
 docs/
   ARCHITECTURE.md      # Technical architecture notes
 ```

@@ -399,9 +399,10 @@ The match name input persists its value to IndexedDB on `blur` when a match reco
 Four cards:
 
 1. **Match Setup** — Format picker, sets stepper, and a collapsible "Match Organization" section (season + event combo pickers with optional new-entry input)
-2. **App Settings** — Lock time stepper, triangle totals toggle, rotation mode, rotation persist, highlight color, event log colors
+2. **App Settings** — Lock time stepper, triangle totals toggle, rotation mode, rotation persist, highlight color, event log colors, Set Colors
 3. **Opponents** — Add by name (Enter or Add button), scrollable list with per-item ✕ delete and inline rename (click name → edit → Enter/blur saves), Delete All button with confirmation
 4. **Event Codes** — Add (code + abbr + label + category), scrollable list with colored swatches and per-item ✕ delete, Reset to Defaults button (restores `DEFAULT_EVENT_CODES` seed with confirmation)
+5. **Developer Tools** — A link that opens `seed-sample-data.html` in a new tab for inserting randomized test data
 
 Controls in Match Setup, the opponent picker, and the Event Codes card are **disabled during an active match** — `renderState()` sets `.disabled` on each element when `matchActive` is true.
 
@@ -552,7 +553,108 @@ On boot, localStorage keys `setColor_0` … `setColor_N` override the defaults f
 
 For matches with more than 12 sets, `SET_COLORS[i % SET_COLORS.length]` cycles the palette.
 
+---
 
+## Match Log Report
+
+The Match Log is a single-match report that renders every recorded event in chronological order.
+
+### Grid Layout
+
+Each stat row uses an 8-column CSS grid:
+```
+grid-template-columns: 6rem 3.5rem 9rem 5.5rem 4rem 9rem 9rem 9rem
+```
+
+| Column | Class | Content |
+|--------|-------|---------|
+| 1 | `elr-time` | Timestamp (HH:MM:SS) |
+| 2 | `elr-score` | Running set score |
+| 3 | `elr-cat` | Stat category |
+| 4 | `elr-stat` | Stat label |
+| 5 | `elr-jersey` | Jersey number |
+| 6 | `elr-code` | Event code |
+| 7 | `elr-rot` | Rotations (Us R_· Them R_) |
+| 8 | `elr-lead` | Lead change indicator |
+
+System events (MATCH_STARTED, SET_STARTED, SET_ENDED, MATCH_ENDED) use `grid-template-columns: 6rem 1fr` and appear in italic.
+
+### Lead Change Highlighting
+
+As events are replayed, a `setLeaders` object tracks the current non-tied leader per set (`1` = us, `-1` = them). The leader is **only updated when the score is not tied** — so retaking your own lead after a tie does not register as a new lead change.
+
+When a genuine lead change occurs:
+- The **score cell** (`elr-score`) receives class `lead-us` (green pill) or `lead-them` (red pill)
+- Column 8 (`elr-lead`) displays “Lead Change – Us” or “Lead Change – Them” in the corresponding color
+- Rows with no lead change have an empty column 8
+
+The same logic applies identically to both the live match log (`renderEventLog`) and the Match Log report (`renderMatchLog`).
+
+---
+
+## Lead Changes Section (Match Summary)
+
+The Match Summary report includes a **Lead Changes** section below the Set Scores table.
+
+### Algorithm
+
+```js
+var US_STATS_LC = { usAces:1, opponentMisses:1, firstBallUsKills:1,
+                   firstBallUsStops:1, transitionUsKills:1, transitionUsStops:1 };
+```
+
+For each set, the section replays `STAT_INCREMENTED` events (up to `record.cursor`) and tracks running scores. A lead change is recorded when:
+- The new leader is not tied (`leader !== 0`)
+- The new leader differs from the stored previous leader (`leader !== prevLeader`)
+- The stored leader is **only updated when leader !== 0**, so ties do not reset it
+
+This means: `us lead → tie → us lead` = no lead change. `us lead → tie → them lead` = one lead change (them).
+
+### Display
+
+- Sets are rendered as **side-by-side columns** using a `.lead-changes-cols` flex-row wrapper
+- Within each set column, the score badges stack **vertically** (`.lead-changes-list { flex-direction: column }`)
+- Each badge shows `us–them` score (our score always first, en-dash `–`)
+- Green pill (`.lead-us`) when we took the lead; red pill (`.lead-them`) when opponent did
+- Sets with zero lead changes are omitted from the display
+- If no set has any lead changes: “No lead changes recorded.” placeholder
+
+---
+
+## Sample Data Generator (`seed-sample-data.html`)
+
+A standalone browser page for inserting test/demo data directly into the app’s IndexedDB. Opens via the **Developer Tools** card on the Setup page.
+
+### Modes
+
+| Tab | What it generates |
+|-----|-------------------|
+| **Single Match** | One match with configurable name, date, format, per-set outcomes |
+| **Tournament** | Season + event + N opponents + N matches, distributed across the day |
+| **League** | Season + round-events (weekly) + opponent pool + M matches per round |
+
+### Lead Change Cadence
+
+A `pointsUntilLeadChange` counter (reset to a random value in `[lcMin, lcMax]`) tracks how many consecutive points have elapsed since the last lead change. When it expires, the scoring bias is reversed to force the lagging team to score, creating the next lead change.
+
+### Rotation Simulation
+
+Both teams start on a random rotation (1–6). Side-out rotations advance the receiving team’s rotation by 1 when they win a rally. Player jerseys are assigned to our stats that permit them.
+
+### Score Enforcement
+
+Sets enforce the `win-by-2` rule by overriding the bias when the loser approaches the target. The deciding set of a full-distance match (5th set in BO5, 3rd in BO3 when played) uses `targetWinner = 15`; regular sets use `25`.
+
+### Contrast with `generate-test-match.js`
+
+| | `seed-sample-data.html` | `generate-test-match.js` |
+|-|------------------------|-------------------------|
+| Runs in | Browser | Node.js |
+| Output | Writes to IndexedDB directly | Writes importable `.json` file |
+| Data | Randomized each run | Hand-scripted, reproducible |
+| Use case | Realistic volume testing | Regression / report testing |
+
+---
 
 ## History Page
 
@@ -596,3 +698,6 @@ Actions:
 25. **Mobile — portrait (≤600px):** verify metadata panel shows jersey row on top, code buttons wrap horizontally below, Last stat on third row; rotation panels appear beside Terminal Serves (not beside jersey panel)
 26. **Mobile — landscape phone:** verify left control panel + right scrollable stats column; rotation panels flank Terminal Serves; code buttons wrap horizontally
 27. **iOS Safari / GitHub Pages:** verify no blank screen when served over HTTPS; storage error banner appears (and no crash) when opened from file system on iOS
+28. Reports → Match Summary → Lead Changes section: verify badges appear with correct team color and score labels; verify ties between lead changes do not count as a lead change
+29. Reports → Match Log → verify lead-change rows show a colored score pill and "Lead Change – Us/Them" in column 8; verify non-lead-change rows have an empty column 8
+30. Setup → Developer Tools → click "Open Sample Data Generator" → verify `seed-sample-data.html` opens in a new tab
