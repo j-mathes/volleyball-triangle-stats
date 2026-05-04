@@ -228,6 +228,18 @@ const US_WEIGHTS    = [0.08, 0.18, 0.28, 0.14, 0.22, 0.10];
 const OPP_WEIGHTS   = [0.07, 0.17, 0.28, 0.14, 0.23, 0.11];
 const US_OWN        = new Set(US_STAT_POOL);
 
+// Stats that accept event codes, and default codes for when DB has none
+const MISS_STATS = new Set(["usMisses", "opponentMisses"]);
+const STOP_STATS = new Set(["firstBallUsStops", "firstBallOpponentStops", "transitionUsStops", "transitionOpponentStops"]);
+const SEED_DEFAULT_CODES = [
+  { code: "Net",    cat: "both" }, { code: "Out",    cat: "both" },
+  { code: "Foot",   cat: "miss" }, { code: "Rot",    cat: "miss" },
+  { code: "UFE",    cat: "stop" }, { code: "Drop",   cat: "stop" },
+  { code: "Roof",   cat: "stop" }, { code: "Double", cat: "stop" }
+];
+var activeMissCodes = [];
+var activeStopCodes = [];
+
 const STAT_JERSEYS = {
   usAces:            [1, 3, 5, 7, 9, 11],
   firstBallUsKills:  [3, 5, 11, 7, 9],
@@ -343,6 +355,12 @@ function generateSet(setNumber, matchId, baseTime, msOffset, usWins, targetWinne
 
     var stat   = weScore ? weightedPick(US_STAT_POOL, US_WEIGHTS) : weightedPick(OPP_STAT_POOL, OPP_WEIGHTS);
     var jersey = (weScore && STAT_JERSEYS[stat]) ? pick(STAT_JERSEYS[stat]) : null;
+    var eventCode = null;
+    if (MISS_STATS.has(stat) && activeMissCodes.length && Math.random() < 0.65) {
+      eventCode = pick(activeMissCodes).code;
+    } else if (STOP_STATS.has(stat) && activeStopCodes.length && Math.random() < 0.35) {
+      eventCode = pick(activeStopCodes).code;
+    }
 
     if (weScore) { if (!ourServe)  ourRot  = (ourRot  % 6) + 1; ourServe  = true;  }
     else         { if ( ourServe)  theirRot = (theirRot % 6) + 1; ourServe = false; }
@@ -360,6 +378,7 @@ function generateSet(setNumber, matchId, baseTime, msOffset, usWins, targetWinne
       stat: stat, value: 1, timestamp: mkTs(baseTime, t),
       ourRotation: ourRot, theirRotation: theirRot };
     if (jersey) ev.jersey = jersey;
+    if (eventCode) ev.eventCode = eventCode;
     events.push(ev);
     t += avgPointMs + rng(-5000, 8000);
 
@@ -528,6 +547,24 @@ function putRecord(db, storeName, record) {
   });
 }
 
+function loadEventCodes(db) {
+  return new Promise(function(resolve) {
+    var tx = db.transaction(["eventCodes"], "readonly");
+    var req = tx.objectStore("eventCodes").getAll();
+    req.onsuccess = function() {
+      var all = (req.result && req.result.length) ? req.result : SEED_DEFAULT_CODES;
+      activeMissCodes = all.filter(function(c) { return c.cat === "miss" || c.cat === "both"; });
+      activeStopCodes = all.filter(function(c) { return c.cat === "stop" || c.cat === "both"; });
+      resolve();
+    };
+    req.onerror = function() {
+      activeMissCodes = SEED_DEFAULT_CODES.filter(function(c) { return c.cat === "miss" || c.cat === "both"; });
+      activeStopCodes = SEED_DEFAULT_CODES.filter(function(c) { return c.cat === "stop" || c.cat === "both"; });
+      resolve();
+    };
+  });
+}
+
 // ============================================================
 // Logging
 // ============================================================
@@ -646,6 +683,7 @@ async function seedData() {
 
   try {
     var db = await openDB();
+    await loadEventCodes(db);
 
     if (currentMode === "single") {
       await seedSingle(db);

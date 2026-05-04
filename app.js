@@ -2953,12 +2953,31 @@ function renderMomentum(output, record, state, opponent) {
   output.innerHTML = '<div class="report-momentum">' + matchInfoBanner(state, record, opponent) + reportTitle('Momentum Chart') + legend + svg +
     '<p class="chart-hint">Positive &#x2191; = us ahead. Y=0 line = tied. Click legend buttons to show/hide a set. Hover dots for stat detail.</p></div>';
 
+  var hiddenSets = {};
+  function updateTriangle() {
+    var ts = 0, fb = 0, tr = 0;
+    state.sets.forEach(function (set) {
+      if (!hiddenSets[set.setNumber]) {
+        ts += set.terminalServes;
+        fb += set.firstBallPoints;
+        tr += set.transitionPoints;
+      }
+    });
+    var triEl = output.querySelector('.report-mini-tri');
+    if (!triEl) return;
+    var tmp = document.createElement('div');
+    tmp.innerHTML = miniTriangleSvg(ts, fb, tr);
+    triEl.parentNode.replaceChild(tmp.firstChild, triEl);
+  }
+
   output.querySelectorAll(".chart-toggle").forEach(function (btn) {
     btn.addEventListener("click", function () {
       var sn = btn.dataset.set;
       btn.classList.toggle("active");
       var vis = btn.classList.contains("active") ? "" : "none";
       output.querySelectorAll(".report-chart [data-set=\"" + sn + "\"]").forEach(function (el) { el.style.display = vis; });
+      if (btn.classList.contains("active")) { delete hiddenSets[sn]; } else { hiddenSets[sn] = true; }
+      updateTriangle();
     });
   });
 }

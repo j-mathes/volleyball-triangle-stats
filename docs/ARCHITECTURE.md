@@ -555,6 +555,23 @@ For matches with more than 12 sets, `SET_COLORS[i % SET_COLORS.length]` cycles t
 
 ---
 
+## Momentum Chart Report
+
+The Momentum Chart plots cumulative score differential (us − them) over rally sequence for each set. A separate line is drawn per set using `SET_COLORS`.
+
+### Set Toggle
+
+A `<button class="chart-toggle">` is rendered per set in the legend above the SVG. Clicking one:
+1. Toggles `active` class on the button and `display: none/""` on all SVG elements (`path`, `circle`) with a matching `data-set` attribute
+2. Adds or removes the set from a local `hiddenSets` object
+3. Calls `updateTriangle()` to recompute the match-info banner triangle from only visible sets
+
+### Triangle Banner Update
+
+`updateTriangle()` sums `terminalServes`, `firstBallPoints`, and `transitionPoints` from `state.sets` for every set not in `hiddenSets`, then replaces the `.report-mini-tri` SVG element — identical in structure to the Tally Chart's triangle update.
+
+---
+
 ## Match Log Report
 
 The Match Log is a single-match report that renders every recorded event in chronological order.
@@ -640,7 +657,16 @@ A `pointsUntilLeadChange` counter (reset to a random value in `[lcMin, lcMax]`) 
 ### Rotation Simulation
 
 Both teams start on a random rotation (1–6). Side-out rotations advance the receiving team’s rotation by 1 when they win a rally. Player jerseys are assigned to our stats that permit them.
+### Event Code Assignment
 
+Before generating any data, `loadEventCodes(db)` reads the `eventCodes` store from IndexedDB and partitions them into `activeMissCodes` (cat `"miss"` or `"both"`) and `activeStopCodes` (cat `"stop"` or `"both"`). If the store is empty, `SEED_DEFAULT_CODES` (a trimmed copy of the 10 default codes) is used as a fallback.
+
+Per rally, after the stat is chosen:
+- **Serve miss stats** (`usMisses`, `opponentMisses`): a miss/both code is assigned ~65% of the time
+- **Stop stats** (first ball and transition stops, us and opponent): a stop/both code is assigned ~35% of the time
+- All other stats receive no event code
+
+This produces realistic error-tagging distribution across the Tally Sheet, Match Log, and Error Breakdown reports.
 ### Score Enforcement
 
 Sets enforce the `win-by-2` rule by overriding the bias when the loser approaches the target. The deciding set of a full-distance match (5th set in BO5, 3rd in BO3 when played) uses `targetWinner = 15`; regular sets use `25`.
