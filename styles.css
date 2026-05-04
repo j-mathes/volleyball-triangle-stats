@@ -1199,6 +1199,53 @@ body {
   font-size: 0.82rem;
 }
 
+/* Lead changes section (Match Summary) */
+.lead-changes-cols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 2.5rem;
+  align-items: flex-start;
+}
+
+.lead-changes-set {
+  margin-bottom: 0.65rem;
+}
+
+.lead-changes-set-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgba(0,0,0,0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.3rem;
+}
+
+.lead-changes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.lead-change {
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.lead-us {
+  background: rgba(42, 125, 79, 0.12);
+  color: var(--ours);
+  border: 1px solid rgba(42, 125, 79, 0.25);
+}
+
+.lead-them {
+  background: rgba(194, 59, 59, 0.1);
+  color: var(--theirs);
+  border: 1px solid rgba(194, 59, 59, 0.22);
+}
+
 /* ---- Multi-match reports (Phase 4) ---- */
 
 .report-multi-wrap {
@@ -2436,7 +2483,7 @@ button:disabled {
 
 .event-log-row {
   display: grid;
-  grid-template-columns: 6rem 3.5rem 9rem 5.5rem 4rem 9rem 9rem;
+  grid-template-columns: 6rem 3.5rem 9rem 5.5rem 4rem 9rem 9rem 9rem;
   align-items: center;
   gap: 0 0.5rem;
   padding: 0.3rem 1rem;
@@ -2485,6 +2532,26 @@ button:disabled {
 .elr-code,
 .elr-rot {
   opacity: 0.75;
+}
+
+.elr-lead {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.elr-lead-us {
+  color: var(--ours);
+}
+
+.elr-lead-them {
+  color: var(--theirs);
+}
+
+.elr-score.lead-us,
+.elr-score.lead-them {
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
 }
 
 .elr-meta {

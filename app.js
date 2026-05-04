@@ -944,6 +944,7 @@ function renderEventLog(state) {
     if (!setTotals[setNum]) setTotals[setNum] = createEmptyTotals();
     return setTotals[setNum];
   }
+  var setLeaders = {}; // setNumber → current leader: 1=us, -1=them, 0=tied
 
   var rows = [];
   for (var i = 0; i < events.length; i++) {
@@ -976,6 +977,10 @@ function renderEventLog(state) {
       var t = getTotals(e.setNumber);
       t[e.stat] = (t[e.stat] || 0) + e.value;
       var score = calculateSetScore(t);
+      var prevLeader = setLeaders[e.setNumber] || 0;
+      var leader = score.us > score.opponent ? 1 : score.us < score.opponent ? -1 : 0;
+      var leadChange = leader !== 0 && leader !== prevLeader;
+      if (leader !== 0) setLeaders[e.setNumber] = leader;
       var isOurs = OUR_STATS.has(e.stat);
       var rowClass = isOurs ? "event-log-ours" : "event-log-theirs";
       var cat = STAT_CATEGORIES[e.stat] || "";
@@ -986,14 +991,16 @@ function renderEventLog(state) {
       if (e.ourRotation) rotParts.push("Us R" + e.ourRotation);
       if (e.theirRotation) rotParts.push("Them R" + e.theirRotation);
       var rot = rotParts.join(" &middot; ");
+      var scoreCls = leadChange ? (leader === 1 ? " lead-us" : " lead-them") : "";
       rows.push("<div class=\"event-log-row " + rowClass + "\">" +
         "<span class=\"elr-time\">" + time + "</span>" +
-        "<span class=\"elr-score\">" + score.us + " &ndash; " + score.opponent + "</span>" +
+        "<span class=\"elr-score" + scoreCls + "\">" + score.us + " &ndash; " + score.opponent + "</span>" +
         "<span class=\"elr-cat\">" + cat + "</span>" +
         "<span class=\"elr-stat\">" + statLabel + "</span>" +
         "<span class=\"elr-jersey\">" + jersey + "</span>" +
         "<span class=\"elr-code\">" + code + "</span>" +
         "<span class=\"elr-rot\">" + rot + "</span>" +
+        (leadChange ? "<span class=\"elr-lead elr-lead-" + (leader === 1 ? "us" : "them") + "\">Lead Change &ndash; " + (leader === 1 ? "Us" : "Them") + "</span>" : "<span class=\"elr-lead\"></span>") +
         "</div>");
     }
   }
@@ -2782,6 +2789,51 @@ function renderMatchSummary(output, record, state, opponent) {
     html += '</tr>';
   }
   html += '</tbody></table></div>';
+
+  // ---- Lead Changes ----
+  var US_STATS_LC = { usAces: 1, opponentMisses: 1, firstBallUsKills: 1, firstBallUsStops: 1, transitionUsKills: 1, transitionUsStops: 1 };
+  var statEvents = record.events.slice(0, record.cursor).filter(function (e) { return e.type === "STAT_INCREMENTED"; });
+
+  html += '<h3 class="report-section-title">Lead Changes</h3>';
+
+  var anyLeadChanges = false;
+  var lcHtml = '';
+  state.sets.forEach(function (set) {
+    var setEvents = statEvents.filter(function (e) { return e.setNumber === set.setNumber; });
+    var scUs = 0, scThem = 0;
+    var prevLeader = 0; // 0=tied, 1=us, -1=them
+    var changes = [];
+
+    setEvents.forEach(function (e) {
+      var isUs = !!US_STATS_LC[e.stat];
+      if (isUs) scUs++; else scThem++;
+      var leader = scUs > scThem ? 1 : scUs < scThem ? -1 : 0;
+      if (leader !== 0 && leader !== prevLeader) {
+        changes.push({ us: scUs, them: scThem, leader: leader });
+        prevLeader = leader;
+      }
+    });
+
+    if (!changes.length) return;
+    anyLeadChanges = true;
+
+    lcHtml += '<div class="lead-changes-set">';
+    lcHtml += '<div class="lead-changes-set-label">Set ' + set.setNumber + '</div>';
+    lcHtml += '<div class="lead-changes-list">';
+    changes.forEach(function (c) {
+      var cls = c.leader === 1 ? 'lead-us' : 'lead-them';
+      lcHtml += '<span class="lead-change ' + cls + '">' + c.us + '\u2013' + c.them + '</span>';
+    });
+    lcHtml += '</div></div>';
+  });
+
+  if (anyLeadChanges) {
+    html += '<div class="lead-changes-cols">' + lcHtml + '</div>';
+  } else {
+    html += '<p class="report-placeholder">No lead changes recorded.</p>';
+  }
+
+  html += '</div>';
   output.innerHTML = html;
 }
 
@@ -3214,6 +3266,7 @@ function renderMatchLog(output, record, state, opponent) {
     if (!setTotals[setNum]) setTotals[setNum] = createEmptyTotals();
     return setTotals[setNum];
   }
+  var setLeaders = {}; // setNumber → current leader: 1=us, -1=them, 0=tied
 
   var rows = [];
   events.forEach(function (e) {
@@ -3244,6 +3297,10 @@ function renderMatchLog(output, record, state, opponent) {
       var t = getTotals(e.setNumber);
       t[e.stat] = (t[e.stat] || 0) + e.value;
       var score = calculateSetScore(t);
+      var prevLeader = setLeaders[e.setNumber] || 0;
+      var leader = score.us > score.opponent ? 1 : score.us < score.opponent ? -1 : 0;
+      var leadChange = leader !== 0 && leader !== prevLeader;
+      if (leader !== 0) setLeaders[e.setNumber] = leader;
       var isOurs = OUR_STATS.has(e.stat);
       var rowClass = isOurs ? "event-log-ours" : "event-log-theirs";
       var cat = STAT_CATEGORIES[e.stat] || "";
@@ -3254,14 +3311,16 @@ function renderMatchLog(output, record, state, opponent) {
       if (e.ourRotation) rotParts.push("Us R" + e.ourRotation);
       if (e.theirRotation) rotParts.push("Them R" + e.theirRotation);
       var rot = rotParts.join(" &middot; ");
+      var scoreCls = leadChange ? (leader === 1 ? ' lead-us' : ' lead-them') : '';
       rows.push('<div class="event-log-row ' + rowClass + '">' +
         '<span class="elr-time">' + time + '</span>' +
-        '<span class="elr-score">' + score.us + ' &ndash; ' + score.opponent + '</span>' +
+        '<span class="elr-score' + scoreCls + '">' + score.us + ' &ndash; ' + score.opponent + '</span>' +
         '<span class="elr-cat">' + cat + '</span>' +
         '<span class="elr-stat">' + statLabel + '</span>' +
         '<span class="elr-jersey">' + escHtml(jersey) + '</span>' +
         '<span class="elr-code">' + (code ? escHtml(code) : '') + '</span>' +
         '<span class="elr-rot">' + rot + '</span>' +
+        (leadChange ? '<span class="elr-lead elr-lead-' + (leader === 1 ? 'us' : 'them') + '">Lead Change &ndash; ' + (leader === 1 ? 'Us' : 'Them') + '</span>' : '<span class="elr-lead"></span>') +
         '</div>');
     }
   });
