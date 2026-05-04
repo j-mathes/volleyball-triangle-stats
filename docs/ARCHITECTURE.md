@@ -667,7 +667,8 @@ Each match item shows: name, status badge (Complete / In Progress), and date/tim
 
 Actions:
 - **Delete individual match** — Confirmation dialog, removes from IndexedDB
-- **Clear All** — Prompts to Export All first, then confirms full deletion of all three stores
+- **Clear Matches** — Single confirmation; deletes all `matches`, `seasons`, and `events` records while keeping `opponents` and `eventCodes`
+- **Clear All** — Prompts to Export All first, then confirms full deletion of all stores (matches, seasons, events, opponents — but not eventCodes)
 
 ## Quick Smoke Test
 
@@ -681,7 +682,8 @@ Actions:
 8. Export All → verify bulk file includes timestamp in filename
 9. Import a previously exported file → verify duplicates are skipped
 10. History → verify matches grouped by season/event, delete works
-11. Clear All → verify export prompt appears first, then confirmation
+11. Clear Matches → verify matches/seasons/events are gone but opponents and event codes remain
+12. Clear All → verify export prompt appears first, then confirmation
 12. Reset during active match → verify padlock guard prevents accidental reset
 13. End Match, then click Reset → verify snapshot table and event log clear completely
 14. Setup → set Rotation Tracking to "Both Sides", start a match, verify rotation buttons appear on both sides

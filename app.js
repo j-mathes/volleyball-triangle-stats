@@ -1331,6 +1331,23 @@ function createMatchItem(entry) {
   return wrapper;
 }
 
+async function clearMatchDataOnly() {
+  if (!confirm("Delete all matches, seasons, and events? Opponents and event codes will be kept. This cannot be undone.")) return;
+  var db = await openDatabase();
+  await runTransaction(db, STORE_NAME, "readwrite", function (store) { return store.clear(); });
+  db.close();
+  db = await openDatabase();
+  await runTransaction(db, SEASON_STORE, "readwrite", function (store) { return store.clear(); });
+  db.close();
+  db = await openDatabase();
+  await runTransaction(db, EVENT_STORE, "readwrite", function (store) { return store.clear(); });
+  db.close();
+  clearHistoryPreview();
+  await renderHistory();
+  await refreshSeasonPicker();
+  await refreshEventPicker();
+}
+
 async function clearAllHistory() {
   var save = confirm("Would you like to Export All data before clearing?");
   if (save) {
@@ -3947,6 +3964,7 @@ document.addEventListener("DOMContentLoaded", function () {
   $("btnExportJson").addEventListener("click", exportJson);
   $("btnExportCsv").addEventListener("click", exportCsv);
   $("btnExportAll").addEventListener("click", function () { void exportAll(); });
+  $("btnClearMatchData").addEventListener("click", function () { void clearMatchDataOnly(); });
   $("btnClearHistory").addEventListener("click", function () { void clearAllHistory(); });
   $("btnImport").addEventListener("click", function () { $("importFileInput").click(); });
   $("importFileInput").addEventListener("change", function () {

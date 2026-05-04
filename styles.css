@@ -1859,6 +1859,26 @@ button:disabled {
   font-size: 1.1rem;
 }
 
+.history-clear-btns {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.clear-matches-btn {
+  background: rgba(193, 18, 31, 0.15);
+  color: #c1121f;
+  border: 1px solid rgba(193, 18, 31, 0.35);
+  font-size: 0.75rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 8px;
+  min-width: unset;
+}
+
+.clear-matches-btn:hover {
+  background: rgba(193, 18, 31, 0.28);
+}
+
 .clear-history-btn {
   background: #c1121f;
   color: #fff;
