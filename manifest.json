@@ -1,0 +1,24 @@
+{
+  "name": "Triangle Stats",
+  "short_name": "Triangle Stats",
+  "description": "Volleyball match tracking tool built around The Triangle — Terminal Serves, First Ball Points, and Transition Points.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fef6e4",
+  "theme_color": "#2f3e46",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/apple-touch-icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
