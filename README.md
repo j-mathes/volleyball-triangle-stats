@@ -133,8 +133,52 @@ Object stores:
 - `events`
 - `opponents`
 - `eventCodes`
+- `gameSetups`
 
 When the app reopens, the most recent in-progress match is restored automatically.
+
+## Game Setups
+
+Game Setups let you pre-configure a match before game day and load it on any device — including an iPad — so all fields are pre-filled when you arrive.
+
+A Game Setup stores match configuration (always) plus any combination of optional fields:
+- Match Name
+- Match Date & Time
+- Opponent
+- Season & Event
+- App Settings (rotation mode, lock time, etc.)
+
+**Saving a Game Setup**
+
+1. Go to **Setup** and configure the match format, number of sets, season/event, etc.
+2. Make sure the match name, date, and opponent are set on the **Stats** page.
+3. Back on **Setup**, scroll to **Game Setups**.
+4. Check the fields you want to include.
+5. Click **Save Current Setup** — it appears in the list.
+6. Repeat for each upcoming game.
+
+**Downloading**
+
+- Click **Download** on any row to save that single setup as `game-setup_<name>_<date>.json`.
+- Click **Download Bundle** to export all saved setups in one file: `game-setup-bundle_<date>.json`.
+
+**Loading on Another Device**
+
+1. Transfer the file (AirDrop, email, cloud storage, etc.) to the target device.
+2. Open Triangle Stats and go to **History**.
+3. Click **Import** and select the file.
+   - Single setup → all fields are applied immediately and the app navigates to **Stats**.
+   - Bundle → a picker appears listing every setup; select one to load.
+4. After loading you're prompted to remove the setup from the saved list — tap **OK** to clean up, or **Cancel** to keep it.
+5. Click **Start Match** when ready.
+
+**Managing Saved Setups**
+
+| Action | How |
+|--------|-----|
+| Remove one setup | Click **×** on its row |
+| Remove all setups | Click **Clear All Game Setups** |
+| Clean up after loading | Confirm "Remove?" when prompted after Load |
 
 ## Import and Export
 
@@ -143,7 +187,9 @@ When the app reopens, the most recent in-progress match is restored automaticall
 | **Export JSON** | Single match with related context | `{name}_{YYYY-MM-DD}.json` |
 | **Export CSV** | Coach-readable set summary | `{name}_{YYYY-MM-DD}.csv` |
 | **Export All** | Full backup (matches + lookup data) | `triangle-stats-backup-{YYYY-MM-DD-HH-MM-SS}.json` |
-| **Import** | Single or bulk JSON import | — |
+| **Save Game Setup** | Single pre-match configuration | `game-setup_{name}_{YYYY-MM-DD}.json` |
+| **Download Bundle** | All saved game setups in one file | `game-setup-bundle_{YYYY-MM-DD}.json` |
+| **Import** | Single match, bulk, game setup, or bundle | — |
 
 Import skips duplicates and does not silently overwrite existing records.
 

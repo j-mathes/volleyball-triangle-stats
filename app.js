@@ -282,12 +282,13 @@ function toExportCsv(state) {
 // ---- IndexedDB Persistence --------------------------------
 
 const DB_NAME = "triangle-stats";
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 const STORE_NAME = "matches";
 const SEASON_STORE = "seasons";
 const EVENT_STORE = "events";
 const OPPONENT_STORE = "opponents";
 const EC_STORE = "eventCodes";
+const GAME_SETUP_STORE = "gameSetups";
 
 // Default event codes — used to seed the DB on first open and to reset
 const DEFAULT_EVENT_CODES = [
@@ -362,6 +363,9 @@ function openDatabase() {
         DEFAULT_EVENT_CODES.forEach(function (ec) {
           ecStore.put(Object.assign({ id: "default-" + ec.code }, ec));
         });
+      }
+      if (!db.objectStoreNames.contains(GAME_SETUP_STORE)) {
+        db.createObjectStore(GAME_SETUP_STORE, { keyPath: "id" });
       }
     };
     request.onsuccess = function () { resolve(request.result); };
@@ -486,6 +490,32 @@ async function dbDeleteEventCode(id) {
 async function dbClearEventCodes() {
   var db = await openDatabase();
   await runTransaction(db, EC_STORE, "readwrite", function (store) { return store.clear(); });
+  db.close();
+}
+
+// Game Setups
+async function dbListGameSetups() {
+  var db = await openDatabase();
+  var all = await runTransaction(db, GAME_SETUP_STORE, "readonly", function (store) { return store.getAll(); });
+  db.close();
+  return all.sort(function (a, b) { return new Date(a.savedAt) - new Date(b.savedAt); });
+}
+
+async function dbSaveGameSetupRecord(setup) {
+  var db = await openDatabase();
+  await runTransaction(db, GAME_SETUP_STORE, "readwrite", function (store) { return store.put(setup); });
+  db.close();
+}
+
+async function dbDeleteGameSetupRecord(id) {
+  var db = await openDatabase();
+  await runTransaction(db, GAME_SETUP_STORE, "readwrite", function (store) { return store.delete(id); });
+  db.close();
+}
+
+async function dbClearGameSetups() {
+  var db = await openDatabase();
+  await runTransaction(db, GAME_SETUP_STORE, "readwrite", function (store) { return store.clear(); });
   db.close();
 }
 
@@ -635,6 +665,330 @@ function downloadText(filename, content, mimeType) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
+}
+
+function showToast(msg) {
+  var existing = document.querySelector(".toast-notification");
+  if (existing) existing.remove();
+  var toast = document.createElement("div");
+  toast.className = "toast-notification";
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  // Force reflow before adding the visible class so the transition fires
+  void toast.offsetWidth;
+  toast.classList.add("toast-visible");
+  setTimeout(function () {
+    toast.classList.remove("toast-visible");
+    setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+  }, 3500);
+}
+
+// ---- Game Setups ------------------------------------------
+
+async function saveCurrentGameSetup() {
+  var options = {
+    matchName:   $("gsOptMatchName").checked,
+    matchDate:   $("gsOptMatchDate").checked,
+    opponent:    $("gsOptOpponent").checked,
+    seasonEvent: $("gsOptSeasonEvent").checked,
+    appSettings: $("gsOptAppSettings").checked,
+  };
+
+  var setup = {
+    id: crypto.randomUUID(),
+    savedAt: new Date().toISOString(),
+    matchFormat: getSelectedFormat(),
+    totalSets: cfgSetsValue,
+    matchName: null,
+    matchDate: null,
+    opponent: null,
+    season: null,
+    event: null,
+    appSettings: null,
+  };
+
+  if (options.matchName) {
+    setup.matchName = $("matchNameInput").value.trim() || null;
+  }
+  if (options.matchDate) {
+    setup.matchDate = $("matchDateInput").value || null;
+  }
+  if (options.opponent) {
+    var oppId = $("statsOpponentSelect").value;
+    if (oppId && oppId !== "__new__") {
+      var opp = await dbLoadOpponent(oppId);
+      if (opp) setup.opponent = { id: opp.id, name: opp.name };
+    }
+  }
+  if (options.seasonEvent) {
+    var seasonId = $("cfgSeasonSelect").value;
+    if (seasonId && seasonId !== "__new__") {
+      var season = await dbLoadSeason(seasonId);
+      if (season) setup.season = { id: season.id, name: season.name };
+    }
+    var eventId = $("cfgEventSelect").value;
+    if (eventId && eventId !== "__new__") {
+      var evt = await dbLoadEvent(eventId);
+      if (evt) setup.event = { id: evt.id, name: evt.name, eventType: evt.eventType, seasonId: evt.seasonId };
+    }
+  }
+  if (options.appSettings) {
+    setup.appSettings = {
+      rotationMode:    getRotationMode(),
+      rotationPersist: $("cfgRotationPersist").checked,
+      autoLockSeconds: resetLockSeconds,
+      showTriTotals:   $("cfgShowTriTotals").checked,
+      highlightColor:  $("cfgHighlightColor").value,
+    };
+  }
+
+  // Display name: match name → "vs. <opponent>" → generic fallback
+  setup.name = setup.matchName
+    || (setup.opponent ? "vs. " + setup.opponent.name : null)
+    || "Game Setup";
+
+  await dbSaveGameSetupRecord(setup);
+  await renderGameSetupList();
+  showToast("Game Setup saved.");
+}
+
+async function renderGameSetupList() {
+  var list = $("gameSetupList");
+  var footer = $("gsFooter");
+  if (!list) return;
+  var setups = await dbListGameSetups();
+  list.innerHTML = "";
+  if (!setups.length) {
+    var emptyP = document.createElement("p");
+    emptyP.className = "gs-empty";
+    emptyP.textContent = "No game setups saved yet.";
+    list.appendChild(emptyP);
+    if (footer) footer.hidden = true;
+    return;
+  }
+  if (footer) footer.hidden = false;
+
+  var matchActive = !!(controller.getState() && !controller.getState().endedAt);
+  setups.forEach(function (setup) {
+    var item = document.createElement("div");
+    item.className = "gs-list-item";
+
+    var info = document.createElement("div");
+    info.className = "gs-item-info";
+
+    var nameSpan = document.createElement("span");
+    nameSpan.className = "gs-item-name";
+    nameSpan.textContent = setup.name;
+
+    var metaSpan = document.createElement("span");
+    metaSpan.className = "gs-item-meta";
+    var metaParts = [];
+    if (setup.matchDate) metaParts.push(formatDateShort(new Date(setup.matchDate)));
+    metaParts.push((setup.matchFormat === "bestOf" ? "Best Of" : "Straight Sets") + " " + setup.totalSets);
+    if (setup.opponent) metaParts.push("vs. " + setup.opponent.name);
+    metaSpan.textContent = metaParts.join(" \u00b7 ");
+
+    info.appendChild(nameSpan);
+    info.appendChild(metaSpan);
+
+    var actions = document.createElement("div");
+    actions.className = "gs-item-actions";
+
+    var loadBtn = document.createElement("button");
+    loadBtn.className = "gs-load-btn";
+    loadBtn.textContent = "Load";
+    loadBtn.disabled = matchActive;
+    loadBtn.addEventListener("click", (function (s) {
+      return function () { void applyGameSetupWithPrompt(s); };
+    })(setup));
+
+    var dlBtn = document.createElement("button");
+    dlBtn.className = "gs-download-btn";
+    dlBtn.textContent = "Download";
+    dlBtn.addEventListener("click", (function (s) {
+      return function () { downloadGameSetup(s); };
+    })(setup));
+
+    var delBtn = document.createElement("button");
+    delBtn.className = "gs-delete-btn";
+    delBtn.title = "Delete this game setup";
+    delBtn.textContent = "\u00D7";
+    delBtn.addEventListener("click", (function (s) {
+      return function () { void deleteGameSetup(s.id); };
+    })(setup));
+
+    actions.appendChild(loadBtn);
+    actions.appendChild(dlBtn);
+    actions.appendChild(delBtn);
+    item.appendChild(info);
+    item.appendChild(actions);
+    list.appendChild(item);
+  });
+}
+
+function downloadGameSetup(setup) {
+  var payload = {
+    version: 1,
+    type: "game-setup",
+    exportedAt: new Date().toISOString(),
+    matchFormat: setup.matchFormat,
+    totalSets: setup.totalSets,
+    matchName: setup.matchName || null,
+    matchDate: setup.matchDate || null,
+    opponent: setup.opponent || null,
+    season: setup.season || null,
+    event: setup.event || null,
+    appSettings: setup.appSettings || null,
+  };
+  var slug = (setup.name || "game-setup").replace(/[^a-zA-Z0-9_-]/g, "_").toLowerCase();
+  var date = setup.matchDate
+    ? new Date(setup.matchDate).toISOString().slice(0, 10)
+    : new Date().toISOString().slice(0, 10);
+  downloadText("game-setup_" + slug + "_" + date + ".json", JSON.stringify(payload, null, 2), "application/json");
+}
+
+async function downloadGameSetupBundle() {
+  var setups = await dbListGameSetups();
+  if (!setups.length) { alert("No game setups saved to bundle."); return; }
+  var payload = {
+    version: 1,
+    type: "game-setup-bundle",
+    exportedAt: new Date().toISOString(),
+    setups: setups.map(function (s) {
+      return {
+        matchFormat: s.matchFormat,
+        totalSets: s.totalSets,
+        matchName: s.matchName || null,
+        matchDate: s.matchDate || null,
+        opponent: s.opponent || null,
+        season: s.season || null,
+        event: s.event || null,
+        appSettings: s.appSettings || null,
+      };
+    }),
+  };
+  var date = new Date().toISOString().slice(0, 10);
+  downloadText("game-setup-bundle_" + date + ".json", JSON.stringify(payload, null, 2), "application/json");
+}
+
+async function applyGameSetup(setup) {
+  // 1. Match format
+  var fmtRadio = document.querySelector('input[name="matchFormat"][value="' + setup.matchFormat + '"]');
+  if (fmtRadio) fmtRadio.checked = true;
+
+  // 2. Number of sets
+  cfgSetsValue = setup.totalSets;
+  $("cfgTotalSets").textContent = cfgSetsValue;
+  renderSetColorPickers();
+
+  // 3. Opponent: save to DB if new, then refresh picker and select it
+  if (setup.opponent) {
+    var existOpp = await dbLoadOpponent(setup.opponent.id);
+    if (!existOpp) await dbSaveOpponent(setup.opponent);
+    await refreshOpponentPicker();
+    $("statsOpponentSelect").value = setup.opponent.id;
+    toggleNewOpponentInput();
+  }
+
+  // 4. Season and event: save to DB if new, then refresh pickers and select them
+  if (setup.season) {
+    var existSeason = await dbLoadSeason(setup.season.id);
+    if (!existSeason) await dbSaveSeason(setup.season);
+  }
+  if (setup.event) {
+    var existEvent = await dbLoadEvent(setup.event.id);
+    if (!existEvent) await dbSaveEvent(setup.event);
+  }
+  await refreshSeasonPicker();
+  if (setup.season) { $("cfgSeasonSelect").value = setup.season.id; toggleNewSeasonInput(); }
+  await refreshEventPicker(setup.season ? setup.season.id : null);
+  if (setup.event) { $("cfgEventSelect").value = setup.event.id; toggleNewEventInput(); }
+
+  // 5. Match name and date (pre-fill Stats page fields)
+  if (setup.matchName) $("matchNameInput").value = setup.matchName;
+  if (setup.matchDate) $("matchDateInput").value = setup.matchDate;
+
+  // 6. App settings
+  if (setup.appSettings) {
+    var as = setup.appSettings;
+    if (as.rotationMode) {
+      var rRadio = document.querySelector('input[name="rotationMode"][value="' + as.rotationMode + '"]');
+      if (rRadio) { rRadio.checked = true; localStorage.setItem("rotationMode", as.rotationMode); }
+    }
+    if (typeof as.rotationPersist === "boolean") {
+      $("cfgRotationPersist").checked = as.rotationPersist;
+      localStorage.setItem("rotationPersist", as.rotationPersist ? "1" : "0");
+    }
+    if (typeof as.autoLockSeconds === "number") {
+      resetLockSeconds = as.autoLockSeconds;
+      $("cfgLockTime").textContent = resetLockSeconds;
+    }
+    if (typeof as.showTriTotals === "boolean") {
+      $("cfgShowTriTotals").checked = as.showTriTotals;
+    }
+    if (as.highlightColor) {
+      $("cfgHighlightColor").value = as.highlightColor;
+      document.documentElement.style.setProperty("--highlight-color", as.highlightColor);
+      localStorage.setItem("highlightColor", as.highlightColor);
+    }
+  }
+
+  showPage("stats");
+  renderState();
+  void refreshOpponentPicker();
+  showToast("Game Setup loaded \u2014 review settings and tap Start Match when ready.");
+}
+
+async function applyGameSetupWithPrompt(setup) {
+  await applyGameSetup(setup);
+  if (confirm("Remove \"" + escHtml(setup.name || "this game setup") + "\" from the saved list?")) {
+    await dbDeleteGameSetupRecord(setup.id);
+    await renderGameSetupList();
+  }
+}
+
+async function deleteGameSetup(id) {
+  if (!confirm("Delete this game setup?")) return;
+  await dbDeleteGameSetupRecord(id);
+  await renderGameSetupList();
+}
+
+async function clearAllGameSetups() {
+  if (!confirm("Delete all saved game setups? This cannot be undone.")) return;
+  await dbClearGameSetups();
+  await renderGameSetupList();
+}
+
+function showGameSetupBundlePicker(setups) {
+  var modal = $("gameSetupPickerModal");
+  var list = $("gameSetupPickerList");
+  list.innerHTML = "";
+  setups.forEach(function (setup) {
+    var btn = document.createElement("button");
+    btn.className = "gs-picker-item";
+
+    var nameSpan = document.createElement("span");
+    nameSpan.className = "gs-picker-name";
+    nameSpan.textContent = setup.matchName
+      || (setup.opponent ? "vs. " + setup.opponent.name : "Game Setup");
+
+    var metaSpan = document.createElement("span");
+    metaSpan.className = "gs-picker-meta";
+    var parts = [];
+    if (setup.matchDate) parts.push(formatDateShort(new Date(setup.matchDate)));
+    parts.push((setup.matchFormat === "bestOf" ? "Best Of" : "Straight Sets") + " " + setup.totalSets);
+    if (setup.opponent) parts.push("vs. " + setup.opponent.name);
+    metaSpan.textContent = parts.join(" \u00b7 ");
+
+    btn.appendChild(nameSpan);
+    btn.appendChild(metaSpan);
+    btn.addEventListener("click", function () {
+      modal.hidden = true;
+      void applyGameSetup(setup);
+    });
+    list.appendChild(btn);
+  });
+  modal.hidden = false;
 }
 
 function matchFilename(name, matchDate, ext) {
@@ -1137,6 +1491,7 @@ function renderState() {
   $("newEcCat").disabled = matchActive;
   $("btnResetEventCodes").disabled = matchActive;
   document.querySelectorAll(".ec-list-delete").forEach(function (btn) { btn.disabled = matchActive; });
+  document.querySelectorAll(".gs-load-btn").forEach(function (btn) { btn.disabled = matchActive; });
 
   // Sync opponent picker to current match
   var oppSel = $("statsOpponentSelect");
@@ -1880,6 +2235,21 @@ async function importData(file) {
   try { data = JSON.parse(text); } catch (e) { alert("Invalid JSON file."); return; }
 
   if (!data || typeof data !== "object" || !data.version) { alert("Unrecognized file format."); return; }
+
+  // Game Setup: apply directly and navigate to Stats
+  if (data.type === "game-setup") {
+    await applyGameSetup(data);
+    await renderHistory();
+    void refreshSeasonPicker();
+    return;
+  }
+
+  // Game Setup Bundle: show picker so user selects which game to load
+  if (data.type === "game-setup-bundle") {
+    if (!data.setups || !data.setups.length) { alert("This bundle contains no game setups."); return; }
+    showGameSetupBundlePicker(data.setups);
+    return;
+  }
 
   var stats = { seasons: 0, events: 0, opponents: 0, eventCodes: 0, matches: 0, skipped: 0 };
 
@@ -3918,7 +4288,7 @@ document.addEventListener("DOMContentLoaded", function () {
   $("matchDateInput").value = toLocalDatetime(new Date());
 
   // Nav bar
-  $('navConfig').addEventListener('click', function () { showPage('config'); void refreshSeasonPicker(); void refreshEventPicker(); void renderOpponentList(); void renderEventCodeList(); });
+  $('navConfig').addEventListener('click', function () { showPage('config'); void refreshSeasonPicker(); void refreshEventPicker(); void renderOpponentList(); void renderEventCodeList(); void renderGameSetupList(); });
   $("navStats").addEventListener("click", function () { showPage("stats"); renderState(); void refreshOpponentPicker(); });
   $("navHistory").addEventListener("click", function () { showPage("history"); void renderHistory(); });
   $("navReports").addEventListener("click", function () {
@@ -4203,6 +4573,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
+  // Game Setups
+  $("btnSaveGameSetup").addEventListener("click", function () { void saveCurrentGameSetup(); });
+  $("btnDownloadBundle").addEventListener("click", function () { void downloadGameSetupBundle(); });
+  $("btnClearAllSetups").addEventListener("click", function () { void clearAllGameSetups(); });
+  $("btnCancelSetupPicker").addEventListener("click", function () { $("gameSetupPickerModal").hidden = true; });
+
   // Stat action buttons (data-stat attribute)
   document.querySelectorAll("[data-stat]").forEach(function (btn) {
     btn.addEventListener("click", function () { void incrementStat(btn.getAttribute("data-stat")); });
@@ -4291,6 +4667,9 @@ document.addEventListener("DOMContentLoaded", function () {
     // Load user-defined event codes first, then render buttons
     await loadEventCodes();
     renderEventCodeButtons();
+
+    // Pre-populate the Game Setups list on first load
+    await renderGameSetupList();
 
     var matches = await dbListMatches();
     for (var i = 0; i < matches.length; i++) {

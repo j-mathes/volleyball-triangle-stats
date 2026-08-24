@@ -3265,3 +3265,265 @@ button:disabled {
   .bottom-bar    { display: block; margin-top: 0.5rem; }
   .event-log-card { display: block; }
 }
+
+/* ============================================================
+   Game Setups card
+   ============================================================ */
+
+.gs-card-hint {
+  font-size: 0.88rem;
+  color: rgba(0, 0, 0, 0.5);
+  margin: 0;
+}
+
+.gs-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0.2rem 0 0.2rem;
+}
+
+.gs-options-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(0, 0, 0, 0.45);
+  margin-bottom: 0.15rem;
+}
+
+.gs-list {
+  margin-top: 0.4rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.gs-empty {
+  color: rgba(0, 0, 0, 0.4);
+  font-style: italic;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.gs-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.gs-list-item:last-child {
+  border-bottom: none;
+}
+
+.gs-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.gs-item-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gs-item-meta {
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.gs-item-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.gs-load-btn {
+  background: var(--accent-2);
+  color: #fff;
+  font-size: 0.82rem;
+  padding: 0.28rem 0.65rem;
+  min-width: unset;
+}
+
+.gs-load-btn:hover:not(:disabled) {
+  background: var(--accent-2-hover);
+}
+
+.gs-download-btn {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--ink);
+  font-size: 0.82rem;
+  padding: 0.28rem 0.65rem;
+  min-width: unset;
+}
+
+.gs-download-btn:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.15);
+  transform: none;
+}
+
+.gs-delete-btn {
+  background: transparent;
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 1.1rem;
+  padding: 0.1rem 0.3rem;
+  min-width: unset;
+  line-height: 1;
+}
+
+.gs-delete-btn:hover:not(:disabled) {
+  color: var(--accent);
+  background: transparent;
+  transform: none;
+}
+
+.gs-footer {
+  margin-top: 0.6rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.gs-bundle-btn {
+  background: var(--accent-2);
+  color: #fff;
+}
+
+.gs-bundle-btn:hover:not(:disabled) {
+  background: var(--accent-2-hover);
+}
+
+.gs-footer-hint {
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================================
+   Bundle picker modal
+   ============================================================ */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-overlay[hidden] {
+  display: none;
+}
+
+.modal-box {
+  background: var(--bg-1);
+  border-radius: 16px;
+  padding: 1.4rem 1.5rem;
+  max-width: 480px;
+  width: 90vw;
+  max-height: 78vh;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.28);
+}
+
+.modal-box h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.modal-hint {
+  font-size: 0.88rem;
+  color: rgba(0, 0, 0, 0.55);
+  margin: 0;
+}
+
+.gs-picker-list {
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-height: 3rem;
+}
+
+.gs-picker-item {
+  text-align: left;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: unset;
+  width: 100%;
+}
+
+.gs-picker-item:hover:not(:disabled) {
+  background: rgba(7, 128, 128, 0.1);
+  transform: none;
+}
+
+.gs-picker-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.gs-picker-meta {
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-cancel {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--ink);
+  align-self: flex-end;
+  min-width: unset;
+  padding: 0.4rem 1rem;
+}
+
+.modal-cancel:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.15);
+  transform: none;
+}
+
+/* ============================================================
+   Toast notification
+   ============================================================ */
+
+.toast-notification {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(1rem);
+  background: #1b1b28;
+  color: #fff;
+  padding: 0.65rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  z-index: 200;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 220ms, transform 220ms;
+  max-width: 90vw;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  white-space: pre-line;
+}
+
+.toast-notification.toast-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}

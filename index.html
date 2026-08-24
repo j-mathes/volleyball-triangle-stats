@@ -70,6 +70,33 @@
         </details>
       </div>
 
+      <!-- Game Setups card -->
+      <div class="config-card" id="gameSetupsCard">
+        <h2>Game Setups</h2>
+        <p class="gs-card-hint">Save match configuration in advance. Load a setup on any device to pre-fill all fields before starting a match. Match format and number of sets are always included.</p>
+
+        <div class="gs-options">
+          <div class="gs-options-label">Include in this setup:</div>
+          <label class="checkbox-label"><input type="checkbox" id="gsOptMatchName" checked> Match Name</label>
+          <label class="checkbox-label"><input type="checkbox" id="gsOptMatchDate" checked> Match Date &amp; Time</label>
+          <label class="checkbox-label"><input type="checkbox" id="gsOptOpponent" checked> Opponent</label>
+          <label class="checkbox-label"><input type="checkbox" id="gsOptSeasonEvent" checked> Season &amp; Event</label>
+          <label class="checkbox-label"><input type="checkbox" id="gsOptAppSettings"> App Settings</label>
+        </div>
+
+        <button id="btnSaveGameSetup">Save Current Setup</button>
+
+        <div id="gameSetupList" class="gs-list">
+          <p class="gs-empty">No game setups saved yet.</p>
+        </div>
+
+        <div class="gs-footer" id="gsFooter" hidden>
+          <button id="btnDownloadBundle" class="gs-bundle-btn">Download Bundle</button>
+          <span class="gs-footer-hint">Exports all saved setups in one file. On another device, import it and choose which game to load.</span>
+          <button id="btnClearAllSetups" class="danger-btn">Clear All Game Setups</button>
+        </div>
+      </div>
+
       <div class="config-card">
         <h2>App Settings</h2>
         <label>Reset Auto-Lock <span class="format-hint">(seconds)</span></label>
@@ -408,6 +435,16 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- Game Setup bundle picker modal -->
+  <div id="gameSetupPickerModal" class="modal-overlay" hidden>
+    <div class="modal-box">
+      <h3>Choose a Game Setup</h3>
+      <p class="modal-hint">Select a game to load its configuration.</p>
+      <div id="gameSetupPickerList" class="gs-picker-list"></div>
+      <button id="btnCancelSetupPicker" class="modal-cancel">Cancel</button>
+    </div>
   </div>
 
   <script src="app.js"></script>
