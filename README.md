@@ -17,9 +17,31 @@ Read Joe's original write-up at [Smarter Volley: The Triangle](https://smartervo
 
 Works on desktop and iPad/iPhone. No install required — open the link in any modern browser.
 
-> **Note for iPad/iPhone users:** Use the link above. Opening `index.html` as a local file on iOS is not supported due to browser storage restrictions.
+> **Note for iPad/iPhone users:** Use the link above — opening `index.html` as a local file on iOS is not supported due to browser storage restrictions.
 
-> **Not seeing recent changes?** Your browser may be serving a cached version of the page. Clear your browser cache and reload to pick up the latest updates. On iPhone/iPad: go to **Settings → Safari → Clear History and Website Data**, then reopen the link. On desktop: press **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac) to force a hard reload.
+> **Update available?** An **"Update available — tap to refresh"** toast appears at the bottom of the screen when a new version is ready. Tap it to reload instantly.
+
+## Installing as an App (PWA)
+
+Triangle Stats is a Progressive Web App — install it for a full-screen, offline-capable experience with no browser chrome.
+
+### iOS (iPhone / iPad)
+
+**Safari** is the primary method. Chrome and Edge on iOS 17+ also support installation via their Share button.
+
+1. Open **Safari** and navigate to the hosted link
+2. Tap the **Share** button (⎎) → **“Add to Home Screen”** → **Add**
+3. **iOS 17.4+:** when prompted, choose **“As Web App”** (not “In Safari”)
+
+### Android
+
+1. Open **Chrome** and navigate to the hosted link
+2. Tap **⋮** → **“Add to Home Screen”** (or tap the install banner) → **Add**
+
+### Desktop (Chrome / Edge)
+
+1. Navigate to the hosted link
+2. Click the **install icon** (⊕) in the address bar → **Install**
 
 ## Screenshots
 
@@ -121,7 +143,10 @@ Common coaching questions these reports help answer:
 - Which rotations are strongest or weakest?
 - Are we trending up across recent matches?
 
-Multi-match reports include aggregate Triangle stat graphics so the overall TS/FB/TRN picture is visible at a glance. The Progress Trend chart has a horizontal/vertical orientation toggle — useful when many matches are selected and labels become crowded. The Opponent Comparison report includes an individual triangle for each opponent alongside the overall summary.
+Notes on multi-match reports:
+- Include aggregate Triangle stat graphics for a quick TS/FB/TRN overview
+- Progress Trend has an orientation toggle — useful when many matches are selected and labels crowd
+- Opponent Comparison includes an individual triangle per opponent alongside the summary
 
 ## Data and Persistence
 
