@@ -45,14 +45,15 @@ Triangle Stats is a Progressive Web App — install it for a full-screen, offlin
 
 ## Screenshots
 
-| Stats | Reports | Setup |
+| Stats | Reports | App Setup |
 |-------|---------|-------|
 | ![Stats page](screenshots/stats.png) | ![Reports page](screenshots/reports.png) | ![Setup page](screenshots/setup.png) |
 
 ## Features
 
 - Fast in-match tracking with 12 Triangle stat buttons
-- Dedicated pages for live tracking, reports, history, and setup
+- Five dedicated pages: Stats, Game Setups, Reports, History, App Setup
+- Pre-configure upcoming matches in the **Game Setups** tab — save, bundle, and load on any device
 - Rotation tracking options (none, ours only, both sides)
 - Optional context on each touch: jersey number, rotation, and event code
 - Opponent management and assignment before match start
@@ -63,31 +64,34 @@ Triangle Stats is a Progressive Web App — install it for a full-screen, offlin
 - Customizable set colors used across reports and charts
 - Lead Changes tracking in Match Summary — highlights every moment the lead flipped, colored by team
 - Match Log with per-event lead-change highlights and a dedicated lead-change column
+- Installable as a PWA for full-screen offline use on iPad, iPhone, Android, or desktop
 
 ## Coach Workflow
 
-1. Open `index.html` in Chrome, Firefox, or Edge.
-2. Go to **Setup** and configure as needed:
+1. Open the app (or navigate to the hosted link).
+2. Go to **App Setup** and configure defaults:
    - match format and set count
    - rotation tracking mode
    - season/event organization
-   - opponents
-   - event codes
-3. Go to **Stats**, enter match metadata, then click **Start Match**.
-4. Record events with the Triangle stat buttons.
-5. Use **Undo** and **Redo** during play when needed.
-6. End sets with **End Set**, and finish with **End Match**.
-7. Use **History** to resume unfinished matches or manage saved ones.
-8. Use **Reports** for debriefs, film sessions, and practice planning.
+   - opponents and event codes
+3. *(Optional)* Go to **Game Setups**, fill in upcoming match details, and click **Save Game Setup**.
+4. On game day, click **Load** on a saved setup — the Stats page is pre-filled and ready.
+5. Click **Start Match** to begin tracking.
+6. Record events with the Triangle stat buttons.
+7. Use **Undo** and **Redo** during play when needed.
+8. End sets with **End Set**, and finish with **End Match**.
+9. Use **History** to resume unfinished matches or manage saved ones.
+10. Use **Reports** for debriefs, film sessions, and practice planning.
 
 ## Pages
 
 | Page | Purpose |
 |------|---------|
 | **Stats** | Live touch-by-touch tracking during sets |
+| **Game Setups** | Pre-configure upcoming matches, save and load setups, import/export bundles |
 | **Reports** | Turn tracked data into usable coaching summaries |
 | **History** | Resume, review, export, import, and clean up saved matches |
-| **Setup** | Configure match format, tracking behavior, opponents, and event codes |
+| **App Setup** | Configure match format defaults, tracking behaviour, opponents, and event codes |
 
 ## What the Triangle Measures
 
@@ -108,7 +112,7 @@ Each stat can include optional metadata:
 
 Blank fields are not recorded.
 
-Event codes are user-defined on the Setup page. Each code includes:
+Event codes are user-defined on the **App Setup** page. Each code includes:
 - code (stored value)
 - abbreviation (button and tally label)
 - description
@@ -164,40 +168,37 @@ When the app reopens, the most recent in-progress match is restored automaticall
 
 ## Game Setups
 
-Game Setups let you pre-configure a match before game day and load it on any device — including an iPad — so all fields are pre-filled when you arrive.
+The **Game Setups** tab lets you pre-configure one or more upcoming matches before game day and load them on any device — including an iPad — so all fields are pre-filled when you arrive.
 
-A Game Setup stores match configuration (always) plus any combination of optional fields:
-- Match Name
-- Match Date & Time
-- Opponent
-- Season & Event
-- App Settings (rotation mode, lock time, etc.)
+**Creating a game setup**
 
-**Saving a Game Setup**
+1. Go to the **Game Setups** tab.
+2. Fill in the form — format and sets default to your **App Setup** values but can be overridden per game:
+   - Match Name and Date & Time
+   - Opponent
+   - Match Format and Number of Sets
+   - Season & Event *(optional — expand Match Organization)*
+   - App Settings Override *(optional — expand to override rotation mode, lock time, etc.)*
+3. Click **Save Game Setup** — it appears in the Saved Game Setups list below.
+4. Repeat for each upcoming game.
 
-1. Go to **Setup** and configure the match format, number of sets, season/event, etc.
-2. Make sure the match name, date, and opponent are set on the **Stats** page.
-3. Back on **Setup**, scroll to **Game Setups**.
-4. Check the fields you want to include.
-5. Click **Save Current Setup** — it appears in the list.
-6. Repeat for each upcoming game.
+**Loading a setup on game day**
 
-**Downloading**
+1. Open the **Game Setups** tab.
+2. Click **Load** on any row — the Stats page opens pre-filled with the match details.
+3. A prompt asks whether to remove that setup from the list. Tap **OK** to clean up or **Cancel** to keep it for reuse.
+4. Click **Start Match**.
 
-- Click **Download** on any row to save that single setup as `game-setup_<name>_<date>.json`.
+**Sharing setups across devices**
+
+- Click **Download** on any row to save it as `game-setup_<name>_<date>.json`.
 - Click **Download Bundle** to export all saved setups in one file: `game-setup-bundle_<date>.json`.
+- Transfer the file (AirDrop, email, cloud storage, etc.) to the target device.
+- On the target device, go to **Game Setups** and click **Load from File…** to import:
+  - Single setup file → added to the saved list.
+  - Bundle file → a picker shows all setups with checkboxes; choose **Import Selected** or **Import All**.
 
-**Loading on Another Device**
-
-1. Transfer the file (AirDrop, email, cloud storage, etc.) to the target device.
-2. Open Triangle Stats and go to **History**.
-3. Click **Import** and select the file.
-   - Single setup → all fields are applied immediately and the app navigates to **Stats**.
-   - Bundle → a picker appears listing every setup; select one to load.
-4. After loading you're prompted to remove the setup from the saved list — tap **OK** to clean up, or **Cancel** to keep it.
-5. Click **Start Match** when ready.
-
-**Managing Saved Setups**
+**Managing saved setups**
 
 | Action | How |
 |--------|-----|
@@ -220,14 +221,17 @@ Import skips duplicates and does not silently overwrite existing records.
 
 ## App Settings
 
-Setup options include:
-- Reset Auto-Lock timeout
+Options in the **App Setup** page:
+
+- **Reset Auto-Lock** — seconds before the Reset button re-locks during an active match
+- **Notification Duration** — how long toast notifications stay visible (1–10 s, default 3)
 - Show match totals in triangle
+- Date format
 - Rotation tracking mode (None, Ours Only, Both Sides)
 - Keep rotation selected between stat presses
 - Highlight and event-log color customization
 - Set Colors — one color picker per set, used in the Tally Chart and Momentum report
-- **Developer Tools** — link to the Sample Data Generator for inserting test matches, tournaments, and league seasons into the app
+- **Developer Tools** — link to the Sample Data Generator for inserting test matches, tournaments, and league seasons
 
 ## Project Structure
 

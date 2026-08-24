@@ -15,9 +15,10 @@
     <nav class="page-nav">
       <span class="nav-title">Triangle Stats</span>
       <button id="navStats" class="nav-btn active" data-page="stats">Stats</button>
+      <button id="navGameSetups" class="nav-btn" data-page="gameSetups">Game Setups</button>
       <button id="navReports" class="nav-btn" data-page="reports">Reports</button>
       <button id="navHistory" class="nav-btn" data-page="history">History</button>
-      <button id="navConfig" class="nav-btn" data-page="config">Setup</button>
+      <button id="navConfig" class="nav-btn" data-page="config">App Setup</button>
       <div class="nav-links-left">
         <a href="https://github.com/j-mathes/volleyball-triangle-stats" target="_blank" rel="noopener noreferrer" class="nav-github" title="View on GitHub" aria-label="View on GitHub">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.084 1.84 1.236 1.84 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.418-1.305.762-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23a11.52 11.52 0 0 1 3-.405c1.02.005 2.045.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.605-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -73,33 +74,6 @@
         </details>
       </div>
 
-      <!-- Game Setups card -->
-      <div class="config-card" id="gameSetupsCard">
-        <h2>Game Setups</h2>
-        <p class="gs-card-hint">Save match configuration in advance. Load a setup on any device to pre-fill all fields before starting a match. Match format and number of sets are always included.</p>
-
-        <div class="gs-options">
-          <div class="gs-options-label">Include in this setup:</div>
-          <label class="checkbox-label"><input type="checkbox" id="gsOptMatchName" checked> Match Name</label>
-          <label class="checkbox-label"><input type="checkbox" id="gsOptMatchDate" checked> Match Date &amp; Time</label>
-          <label class="checkbox-label"><input type="checkbox" id="gsOptOpponent" checked> Opponent</label>
-          <label class="checkbox-label"><input type="checkbox" id="gsOptSeasonEvent" checked> Season &amp; Event</label>
-          <label class="checkbox-label"><input type="checkbox" id="gsOptAppSettings"> App Settings</label>
-        </div>
-
-        <button id="btnSaveGameSetup">Save Current Setup</button>
-
-        <div id="gameSetupList" class="gs-list">
-          <p class="gs-empty">No game setups saved yet.</p>
-        </div>
-
-        <div class="gs-footer" id="gsFooter" hidden>
-          <button id="btnDownloadBundle" class="gs-bundle-btn">Download Bundle</button>
-          <span class="gs-footer-hint">Exports all saved setups in one file. On another device, import it and choose which game to load.</span>
-          <button id="btnClearAllSetups" class="danger-btn">Clear All Game Setups</button>
-        </div>
-      </div>
-
       <div class="config-card">
         <h2>App Settings</h2>
         <label>Reset Auto-Lock <span class="format-hint">(seconds)</span></label>
@@ -107,6 +81,12 @@
           <button id="btnLockTimeDown" type="button" class="stepper-btn">&minus;</button>
           <span id="cfgLockTime" class="stepper-value">3</span>
           <button id="btnLockTimeUp" type="button" class="stepper-btn">+</button>
+        </div>
+        <label>Notification Duration <span class="format-hint">(seconds, 1&ndash;10)</span></label>
+        <div class="stepper">
+          <button id="btnToastDurationDown" type="button" class="stepper-btn">&minus;</button>
+          <span id="cfgToastDuration" class="stepper-value">3</span>
+          <button id="btnToastDurationUp" type="button" class="stepper-btn">+</button>
         </div>
         <label class="checkbox-label"><input type="checkbox" id="cfgShowTriTotals" checked> Show match totals in triangle</label>
         <div class="setting-row">
@@ -330,6 +310,108 @@
 
     </div><!-- end statsPage -->
 
+    <!-- ===== Game Setups Page ===== -->
+    <div id="gameSetupsPage" class="game-setups-page">
+
+      <div class="config-card">
+        <h2>New Game Setup</h2>
+        <p class="gs-card-hint">Fill in the details for an upcoming match. Format and sets default to your App Setup settings but can be overridden here per game.</p>
+
+        <div class="gs-form-row">
+          <div>
+            <label for="gsFormMatchName">Match Name</label>
+            <input id="gsFormMatchName" type="text" placeholder="e.g. vs. Lincoln High">
+          </div>
+          <div>
+            <label for="gsFormMatchDate">Date &amp; Time</label>
+            <input id="gsFormMatchDate" type="datetime-local">
+          </div>
+        </div>
+
+        <label>Opponent</label>
+        <div class="combo-picker">
+          <select id="gsFormOpponentSelect"><option value="">No Opponent</option><option value="__new__">&mdash; New Opponent &mdash;</option></select>
+          <input id="gsFormOpponentName" type="text" placeholder="Opponent name" class="combo-input" hidden>
+          <button id="btnGsConfirmOpponent" class="confirm-opp-btn" hidden title="Save opponent">&#x2713;</button>
+        </div>
+
+        <div class="format-picker">
+          <div class="format-picker-legend">Match Format</div>
+          <label><input type="radio" name="gsFormFormat" value="bestOf" checked> Best Of <span class="format-hint">(odd number of sets)</span></label>
+          <label><input type="radio" name="gsFormFormat" value="straightSets"> Straight Sets <span class="format-hint">(even number of sets)</span></label>
+        </div>
+
+        <label>Number of Sets</label>
+        <div class="stepper">
+          <button id="btnGsSetsDown" type="button" class="stepper-btn">&minus;</button>
+          <span id="gsFormTotalSets" class="stepper-value">3</span>
+          <button id="btnGsSetsUp" type="button" class="stepper-btn">+</button>
+        </div>
+
+        <details class="org-section">
+          <summary>Match Organization <span class="format-hint">(optional)</span></summary>
+          <label>Season</label>
+          <div class="combo-picker">
+            <select id="gsFormSeasonSelect"><option value="">None</option><option value="__new__">&mdash; New Season &mdash;</option></select>
+            <input id="gsFormSeasonName" type="text" placeholder="Season name" class="combo-input" hidden>
+          </div>
+
+          <label>Event</label>
+          <div class="combo-picker">
+            <select id="gsFormEventSelect"><option value="">None</option><option value="__new__">&mdash; New Event &mdash;</option></select>
+            <input id="gsFormEventName" type="text" placeholder="Event name" class="combo-input" hidden>
+          </div>
+
+          <div id="gsFormEventTypeRow" hidden>
+            <label>Event Type</label>
+            <select id="gsFormEventType">
+              <option value="tournament">Tournament</option>
+              <option value="league">League</option>
+              <option value="practice">Practice / Scrimmage</option>
+            </select>
+          </div>
+        </details>
+
+        <details class="org-section" id="gsAppSettingsDetails">
+          <summary>App Settings Override <span class="format-hint">(optional &mdash; leave closed to use App Setup defaults)</span></summary>
+          <div class="format-picker">
+            <div class="format-picker-legend">Rotation Tracking</div>
+            <label><input type="radio" name="gsFormRotationMode" value="none" checked> None</label>
+            <label><input type="radio" name="gsFormRotationMode" value="ours"> Ours Only</label>
+            <label><input type="radio" name="gsFormRotationMode" value="both"> Both Sides</label>
+          </div>
+          <label class="checkbox-label"><input type="checkbox" id="gsFormShowTriTotals" checked> Show match totals in triangle</label>
+          <label>Reset Auto-Lock <span class="format-hint">(seconds)</span></label>
+          <div class="stepper">
+            <button id="btnGsLockTimeDown" type="button" class="stepper-btn">&minus;</button>
+            <span id="gsFormLockTime" class="stepper-value">3</span>
+            <button id="btnGsLockTimeUp" type="button" class="stepper-btn">+</button>
+          </div>
+          <div class="gs-color-row">
+            <label for="gsFormHighlightColor">Selection highlight color</label>
+            <input type="color" id="gsFormHighlightColor" value="#60a5fa" class="highlight-color-input">
+          </div>
+        </details>
+
+        <div class="gs-action-row">
+          <button id="btnGsSave">Save Game Setup</button>
+          <button id="btnGsImport" class="gs-import-btn">Load from File&hellip;</button>
+          <input id="gsImportFileInput" type="file" accept=".json" hidden>
+        </div>
+      </div>
+
+      <div class="config-card" id="gsListCard" hidden>
+        <h2>Saved Game Setups</h2>
+        <div id="gsListContainer" class="gs-list"></div>
+        <div class="gs-footer">
+          <button id="btnGsDownloadBundle" class="gs-bundle-btn">Download Bundle</button>
+          <span class="gs-footer-hint">Exports all saved setups in one file. On another device, import it and choose which game to load.</span>
+          <button id="btnGsClearAll" class="danger-btn">Clear All Game Setups</button>
+        </div>
+      </div>
+
+    </div><!-- end gameSetupsPage -->
+
     <!-- ===== Reports Page ===== -->
     <div id="reportsPage" class="reports-page">
 
@@ -443,10 +525,14 @@
   <!-- Game Setup bundle picker modal -->
   <div id="gameSetupPickerModal" class="modal-overlay" hidden>
     <div class="modal-box">
-      <h3>Choose a Game Setup</h3>
-      <p class="modal-hint">Select a game to load its configuration.</p>
+      <h3>Import Game Setups</h3>
+      <p class="modal-hint">Check the setups you want to add to your saved list.</p>
       <div id="gameSetupPickerList" class="gs-picker-list"></div>
-      <button id="btnCancelSetupPicker" class="modal-cancel">Cancel</button>
+      <div class="modal-actions">
+        <button id="btnImportAllSetups" class="gs-bundle-btn">Import All</button>
+        <button id="btnImportSelectedSetups">Import Selected</button>
+        <button id="btnCancelSetupPicker" class="modal-cancel">Cancel</button>
+      </div>
     </div>
   </div>
 

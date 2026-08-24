@@ -2,11 +2,17 @@
 
 ## Overview
 
-Triangle Stats is a vanilla HTML/JS/CSS single-page application with four pages (Stats, Reports, History, Setup) toggled via `style.display`. There is no build step, framework, or package manager. All code lives in three files at the repo root:
+Triangle Stats is a vanilla HTML/JS/CSS single-page application with five pages (Stats, Game Setups, Reports, History, App Setup) toggled via `style.display`. There is no build step, framework, or package manager. All code lives in three files at the repo root:
 
 - `index.html` — HTML shell and layout
 - `app.js` — Domain engine, IndexedDB persistence, and UI wiring
 - `styles.css` — Visual styling
+
+Additional root-level files:
+
+- `sw.js` — Service worker: precaches core assets, stale-while-revalidate fetch strategy, `SKIP_WAITING` message handler
+- `manifest.json` — PWA web app manifest (name, icons, theme colour, display mode)
+- `icons/` — SVG and PNG icon assets (192, 512, 1024 px) used by the manifest and `apple-touch-icon`
 
 ## Critical: JavaScript Syntax Correctness
 
@@ -150,7 +156,17 @@ This ensures:
 
 ## Page Navigation
 
-All three pages are hidden by default in CSS (`display: none`). The `showPage(name)` function toggles visibility and updates the nav bar active state. On page load, `showPage("stats")` is called synchronously before any async DB work to prevent visual flash.
+All pages are hidden by default in CSS (`display: none`). The `showPage(name)` function toggles visibility and updates the nav bar active state. On page load, `showPage("stats")` is called synchronously before any async DB work to prevent visual flash.
+
+Pages and their display modes when active:
+
+| Page | `display` value |
+|------|-----------------|
+| `statsPage` | `""` (defers to CSS) |
+| `gameSetupsPage` | `"flex"` |
+| `reportsPage` | `"block"` |
+| `historyPage` | `"grid"` |
+| `configPage` (App Setup) | `"flex"` |
 
 ## Data Model
 
@@ -165,7 +181,7 @@ All IDs use `crypto.randomUUID()` for global uniqueness across devices.
 ### IndexedDB Configuration
 
 - **Database name:** `triangle-stats`
-- **Version:** 4
+- **Version:** 5
 
 | Store | Key | Indexes | Description |
 |-------|-----|---------|-------------|
@@ -174,8 +190,9 @@ All IDs use `crypto.randomUUID()` for global uniqueness across devices.
 | `events` | `id` | `seasonId` | Event names with type and optional seasonId |
 | `opponents` | `id` | — | Opponent names |
 | `eventCodes` | `id` | — | User-defined event codes |
+| `gameSetups` | `id` | — | Pre-configured match setups (not live matches) |
 
-**Database version history:** v2 added `events`; v3 added `opponents`; v4 added `eventCodes` (seeded with 10 defaults on first open)
+**Database version history:** v2 added `events`; v3 added `opponents`; v4 added `eventCodes` (seeded with 10 defaults on first open); v5 added `gameSetups`
 
 ### Match Record Fields
 
@@ -215,7 +232,27 @@ User-defined event codes are loaded at boot into `var userEventCodes = []` and u
 | `id` | UUID | Primary key |
 | `name` | string | Display name |
 
-Opponents are managed via the **Opponents card** on the Setup page (add, per-item rename, per-item delete, delete all). The opponent picker on the Stats page (`statsOpponentSelect`) is disabled as soon as a match starts and cannot be changed mid-match. Selecting "— New Opponent —" opens an inline name input and a ✓ confirm button (or Enter key) to create and persist the new opponent immediately.
+### Game Setup Record Fields
+
+Game setups are stored in `gameSetups` and are not match records — they are pre-configuration snapshots used to pre-fill the Stats page before a match starts.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Primary key (generated on save or import) |
+| `name` | string | Display label (`matchName` → `"vs. <opponent>"` → `"Game Setup"`) |
+| `savedAt` | ISO string | When the setup was saved locally |
+| `matchFormat` | `"bestOf"\|"straightSets"` | Match format |
+| `totalSets` | number | Number of sets |
+| `matchName` | string \| null | Pre-configured match name |
+| `matchDate` | ISO string \| null | Pre-configured match date/time |
+| `opponent` | `{id, name}` \| null | Embedded opponent snapshot |
+| `season` | `{id, name}` \| null | Embedded season snapshot |
+| `event` | `{id, name, eventType, seasonId}` \| null | Embedded event snapshot |
+| `appSettings` | object \| null | Optional settings override (rotation mode, lock time, etc.) |
+
+When a game setup is applied (`applyGameSetup`), any embedded opponent/season/event records are saved to their respective IndexedDB stores before the pickers are refreshed, ensuring they exist on the new device.
+
+Opponents are managed via the **Opponents card** on the **App Setup** page (add, per-item rename, per-item delete, delete all). The opponent picker on the Stats page (`statsOpponentSelect`) is disabled as soon as a match starts and cannot be changed mid-match. Selecting "— New Opponent —" opens an inline name input and a ✓ confirm button (or Enter key) to create and persist the new opponent immediately.
 
 ### STAT_INCREMENTED Event Fields
 
@@ -259,7 +296,9 @@ During an active match, the Reset button is protected by a padlock:
 - Default state: locked (🔒), Reset disabled
 - Click padlock to unlock (🔓), Reset enabled
 - Auto-relocks after a configurable number of seconds (default: 3)
-- Timer configurable via App Settings stepper on the Setup page
+- Timer configurable via the **Reset Auto-Lock** stepper in App Setup
+
+**Notification Duration** is separately configurable (1–10 s, default 3) via the **Notification Duration** stepper in App Setup. It controls how long `showToast()` keeps a message visible before fading it out.
 
 **Reset always clears** — clicking Reset when a match is active or already ended clears the timeline, all match fields, and re-renders the stats page blank. The only case where Reset does nothing is when no match record exists at all (`controller.getState()` returns `null`), in which case it only refreshes the date/time field. `lockReset()` must **only** be called when a match is active (`state && !state.endedAt`). Calling it unconditionally will start the auto-lock timer and leave the button disabled after the timer fires, even with no match in progress.
 
