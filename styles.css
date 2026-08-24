@@ -3527,3 +3527,14 @@ button:disabled {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+.toast-notification.toast-update {
+  background: var(--accent-2);
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toast-notification.toast-update:hover {
+  background: var(--accent-2-hover);
+}

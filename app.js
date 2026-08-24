@@ -668,7 +668,8 @@ function downloadText(filename, content, mimeType) {
 }
 
 function showToast(msg) {
-  var existing = document.querySelector(".toast-notification");
+  // Don't evict a persistent update toast when an info toast appears
+  var existing = document.querySelector(".toast-notification:not(.toast-update)");
   if (existing) existing.remove();
   var toast = document.createElement("div");
   toast.className = "toast-notification";
@@ -681,6 +682,46 @@ function showToast(msg) {
     toast.classList.remove("toast-visible");
     setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
   }, 3500);
+}
+
+function showUpdateToast(worker) {
+  if (document.querySelector(".toast-update")) return;
+  var toast = document.createElement("div");
+  toast.className = "toast-notification toast-update";
+  toast.textContent = "Update available \u2014 tap to refresh";
+  toast.setAttribute("role", "button");
+  toast.setAttribute("tabindex", "0");
+  document.body.appendChild(toast);
+  void toast.offsetWidth;
+  toast.classList.add("toast-visible");
+  function applyUpdate() {
+    worker.postMessage({ type: "SKIP_WAITING" });
+  }
+  toast.addEventListener("click", applyUpdate);
+  toast.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") applyUpdate();
+  });
+}
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.register("./sw.js").then(function (reg) {
+    // Waiting worker present on page load (update installed in a previous session)
+    if (reg.waiting) showUpdateToast(reg.waiting);
+    reg.addEventListener("updatefound", function () {
+      var newWorker = reg.installing;
+      if (!newWorker) return;
+      newWorker.addEventListener("statechange", function () {
+        if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+          showUpdateToast(newWorker);
+        }
+      });
+    });
+  });
+  // Reload once the new SW takes control so fresh-cached assets are served
+  navigator.serviceWorker.addEventListener("controllerchange", function () {
+    window.location.reload();
+  });
 }
 
 // ---- Game Setups ------------------------------------------
@@ -4685,4 +4726,6 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
   })();
+
+  registerServiceWorker();
 });
