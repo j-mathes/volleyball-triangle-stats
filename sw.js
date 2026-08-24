@@ -1,6 +1,8 @@
 "use strict";
 
-const CACHE_NAME = "triangle-stats-v1";
+// Bump CACHE_VERSION (and APP_VERSION in app.js) whenever any precached file changes
+const CACHE_VERSION = 1;
+const CACHE_NAME = "triangle-stats-v" + CACHE_VERSION;
 
 const PRECACHE_URLS = [
   "./",

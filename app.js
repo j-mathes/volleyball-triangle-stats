@@ -6,6 +6,9 @@
 
 "use strict";
 
+// Bump APP_VERSION (and CACHE_VERSION in sw.js) whenever cached files change
+const APP_VERSION = "1.0.0";
+
 // ---- Compatibility polyfills ------------------------------
 
 // crypto.randomUUID — available since Safari 15.4; polyfill for older iPadOS
